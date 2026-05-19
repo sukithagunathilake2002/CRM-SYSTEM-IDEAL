@@ -1,0 +1,19 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class CompetitionVehicle extends Model
+{
+    use HasFactory;
+
+    protected $table = 'competition_vehicles';
+
+    protected $fillable = [
+        'brand',
+        'model',
+    ];
+}
+
