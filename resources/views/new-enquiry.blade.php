@@ -32,13 +32,7 @@
         <a href="{{ route('dashboard.main') }}" class="brand-logo-link" aria-label="Go to dashboard">
             <img src="{{ asset('icons/logo.png') }}" alt="Ideal Motors" class="brand-logo">
         </a>
-        <div class="top-icons">
-            <span class="icon-btn icon-grid" aria-hidden="true"></span>
-            <span class="icon-btn icon-menu" aria-hidden="true"></span>
-            <span class="icon-btn icon-user" aria-hidden="true"></span>
-            <span class="icon-btn icon-search" aria-hidden="true"></span>
-            <span class="icon-btn icon-bell" aria-hidden="true"></span>
-        </div>
+        <div class="top-icons top-icons-right"></div>
     </header>
 
     <div class="enquiry-shell">

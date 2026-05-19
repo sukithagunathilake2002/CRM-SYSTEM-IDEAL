@@ -19,41 +19,30 @@
     }
     $initials = $initials !== '' ? $initials : 'U';
 
-    $activeBookings = \App\Models\Booking::query()->count();
-    $tasksDone = \App\Models\Enquiry::query()
+    $viewerId = (int) ($user?->id ?? 0);
+
+    $activeBookings = \App\Models\Booking::query()
+        ->whereHas('enquiry', function ($query) use ($viewerId) {
+            $query->where('user_id', $viewerId);
+        })
+        ->count();
+
+    $leadsDone = \App\Models\Enquiry::query()
+        ->where('user_id', $viewerId)
         ->whereRaw("LOWER(COALESCE(followup_status, '')) = ?", ['done'])
         ->count();
+
+    $sriLankaHour = now('Asia/Colombo')->hour;
+    if ($sriLankaHour >= 5 && $sriLankaHour < 12) {
+        $greeting = 'Good Morning';
+    } elseif ($sriLankaHour >= 12 && $sriLankaHour < 17) {
+        $greeting = 'Good Afternoon';
+    } else {
+        $greeting = 'Good Evening';
+    }
 @endphp
 
 <div class="crm-dashboard">
-    <aside class="crm-sidebar" aria-label="Quick navigation">
-        <a href="{{ route('dashboard.main') }}" class="crm-side-btn active" aria-label="Dashboard">
-            <span class="crm-side-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" focusable="false">
-                    <rect x="4" y="4" width="7" height="7" rx="1.5"></rect>
-                    <rect x="13" y="4" width="7" height="7" rx="1.5"></rect>
-                    <rect x="4" y="13" width="7" height="7" rx="1.5"></rect>
-                    <rect x="13" y="13" width="7" height="7" rx="1.5"></rect>
-                </svg>
-            </span>
-        </a>
-        <a href="{{ url('/epr') }}" class="crm-side-btn" aria-label="EPR list">
-            <span class="crm-side-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" focusable="false">
-                    <path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"></path>
-                </svg>
-            </span>
-        </a>
-        <a href="{{ route('dashboard.home') }}" class="crm-side-btn" aria-label="Role dashboard">
-            <span class="crm-side-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" focusable="false">
-                    <path d="M19 12a7 7 0 1 1-2.05-4.95" stroke-linecap="round" stroke-linejoin="round"></path>
-                    <path d="M19 5v4h-4" stroke-linecap="round" stroke-linejoin="round"></path>
-                </svg>
-            </span>
-        </a>
-    </aside>
-
     <main class="crm-main">
         <header class="crm-header">
             <a href="{{ route('dashboard.main') }}" class="brand-logo-link" aria-label="Go to dashboard">
@@ -61,27 +50,14 @@
             </a>
 
             <label class="crm-search" for="dashboardSearch">
-                <span class="crm-search-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" focusable="false">
-                        <circle cx="11" cy="11" r="6"></circle>
-                        <path d="M16 16l4 4" stroke-linecap="round"></path>
-                    </svg>
-                </span>
                 <input id="dashboardSearch" type="search" placeholder="Search here">
             </label>
-
-            <button type="button" class="crm-alert-btn" aria-label="Notifications">
-                <svg viewBox="0 0 24 24" focusable="false">
-                    <path d="M15 18H5l1.2-1.6A2 2 0 0 0 6.6 15V11a5.4 5.4 0 0 1 10.8 0v4a2 2 0 0 0 .4 1.4L19 18h-4" stroke-linecap="round" stroke-linejoin="round"></path>
-                    <path d="M10 20a2 2 0 0 0 4 0" stroke-linecap="round"></path>
-                </svg>
-            </button>
         </header>
 
         <section class="crm-shell">
             <div class="crm-perf-top">
                 <div>
-                    <p class="crm-greeting">Good Morning,</p>
+                    <p class="crm-greeting">{{ $greeting }},</p>
                     <h2 class="crm-title">System Performance</h2>
                 </div>
 
@@ -93,7 +69,7 @@
                         </div>
                         <div class="crm-stat-pill">
                             <span class="crm-stat-dot"></span>
-                            <span>{{ $tasksDone }} Tasks done</span>
+                            <span>{{ $leadsDone }} Leads done</span>
                         </div>
                     </div>
                     <div class="crm-profile-mini">

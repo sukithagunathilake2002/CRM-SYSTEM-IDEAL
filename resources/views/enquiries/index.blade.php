@@ -9,15 +9,8 @@
             <img src="{{ asset('icons/logo.png') }}" alt="Ideal Motors" class="brand-logo">
         </a>
 
-        <div class="top-icons-left">
-            <button type="button" class="top-icon grid" aria-label="Grid"></button>
-            <button type="button" class="top-icon menu" id="eprMenuFilterBtn" aria-label="Open filters"></button>
-            <button type="button" class="top-icon user" aria-label="User"></button>
-        </div>
-
         <div class="top-icons-right">
-            <button type="button" class="top-icon search" aria-label="Search"></button>
-            <button type="button" class="top-icon bell" aria-label="Notifications"></button>
+            <button type="button" class="top-icon menu" id="eprMenuFilterBtn" aria-label="Open filters" hidden></button>
         </div>
     </header>
 
