@@ -32,6 +32,18 @@
         ->whereRaw("LOWER(COALESCE(followup_status, '')) = ?", ['done'])
         ->count();
 
+    $todaySriLanka = now('Asia/Colombo')->toDateString();
+    $todayFollowups = \App\Models\Enquiry::query()
+        ->with(['customer:id,title,name'])
+        ->select(['id', 'customer_id', 'follow_type', 'follow_date', 'follow_time', 'followup_status'])
+        ->where('user_id', $viewerId)
+        ->whereDate('follow_date', $todaySriLanka)
+        ->whereRaw("LOWER(COALESCE(followup_status, '')) <> ?", ['done'])
+        ->orderBy('follow_time')
+        ->limit(8)
+        ->get();
+    $todayFollowupCount = $todayFollowups->count();
+
     $sriLankaHour = now('Asia/Colombo')->hour;
     if ($sriLankaHour >= 5 && $sriLankaHour < 12) {
         $greeting = 'Good Morning';
@@ -52,6 +64,48 @@
             <label class="crm-search" for="dashboardSearch">
                 <input id="dashboardSearch" type="search" placeholder="Search here">
             </label>
+
+            <div class="top-icons-right crm-header-actions">
+                <details class="crm-notifications">
+                    <summary class="crm-notify-btn" aria-label="Today's follow-up notifications">
+                        <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                            <path d="M15 18H5l1.2-1.6A2 2 0 0 0 6.6 15V11a5.4 5.4 0 0 1 10.8 0v4a2 2 0 0 0 .4 1.4L19 18h-4" stroke-linecap="round" stroke-linejoin="round"></path>
+                            <path d="M10 20a2 2 0 0 0 4 0" stroke-linecap="round"></path>
+                        </svg>
+                        @if($todayFollowupCount > 0)
+                            <span class="crm-notify-badge">{{ $todayFollowupCount }}</span>
+                        @endif
+                    </summary>
+                    <div class="crm-notify-menu">
+                        <p class="crm-notify-title">Today's Followups</p>
+                        @forelse($todayFollowups as $followup)
+                            @php
+                                $customerTitle = trim((string) ($followup->customer?->title ?? ''));
+                                $customerName = trim((string) ($followup->customer?->name ?? 'Customer'));
+                                $customerLabel = trim($customerTitle . ' ' . $customerName);
+                                $followupTime = $followup->follow_time ? substr((string) $followup->follow_time, 0, 5) : '--:--';
+                                $followupType = trim((string) ($followup->follow_type ?? 'Followup'));
+                            @endphp
+                            <a href="{{ route('followup.show', $followup->id) }}" class="crm-notify-item">
+                                <span>{{ $customerLabel !== '' ? $customerLabel : 'Customer' }}</span>
+                                <small>{{ $followupType }} at {{ $followupTime }}</small>
+                            </a>
+                        @empty
+                            <p class="crm-notify-empty">No followups due today.</p>
+                        @endforelse
+                    </div>
+                </details>
+
+                <a href="{{ route('dashboard.home') }}" class="crm-analytics-nav" aria-label="Open analyzing dashboard" title="Analyzing Dashboard">
+                    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                        <path d="M4 19h16" stroke-linecap="round"></path>
+                        <path d="M7 18v-5" stroke-linecap="round"></path>
+                        <path d="M12 18v-8" stroke-linecap="round"></path>
+                        <path d="M17 18v-11" stroke-linecap="round"></path>
+                        <path d="M6 11l4-3 3 2 5-5" stroke-linecap="round" stroke-linejoin="round"></path>
+                    </svg>
+                </a>
+            </div>
         </header>
 
         <section class="crm-shell">
