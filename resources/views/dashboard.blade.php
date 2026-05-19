@@ -58,7 +58,7 @@
             <div class="crm-perf-top">
                 <div>
                     <p class="crm-greeting">{{ $greeting }},</p>
-                    <h2 class="crm-title">System Performance</h2>
+                    <h2 class="crm-title">{{ $displayName }}</h2>
                 </div>
 
                 <article class="crm-stats-card" aria-label="Performance summary">
