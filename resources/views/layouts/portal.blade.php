@@ -31,6 +31,14 @@
                             <button type="submit">Logout</button>
                         </form>
                     </div>
+                    <a href="{{ route('dashboard.main') }}" class="portal-icon-btn" aria-label="Open main dashboard" title="Dashboard">
+                        <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                            <rect x="4" y="4" width="7" height="7" rx="1.5"></rect>
+                            <rect x="13" y="4" width="7" height="7" rx="1.5"></rect>
+                            <rect x="4" y="13" width="7" height="7" rx="1.5"></rect>
+                            <rect x="13" y="13" width="7" height="7" rx="1.5"></rect>
+                        </svg>
+                    </a>
                     @endunless
                 @endauth
                 <button type="button" id="themeToggle" class="theme-toggle-btn theme-toggle-icon" aria-label="Toggle dark mode" aria-pressed="false"></button>
