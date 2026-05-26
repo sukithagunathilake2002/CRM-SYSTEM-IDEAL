@@ -476,13 +476,21 @@ class ProspectSheetController extends Controller
             return redirect('/epr')->with('success', 'Prospect sheet saved.');
         }
 
-        $nextStep = ($validated['active_step'] ?? 1) + 1;
+        $currentStep = (int) ($validated['active_step'] ?? 1);
+        $nextStep = $currentStep + 1;
+
+        // Step 2 shortcut: if customer is a first-time buyer, skip Exchange Details (step 3)
+        // and navigate directly to Offer Details (step 4).
+        if ($currentStep === 2 && ($firstTimeBuyer ?? null) === 'yes') {
+            $nextStep = 4;
+        }
+
         $nextStep = max(1, min(5, $nextStep));
 
-        if (($validated['active_step'] ?? 1) >= 5) {
+        if ($currentStep >= 5) {
             return redirect()
                 ->route('prospect.show', ['enquiry' => $enquiry->id, 'step' => 5])
-                ->with('success', 'Prospect sheet saved.');
+                ->with('success', 'Prospect sheet submitted successfully.');
         }
 
         return redirect()

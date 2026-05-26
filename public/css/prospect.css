@@ -44,6 +44,63 @@ body {
     padding-left: 20px;
 }
 
+.prospect-submit-popup {
+    position: fixed;
+    inset: 0;
+    background: rgba(9, 13, 24, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1400;
+    padding: 16px;
+}
+
+.prospect-submit-popup.hidden {
+    display: none;
+}
+
+.prospect-submit-popup-card {
+    width: min(420px, 100%);
+    border-radius: 18px;
+    border: 1px solid #b8c0d0;
+    background: linear-gradient(180deg, #f4f6fb 0%, #e6ebf5 100%);
+    box-shadow: 0 18px 34px rgba(14, 21, 37, 0.28);
+    padding: 24px 22px 20px;
+    text-align: center;
+}
+
+.prospect-submit-icon {
+    width: 58px;
+    height: 58px;
+    border-radius: 999px;
+    margin: 0 auto 12px;
+    background: #16a34a;
+    color: #fff;
+    font-size: 30px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 16px rgba(22, 163, 74, 0.32);
+}
+
+.prospect-submit-popup-card h4 {
+    margin: 0;
+    font-size: 25px;
+    font-weight: 800;
+    color: #18203a;
+}
+
+.prospect-submit-popup-card p {
+    margin: 8px 0 18px;
+    font-size: 14px;
+    color: #43506f;
+}
+
+.prospect-submit-popup-btn {
+    min-width: 140px;
+}
+
 .stepper {
     display: flex;
     gap: 6px;
@@ -331,10 +388,8 @@ input[type='file'] {
 }
 
 .extra-image-row {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    margin-top: 8px;
+    display: block;
+    margin: 0;
 }
 
 .extra-image-row input[type='file'] {
@@ -546,31 +601,59 @@ body {
 }
 
 .prospect-topbar {
-    height: 46px;
-    background: #030303;
+    min-height: 54px;
+    background: #dfe2e9;
     display: grid;
     grid-template-columns: auto 1fr auto;
     align-items: center;
-    gap: 14px;
-    padding: 0 10px;
-    border-bottom: 1px solid #9da0a9;
+    gap: 10px;
+    padding: 6px 10px;
+    border: 1px solid #bcc3d2;
+    border-radius: 0 0 12px 12px;
 }
 
 .prospect-topbar .brand-logo {
-    width: 102px;
+    width: 74px;
     height: auto;
     display: block;
+}
+
+.prospect-top-search {
+    width: 100%;
+    display: block;
+}
+
+.prospect-top-search input {
+    width: 100%;
+    min-height: 36px;
+    border: 1px solid #b9c0ce;
+    border-radius: 999px;
+    background: #f3f5f9;
+    color: #1a2030;
+    font-size: 13px;
+    padding: 0 14px;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.prospect-top-search input:focus {
+    border-color: #9aa6c3;
+    box-shadow: 0 0 0 3px rgba(77, 102, 156, 0.16);
 }
 
 .prospect-topbar .top-icons-left,
 .prospect-topbar .top-icons-right {
     display: flex;
     align-items: center;
-    gap: 9px;
+    gap: 8px;
 }
 
 .prospect-topbar .top-icons-left {
     justify-content: center;
+}
+
+.prospect-topbar .top-icons-right {
+    justify-self: end;
 }
 
 .prospect-topbar .top-icon {
@@ -721,7 +804,8 @@ body {
 }
 
 .summary-card {
-    margin: 0 12px 12px;
+    width: min(820px, calc(100% - 24px));
+    margin: 0 auto 12px;
     background: #4b0000;
     color: #fff;
     border-radius: 11px;
@@ -937,6 +1021,11 @@ body {
         font-size: 8px;
     }
 
+    .summary-card {
+        width: calc(100% - 20px);
+        margin: 0 auto 12px;
+    }
+
     .summary-row {
         grid-template-columns: 106px 1fr;
         gap: 8px;
@@ -963,10 +1052,17 @@ body {
 @media (max-width: 480px) {
     .prospect-topbar {
         gap: 8px;
+        padding: 6px 8px;
     }
 
     .prospect-topbar .brand-logo {
-        width: 84px;
+        width: 66px;
+    }
+
+    .prospect-top-search input {
+        min-height: 34px;
+        font-size: 12px;
+        padding: 0 12px;
     }
 
     .prospect-topbar .top-icons-left,
@@ -1374,7 +1470,12 @@ body {
 }
 
 .exchange-step .exchange-detail-wrap {
-    margin-top: 4px;
+    margin-top: 8px;
+    border: 1px solid #bcc0c8;
+    border-radius: 14px;
+    background: #eceef3;
+    padding: 10px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
 .exchange-step .sub-title {
@@ -1385,8 +1486,8 @@ body {
 
 .exchange-step .exchange-input-grid,
 .exchange-step .exchange-price-grid {
-    gap: 8px;
-    margin-bottom: 6px;
+    gap: 10px;
+    margin-bottom: 8px;
 }
 
 .exchange-step .exchange-input-grid {
@@ -1425,8 +1526,8 @@ body {
 }
 
 .exchange-step .exchange-switch-row {
-    margin-top: 8px;
-    margin-bottom: 6px;
+    margin-top: 10px;
+    margin-bottom: 8px;
 }
 
 .exchange-step .exchange-switch {
@@ -1467,17 +1568,17 @@ body {
 }
 
 .exchange-step #exchangeImageFields {
-    margin-top: 4px;
-    border: 0;
-    background: transparent;
-    border-radius: 0;
-    padding: 0;
+    margin-top: 8px;
+    border: 1px solid #c6cad2;
+    background: #f5f6fa;
+    border-radius: 12px;
+    padding: 10px;
 }
 
 .exchange-step .exchange-upload-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 2px;
+    gap: 10px;
 }
 
 .exchange-step .exchange-upload-grid-extra {
@@ -1486,17 +1587,45 @@ body {
 
 .exchange-step .exchange-upload-tile {
     position: relative;
-    min-height: 84px;
-    background: #8b8b8e;
+    min-height: 112px;
+    border-radius: 10px;
+    border: 1px dashed #8b909a;
+    background: linear-gradient(160deg, #8f939c, #7f848e);
     color: #fff;
-    font-size: 11px;
-    font-weight: 500;
+    font-size: 12px;
+    font-weight: 600;
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
     padding: 8px;
     cursor: pointer;
+    overflow: hidden;
+    transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.exchange-step .exchange-upload-tile:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 12px rgba(25, 31, 48, 0.16);
+}
+
+.exchange-step .exchange-upload-text {
+    z-index: 2;
+}
+
+.exchange-step .exchange-upload-preview {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 1;
+}
+
+.exchange-step .exchange-upload-tile.has-preview {
+    background: #2a2a2d;
+    border-style: solid;
+    border-color: #5c6370;
 }
 
 .exchange-step .exchange-upload-tile input[type='file'] {
@@ -1513,17 +1642,18 @@ body {
 }
 
 .exchange-step .exchange-more-row {
-    margin-top: 8px;
+    margin-top: 10px;
 }
 
 .exchange-step .exchange-more-btn {
-    width: 26px;
-    height: 14px;
-    border: 0;
-    border-radius: 999px;
+    width: 28px;
+    height: 28px;
+    border: 1px solid #141722;
+    border-radius: 50%;
     background: #121317;
     color: #fff;
-    font-size: 11px;
+    font-size: 16px;
+    font-weight: 700;
     line-height: 1;
     padding: 0;
     cursor: pointer;
@@ -1538,16 +1668,83 @@ body {
     color: #5f6269;
 }
 
+.exchange-existing-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.exchange-existing-preview-item {
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #b3b5bc;
+    background: #f2f3f6;
+    min-height: 88px;
+}
+
+.exchange-existing-preview-item img {
+    width: 100%;
+    height: 100%;
+    min-height: 88px;
+    object-fit: cover;
+    display: block;
+}
+
+.extra-image-row {
+    display: block;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    background: transparent;
+}
+
+.extra-image-row .exchange-upload-tile {
+    min-height: 92px;
+}
+
+.exchange-step .extra-image-remove-top {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    z-index: 4;
+    width: 24px;
+    height: 24px;
+    border: 1px solid #7f1f1f;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.94);
+    color: #9a1111;
+    font-size: 18px;
+    line-height: 1;
+    font-weight: 700;
+    padding: 0;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.exchange-step .extra-image-remove-top:hover {
+    background: #fff1f1;
+}
+
 @media (max-width: 900px) {
     .exchange-step .exchange-input-grid,
     .exchange-step .exchange-price-grid,
     .exchange-step .exchange-upload-grid,
-    .exchange-step .exchange-upload-grid-extra {
+    .exchange-step .exchange-upload-grid-extra,
+    .exchange-existing-preview-grid {
         grid-template-columns: 1fr;
     }
 
     .exchange-step .exchange-interest-segment {
         max-width: 100%;
+    }
+
+    .extra-image-row {
+        flex-direction: column;
+        align-items: stretch;
     }
 }
 
@@ -1557,8 +1754,17 @@ body {
 }
 
 .offer-step .offer-title-line {
-    margin-top: 2px;
-    margin-bottom: 8px;
+    max-width: 860px;
+    margin: 2px auto 12px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: 1px solid #b8bcc6;
+    background: linear-gradient(180deg, #f7f8fb 0%, #eceef3 100%);
+    box-shadow: 0 4px 10px rgba(22, 28, 43, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
 }
 
 .offer-step h3 {
@@ -1568,28 +1774,45 @@ body {
 
 .offer-step h3::before {
     content: "Offer Details";
-    font-size: 12px;
+    font-size: 28px;
     font-weight: 700;
-    color: #111;
+    color: #0f1220;
+    letter-spacing: 0.2px;
 }
 
 .offer-step .offer-edit-label {
-    font-size: 12px;
-    font-weight: 600;
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid #b7bcc8;
+    background: #ffffff;
+    font-size: 14px;
+    font-weight: 700;
+    color: #1f2330;
 }
 
 .offer-step .offer-edit-label input {
-    width: auto;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: #c80909;
+}
+
+.offer-step .offer-edit-label span {
+    line-height: 1;
 }
 
 .offer-step .offer-panel-card {
     max-width: 860px;
-    margin: 0 auto 10px;
-    background: #efeff1;
-    border: 2px solid #b4b7bf;
-    border-radius: 16px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
-    padding: 10px 12px;
+    margin: 0 auto 12px;
+    background: linear-gradient(180deg, #f4f5f8 0%, #eceef3 100%);
+    border: 1px solid #b8bcc6;
+    border-radius: 14px;
+    box-shadow: 0 6px 14px rgba(22, 28, 43, 0.12);
+    padding: 12px 14px;
 }
 
 .offer-step .offer-panel-head {
@@ -1600,9 +1823,10 @@ body {
 }
 
 .offer-step .offer-panel-head span {
-    font-size: 14px;
+    font-size: 17px;
     font-weight: 700;
-    color: #17191d;
+    color: #12141a;
+    letter-spacing: 0.2px;
 }
 
 .offer-step .offer-close-btn {
@@ -1623,54 +1847,71 @@ body {
 }
 
 .offer-step .offer-price-value-row input {
-    width: 160px;
+    width: 180px;
     border: 0;
-    border-bottom: 1px solid #72757d;
+    border-bottom: 2px solid #d02b2b;
     border-radius: 0;
     background: transparent;
-    padding: 1px 0 3px;
+    padding: 2px 0 4px;
     text-align: center;
-    font-size: 28px;
-    font-weight: 500;
+    font-size: 20px;
+    font-weight: 700;
     color: #1a1c21;
 }
 
 .offer-step .offer-meta-row {
-    margin-top: 6px;
+    margin-top: 8px;
     display: flex;
     justify-content: flex-end;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
 }
 
 .offer-step .offer-free-check {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     margin: 0;
+    padding: 5px 10px;
+    border-radius: 999px;
+    border: 1px solid #b8bcc6;
+    background: #ffffff;
 }
 
 .offer-step .offer-free-check input[type='checkbox'] {
-    width: 14px;
-    height: 14px;
+    width: 18px;
+    height: 18px;
     margin: 0;
+    accent-color: #c80909;
+    cursor: pointer;
 }
 
 .offer-step .offer-free-check span {
-    font-size: 22px;
-    font-weight: 500;
+    font-size: 24px;
+    font-weight: 700;
+    color: #1d2027;
+    line-height: 1;
+}
+
+.offer-step .offer-discount-label {
+    font-size: 20px;
+    font-weight: 700;
     color: #2b2d33;
+    line-height: 1;
+    min-width: 108px;
+    text-align: left;
 }
 
 .offer-step .offer-meta-row input[type='number'] {
-    width: 170px;
+    width: 180px;
     border: 0;
-    border-bottom: 1px solid #72757d;
+    border-bottom: 1px solid #7b7f89;
     border-radius: 0;
     background: transparent;
-    padding: 1px 0 3px;
+    padding: 2px 0 4px;
     text-align: center;
-    font-size: 24px;
+    font-size: 18px;
+    font-weight: 600;
     color: #2b2d33;
 }
 
@@ -1680,11 +1921,12 @@ body {
 
 .offer-step .offer-total-strip {
     max-width: 860px;
-    margin: 26px auto 0;
-    background: #edd8bc;
-    border: 2px solid #d4ba9b;
+    margin: 18px auto 0;
+    background: linear-gradient(180deg, #eddcc3 0%, #e6d2b5 100%);
+    border: 1px solid #cfb28c;
     border-radius: 18px;
-    padding: 10px 14px;
+    padding: 12px 14px;
+    box-shadow: 0 6px 12px rgba(108, 78, 36, 0.16);
 }
 
 .offer-step .offer-total-strip-head,
@@ -1697,8 +1939,9 @@ body {
 
 .offer-step .offer-total-strip-head {
     color: #131518;
-    font-size: 30px;
+    font-size: 24px;
     font-weight: 700;
+    letter-spacing: 0.2px;
 }
 
 .offer-step .offer-total-strip-values {
@@ -1707,7 +1950,7 @@ body {
 
 .offer-step .offer-total-strip-values strong {
     color: #e10404;
-    font-size: 34px;
+    font-size: 26px;
     font-weight: 700;
 }
 
@@ -1716,22 +1959,41 @@ body {
 }
 
 @media (max-width: 900px) {
+    .offer-step .offer-title-line {
+        padding: 8px 10px;
+        margin-bottom: 10px;
+    }
+
+    .offer-step h3::before {
+        font-size: 22px;
+    }
+
+    .offer-step .offer-edit-label {
+        font-size: 12px;
+        padding: 5px 10px;
+    }
+
     .offer-step .offer-price-value-row input {
         font-size: 18px;
-        width: 130px;
+        width: 150px;
     }
 
     .offer-step .offer-free-check span {
-        font-size: 14px;
+        font-size: 20px;
+    }
+
+    .offer-step .offer-discount-label {
+        font-size: 16px;
+        min-width: 82px;
     }
 
     .offer-step .offer-meta-row input[type='number'] {
-        width: 140px;
-        font-size: 14px;
+        width: 150px;
+        font-size: 16px;
     }
 
     .offer-step .offer-total-strip-head {
-        font-size: 16px;
+        font-size: 20px;
     }
 
     .offer-step .offer-total-strip-values strong {
@@ -1765,6 +2027,30 @@ body {
     border: 0;
     box-shadow: none;
     padding: 8px 14px 14px;
+    position: relative;
+}
+
+.summary-modal-close {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    width: 28px;
+    height: 28px;
+    border: 1px solid #9ca3b3;
+    border-radius: 999px;
+    background: #f3f5fa;
+    color: #1d2335;
+    font-size: 18px;
+    line-height: 1;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.summary-modal-close:hover {
+    background: #ffffff;
 }
 
 .summary-modal-card h3 {
@@ -2028,9 +2314,17 @@ body {
     border-radius: 50%;
     align-items: center;
     justify-content: center;
-    font-size: 26px;
-    background: #bdbec4;
+    background: #c4c6cc;
     border: 3px solid #9ca0aa;
+    overflow: hidden;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.plan-step .plan-status-item .plan-status-icon {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
 }
 
 .plan-step .plan-status-item em {
@@ -2039,22 +2333,39 @@ body {
     font-style: normal;
     font-size: 13px;
     color: #1f2228;
-}
-
-.plan-step .plan-status-item.hot .face {
-    color: #ff2f1e;
-}
-
-.plan-step .plan-status-item.warm .face {
-    color: #ff9500;
-}
-
-.plan-step .plan-status-item.cold .face {
-    color: #0837ff;
+    transition: color 0.2s ease;
 }
 
 .plan-step .plan-status-item input:checked + .face {
     box-shadow: 0 0 0 3px #2b2e34 inset;
+    transform: translateY(-1px);
+}
+
+.plan-step .plan-status-item.hot input:checked + .face {
+    border-color: #cf2a2a;
+    box-shadow: 0 0 0 3px #2b2e34 inset, 0 0 16px rgba(229, 57, 53, 0.6);
+}
+
+.plan-step .plan-status-item.warm input:checked + .face {
+    border-color: #e67e22;
+    box-shadow: 0 0 0 3px #2b2e34 inset, 0 0 16px rgba(255, 140, 0, 0.65);
+}
+
+.plan-step .plan-status-item.cold input:checked + .face {
+    border-color: #2a66d6;
+    box-shadow: 0 0 0 3px #2b2e34 inset, 0 0 16px rgba(30, 136, 229, 0.6);
+}
+
+.plan-step .plan-status-item.hot input:checked ~ em {
+    color: #b71c1c;
+}
+
+.plan-step .plan-status-item.warm input:checked ~ em {
+    color: #c75b12;
+}
+
+.plan-step .plan-status-item.cold input:checked ~ em {
+    color: #0d47a1;
 }
 
 .plan-step .plan-remark-wrap {
@@ -2062,26 +2373,15 @@ body {
     margin-bottom: 12px;
 }
 
-.plan-step .plan-remark-wrap input {
+.plan-step .plan-remark-wrap .plan-remark-select {
     width: 100%;
     border: 1px solid #b3b6bf;
     border-radius: 22px;
     background: #f4f4f6;
-    padding: 9px 46px 9px 16px;
+    padding: 9px 14px;
     font-size: 13px;
     color: #1f2228;
-}
-
-.plan-step .plan-remark-wrap .arrow {
-    position: absolute;
-    right: 16px;
-    top: 50%;
-    width: 10px;
-    height: 10px;
-    border-right: 3px solid #1f2228;
-    border-bottom: 3px solid #1f2228;
-    transform: translateY(-60%) rotate(45deg);
-    pointer-events: none;
+    margin-bottom: 0;
 }
 
 .plan-step .plan-reschedule-fields {
@@ -2138,30 +2438,42 @@ body {
 }
 
 .plan-step .plan-schedule-field {
-    position: relative;
+    background: linear-gradient(180deg, #f3f4f8 0%, #e7eaf2 100%);
+    border: 1px solid #b7bdcb;
+    border-radius: 16px;
+    padding: 10px 12px 11px;
+    box-shadow: 0 4px 10px rgba(30, 40, 58, 0.08);
 }
 
 .plan-step .plan-schedule-field label {
-    position: absolute;
-    left: 12px;
-    top: 6px;
-    font-size: 10px;
-    color: #8f929a;
+    display: block;
+    margin: 0 0 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #4b5364;
+    letter-spacing: 0.15px;
+}
+
+.plan-step .plan-schedule-input-wrap {
+    position: relative;
 }
 
 .plan-step .plan-schedule-grid input {
     width: 100%;
-    border: 1px solid #b3b6bf;
-    border-radius: 18px;
-    background: #f4f4f6;
-    min-height: 44px;
+    border: 1px solid #b7bdcb;
+    border-radius: 12px;
+    background: #ffffff;
+    min-height: 40px;
     font-size: 14px;
-    padding: 16px 36px 7px 12px;
+    font-weight: 600;
+    color: #111725;
+    padding: 8px 36px 8px 12px;
 }
 
 .plan-step .plan-schedule-grid input:focus {
     outline: 0;
-    border-color: #131720;
+    border-color: #1a315e;
+    box-shadow: 0 0 0 3px rgba(26, 49, 94, 0.16);
 }
 
 .plan-step .plan-input-icon {
@@ -2170,8 +2482,9 @@ body {
     top: 50%;
     width: 14px;
     height: 14px;
-    transform: translateY(-25%);
+    transform: translateY(-50%);
     pointer-events: none;
+    opacity: 0.85;
 }
 
 .plan-step .plan-input-icon.calendar {
@@ -2211,6 +2524,11 @@ body {
     width: 4px;
     height: 1px;
     background: #1d2129;
+}
+
+.plan-step .plan-schedule-grid input[type="date"]::-webkit-calendar-picker-indicator,
+.plan-step .plan-schedule-grid input[type="time"]::-webkit-calendar-picker-indicator {
+    opacity: 0;
 }
 
 @media (max-width: 900px) {
@@ -2253,5 +2571,73 @@ body {
 
     .plan-step .plan-schedule-grid {
         grid-template-columns: 1fr;
+    }
+}
+
+/* Final action bar refinement */
+.actions {
+    position: fixed;
+    left: 50%;
+    bottom: 10px;
+    transform: translateX(-50%);
+    width: min(1120px, calc(100% - 20px));
+    display: grid;
+    grid-template-columns: 1fr 1.2fr 1fr;
+    gap: 12px;
+    padding: 10px;
+    border-radius: 18px;
+    background: rgba(229, 232, 241, 0.92);
+    border: 1px solid #b7bcc8;
+    box-shadow: 0 10px 22px rgba(22, 29, 44, 0.2);
+    backdrop-filter: blur(6px);
+    z-index: 999;
+}
+
+.actions .btn {
+    border: 0;
+    min-height: 44px;
+    border-radius: 999px;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    cursor: pointer;
+    transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
+    box-shadow: 0 8px 14px rgba(16, 20, 32, 0.18);
+}
+
+.actions .btn:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.03);
+    box-shadow: 0 12px 18px rgba(16, 20, 32, 0.24);
+}
+
+#backBtn,
+#nextBtn {
+    background: linear-gradient(180deg, #f11212 0%, #cf0909 100%);
+}
+
+#saveExitBtn {
+    background: linear-gradient(180deg, #263057 0%, #1b2344 100%);
+}
+
+@media (max-width: 900px) {
+    .actions {
+        width: calc(100% - 16px);
+        gap: 8px;
+        padding: 8px;
+        border-radius: 14px;
+    }
+
+    .actions .btn {
+        min-height: 40px;
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 620px) {
+    .actions {
+        grid-template-columns: 1fr;
+        bottom: 8px;
     }
 }
