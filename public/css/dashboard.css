@@ -11,15 +11,119 @@
 }
 
 html.theme-dark {
-    --page-bg: #0f1428;
-    --surface: #151c36;
-    --surface-card: #101a33;
-    --line: #2e3b62;
-    --text: #e5e7eb;
-    --text-soft: #c1c9dd;
-    --navy: #7a8fd9;
-    --red: #ff5260;
-    --green: #34d399;
+    --page-bg: #0b1220;
+    --surface: #111a2e;
+    --surface-card: #16233b;
+    --line: #2f446d;
+    --text: #eaf2ff;
+    --text-soft: #b7c7e6;
+    --navy: #8fa8ff;
+    --red: #ff6077;
+    --green: #3dd8a3;
+}
+
+html.theme-dark body {
+    background: radial-gradient(circle at 18% 12%, #1a2747, #0b1220) !important;
+    color: #eaf2ff !important;
+}
+
+html.theme-dark .crm-dashboard,
+html.theme-dark .epr-page,
+html.theme-dark .enquiry-page,
+html.theme-dark .enquiry-map-page,
+html.theme-dark .prospect-page,
+html.theme-dark .booking-page,
+html.theme-dark .followup-page,
+html.theme-dark .emi-page {
+    background: #0b1220 !important;
+    color: #eaf2ff !important;
+}
+
+html.theme-dark .crm-shell,
+html.theme-dark .crm-stats-card,
+html.theme-dark .crm-action-card,
+html.theme-dark .enquiry-shell,
+html.theme-dark .epr-filter-sheet,
+html.theme-dark .epr-list,
+html.theme-dark .epr-card,
+html.theme-dark .map-filter-form,
+html.theme-dark .map-summary,
+html.theme-dark .map-filter-note,
+html.theme-dark .map-list,
+html.theme-dark .map-list-card,
+html.theme-dark .followup-card,
+html.theme-dark .lead-summary-card,
+html.theme-dark .booking-shell,
+html.theme-dark .summary-modern-total,
+html.theme-dark .summary-modal-card,
+html.theme-dark .prospect-step,
+html.theme-dark .summary-card,
+html.theme-dark .emi-shell,
+html.theme-dark .emi-card,
+html.theme-dark .flash,
+html.theme-dark .booking-flash,
+html.theme-dark .followup-flash,
+html.theme-dark .form-flash {
+    background: #121d33 !important;
+    border-color: #2f446d !important;
+    color: #eaf2ff !important;
+}
+
+html.theme-dark .step-label,
+html.theme-dark .stack-label,
+html.theme-dark .section-title,
+html.theme-dark .plan-question,
+html.theme-dark .plan-follow-type-label,
+html.theme-dark .map-list h3,
+html.theme-dark .vehicle-line,
+html.theme-dark .lead-name,
+html.theme-dark .lead-phone,
+html.theme-dark .card-info,
+html.theme-dark .crm-title,
+html.theme-dark .crm-greeting,
+html.theme-dark .crm-action-card p {
+    color: #dbe7ff !important;
+}
+
+html.theme-dark input[type="text"],
+html.theme-dark input[type="search"],
+html.theme-dark input[type="email"],
+html.theme-dark input[type="tel"],
+html.theme-dark input[type="number"],
+html.theme-dark input[type="date"],
+html.theme-dark input[type="time"],
+html.theme-dark textarea,
+html.theme-dark select {
+    background: #0f1a31 !important;
+    border-color: #355182 !important;
+    color: #eef4ff !important;
+}
+
+html.theme-dark input::placeholder,
+html.theme-dark textarea::placeholder {
+    color: #94abd4 !important;
+}
+
+html.theme-dark .tool-btn,
+html.theme-dark .epr-filter-pill,
+html.theme-dark .epr-filter-action.secondary,
+html.theme-dark .menu-dot-btn,
+html.theme-dark .map-link-btn,
+html.theme-dark .top-circle {
+    background: #1a2746 !important;
+    border-color: #355182 !important;
+    color: #e8efff !important;
+}
+
+html.theme-dark .search-box::before,
+html.theme-dark .search-box::after,
+html.theme-dark .plan-input-icon.calendar,
+html.theme-dark .plan-input-icon.clock,
+html.theme-dark .plan-input-icon.calendar::before,
+html.theme-dark .plan-input-icon.clock::before,
+html.theme-dark .plan-input-icon.clock::after {
+    border-color: #d0dbff !important;
+    background: #d0dbff !important;
 }
 
 body {
@@ -72,12 +176,397 @@ body {
 
 .theme-toggle-attached {
     position: static;
+    margin-left: 0;
+}
+
+.global-unified-topbar {
+    min-height: 54px !important;
+    background: #dfe2e9 !important;
+    border: 1px solid #bfc6d5 !important;
+    border-radius: 0 0 12px 12px;
+    padding: 6px 10px !important;
+    gap: 10px !important;
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr) auto !important;
+    align-items: center !important;
+}
+
+html.theme-dark .global-unified-topbar {
+    background: #101a2f !important;
+    border-color: #2f446d !important;
+}
+
+.global-unified-topbar .brand-logo,
+.global-unified-topbar .emi-brand-logo,
+.global-unified-topbar .crm-brand-logo {
+    width: 74px !important;
+    height: auto !important;
+    display: block;
+}
+
+.global-header-search {
+    width: 100%;
+    display: block;
+}
+
+.global-header-search input {
+    width: 100%;
+    min-height: 36px;
+    border: 1px solid #bbc2d1;
+    border-radius: 999px;
+    background: #f3f5f9;
+    color: #1a2030;
+    font-size: 13px;
+    padding: 0 14px;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.global-header-search input:focus {
+    border-color: #95a3c2;
+    box-shadow: 0 0 0 3px rgba(77, 102, 156, 0.16);
+}
+
+.global-unified-topbar .top-icons-right,
+.global-unified-topbar .followup-top-actions,
+.global-unified-topbar .map-topbar-actions {
+    justify-self: end;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.global-unified-topbar .map-link-btn,
+.global-unified-topbar .top-circle {
+    border: 1px solid #c7cedc;
+    background: #f5f7fb;
+    color: #1a2240;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.14);
+}
+
+.global-quick-icons {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.global-right-host {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.global-quick-icon,
+.global-quick-icons .theme-toggle-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 999px;
+    border: 1px solid #cfd5e2;
+    background: #f5f7fb;
+    color: #1a2240;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.14);
+    transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease, color 160ms ease, border-color 160ms ease;
+}
+
+.global-quick-icon:hover,
+.global-quick-icons .theme-toggle-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 7px 14px rgba(15, 23, 42, 0.2);
+}
+
+.global-quick-icon svg,
+.global-quick-icons .theme-toggle-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.global-quick-profile {
+    position: relative;
+}
+
+.global-quick-profile summary::-webkit-details-marker {
+    display: none;
+}
+
+.global-quick-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    min-width: 210px;
+    padding: 10px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    background: var(--surface-card);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18);
+    z-index: 1200;
+}
+
+.global-quick-name {
+    margin: 0 0 6px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.global-quick-detail {
+    margin: 0 0 4px;
+    font-size: 12px;
+    color: var(--text-soft);
+}
+
+.global-quick-logout-form {
+    margin-top: 10px;
+}
+
+.global-quick-logout-btn {
+    width: 100%;
+    min-height: 34px;
+    border-radius: 999px;
+    border: 0;
+    background: #dc2626;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+html.theme-dark .global-quick-icon,
+html.theme-dark .global-quick-icons .theme-toggle-btn {
+    background: #1a2746;
+    border-color: #355182;
+    color: #e8efff;
+}
+
+html.theme-dark .global-quick-icon:hover,
+html.theme-dark .global-quick-icons .theme-toggle-btn:hover {
+    background: #22315a;
+}
+
+html.theme-dark .global-header-search input {
+    background: #0f1a31;
+    border-color: #355182;
+    color: #eef4ff;
+}
+
+html.theme-dark .global-header-search input:focus {
+    border-color: #7f9adf;
+    box-shadow: 0 0 0 3px rgba(127, 154, 223, 0.22);
+}
+
+html.theme-dark .flash-success,
+html.theme-dark .booking-flash.success,
+html.theme-dark .followup-flash.success,
+html.theme-dark .form-flash.success {
+    background: #123126 !important;
+    border-color: #2d8a68 !important;
+    color: #c6f7e4 !important;
+}
+
+html.theme-dark .flash-error,
+html.theme-dark .booking-flash.error,
+html.theme-dark .followup-flash.error,
+html.theme-dark .form-flash.error {
+    background: #3a1c29 !important;
+    border-color: #92506a !important;
+    color: #ffd8e4 !important;
+}
+
+/* Prospect page dark-mode refinement */
+html.theme-dark .prospect-page {
+    background: linear-gradient(180deg, #0d162d 0%, #111d39 100%) !important;
+    color: #eaf2ff !important;
+}
+
+html.theme-dark .prospect-page .stepper {
+    background: transparent !important;
+}
+
+html.theme-dark .prospect-page .step-number {
+    background: #1b2a4d !important;
+    border-color: #3b5588 !important;
+    color: #dbe7ff !important;
+}
+
+html.theme-dark .prospect-page .stepper-item.active .step-number,
+html.theme-dark .prospect-page .stepper-item.complete .step-number {
+    background: #d63a51 !important;
+    border-color: #e35b70 !important;
+    color: #ffffff !important;
+}
+
+html.theme-dark .prospect-page .step-label {
+    color: #c9d8f6 !important;
+}
+
+html.theme-dark .prospect-page .summary-card {
+    background: linear-gradient(160deg, #1a2747 0%, #1d2d52 100%) !important;
+    border-color: #3c578a !important;
+    color: #eef4ff !important;
+    box-shadow: 0 8px 20px rgba(7, 12, 23, 0.35) !important;
+}
+
+html.theme-dark .prospect-page .summary-row span,
+html.theme-dark .prospect-page .summary-row strong {
+    color: #eef4ff !important;
+}
+
+html.theme-dark .prospect-page .prospect-step {
+    background: #14213e !important;
+    border: 1px solid #324d7e !important;
+    border-radius: 14px !important;
+    padding: 10px !important;
+    box-shadow: 0 6px 16px rgba(6, 10, 20, 0.3) !important;
+}
+
+html.theme-dark .prospect-page .personal-step h3::before,
+html.theme-dark .prospect-page .buying-step h3::before,
+html.theme-dark .prospect-page .exchange-step h3::before,
+html.theme-dark .prospect-page .offer-step h3::before,
+html.theme-dark .prospect-page .plan-step h3::before,
+html.theme-dark .prospect-page .section-title-line,
+html.theme-dark .prospect-page label,
+html.theme-dark .prospect-page .switch-label,
+html.theme-dark .prospect-page .sub-title {
+    color: #dce8ff !important;
+}
+
+html.theme-dark .prospect-page .field-pill {
+    background: #1c2b4e !important;
+    border-color: #3a5688 !important;
+}
+
+html.theme-dark .prospect-page .field-pill label,
+html.theme-dark .prospect-page .personal-step .field-pill label {
+    color: #a9bedf !important;
+}
+
+html.theme-dark .prospect-page .personal-step .field-pill input,
+html.theme-dark .prospect-page .personal-step .field-pill select,
+html.theme-dark .prospect-page .buying-step select,
+html.theme-dark .prospect-page .buying-step input[type='text'],
+html.theme-dark .prospect-page .buying-step input[type='date'],
+html.theme-dark .prospect-page .buying-step input[type='number'],
+html.theme-dark .prospect-page .exchange-step select,
+html.theme-dark .prospect-page .exchange-step input[type='text'],
+html.theme-dark .prospect-page .exchange-step input[type='number'],
+html.theme-dark .prospect-page .plan-step .plan-remark-wrap .plan-remark-select,
+html.theme-dark .prospect-page .plan-step .plan-schedule-grid input {
+    background: #13233f !important;
+    border-color: #3c598d !important;
+    color: #eef4ff !important;
+}
+
+html.theme-dark .prospect-page .segmented,
+html.theme-dark .prospect-page .buying-step #leadSourceGroup,
+html.theme-dark .prospect-page .buying-step .segmented,
+html.theme-dark .prospect-page .exchange-step .exchange-interest-segment,
+html.theme-dark .prospect-page .plan-step .plan-follow-type-segment {
+    background: #18284b !important;
+    border-color: #3a5688 !important;
+}
+
+html.theme-dark .prospect-page .segmented span,
+html.theme-dark .prospect-page .buying-step #leadSourceGroup span,
+html.theme-dark .prospect-page .buying-step .segmented span,
+html.theme-dark .prospect-page .exchange-step .exchange-interest-segment span,
+html.theme-dark .prospect-page .plan-step .plan-follow-type-segment span {
+    background: #1d2f56 !important;
+    color: #dce8ff !important;
+    border-color: #3f5e96 !important;
+}
+
+html.theme-dark .prospect-page .segmented input:checked + span,
+html.theme-dark .prospect-page .buying-step #leadSourceGroup input:checked + span,
+html.theme-dark .prospect-page .buying-step .segmented input:checked + span,
+html.theme-dark .prospect-page .exchange-step .exchange-interest-segment input:checked + span,
+html.theme-dark .prospect-page .plan-step .plan-follow-type-segment input:checked + span {
+    background: #d63a51 !important;
+    color: #ffffff !important;
+}
+
+html.theme-dark .prospect-page .actions {
+    background: rgba(12, 19, 36, 0.9) !important;
+    border-color: #314b79 !important;
+}
+
+html.theme-dark .prospect-page .summary-modal {
+    background: rgba(3, 8, 18, 0.72) !important;
+}
+
+html.theme-dark .prospect-page .summary-modal-card {
+    background: linear-gradient(180deg, #172746 0%, #14233f 100%) !important;
+    border: 1px solid #355182 !important;
+    border-radius: 18px !important;
+    box-shadow: 0 18px 36px rgba(2, 6, 15, 0.5) !important;
+}
+
+html.theme-dark .prospect-page .summary-modal-card h3 {
+    color: #f3f7ff !important;
+    letter-spacing: 0.3px !important;
+}
+
+html.theme-dark .prospect-page .summary-modern-vehicle {
+    color: #dbe7ff !important;
+    border-top-color: #4b689f !important;
+    border-bottom-color: #4b689f !important;
+}
+
+html.theme-dark .prospect-page .summary-modern-vehicle strong {
+    color: #ffffff !important;
+}
+
+html.theme-dark .prospect-page .summary-modern-grid-head span {
+    background: #b8324b !important;
+    border-left-color: #d46a7d !important;
+    color: #ffffff !important;
+}
+
+html.theme-dark .prospect-page .summary-modern-label {
+    background: #b8324b !important;
+    color: #ffffff !important;
+}
+
+html.theme-dark .prospect-page .summary-modern-row strong {
+    color: #eef4ff !important;
+    border-left-color: #3d5b92 !important;
+    border-bottom-color: #3d5b92 !important;
+}
+
+html.theme-dark .prospect-page .summary-modern-total {
+    background: #1a2b4d !important;
+    border-color: #40629f !important;
+}
+
+html.theme-dark .prospect-page .summary-modern-total span,
+html.theme-dark .prospect-page .summary-modern-total strong {
+    color: #ff7f95 !important;
+}
+
+html.theme-dark .prospect-page .summary-confirm-btn {
+    background: linear-gradient(180deg, #2c3f73 0%, #23355f 100%) !important;
+    color: #ffffff !important;
+}
+
+html.theme-dark .prospect-page .summary-modal-close {
+    background: #f6f8ff !important;
+    border-color: #cfd8ee !important;
+    color: #1d2b4d !important;
+}
+
+.followup-top-actions .global-quick-icons,
+.map-topbar-actions .global-quick-icons {
     margin-left: 8px;
 }
 
 .crm-dashboard {
     min-height: 100vh;
-    padding: 14px;
+    padding: 8px;
     box-sizing: border-box;
 }
 
@@ -135,11 +624,12 @@ body {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
-    gap: 14px;
+    gap: 10px;
+    padding: 6px 2px 10px;
 }
 
 .crm-brand-logo {
-    width: 74px;
+    width: 78px;
     height: auto;
 }
 
@@ -147,11 +637,11 @@ body {
     background: var(--surface-card);
     border: 1px solid var(--line);
     border-radius: 999px;
-    min-height: 36px;
+    min-height: 38px;
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 0 12px;
+    padding: 0 14px;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
@@ -160,7 +650,7 @@ body {
     border: 0;
     background: transparent;
     color: var(--text);
-    font-size: 12px;
+    font-size: 13px;
     outline: none;
 }
 
@@ -195,7 +685,7 @@ body {
 .crm-header-actions {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
 }
 
 .crm-notifications {

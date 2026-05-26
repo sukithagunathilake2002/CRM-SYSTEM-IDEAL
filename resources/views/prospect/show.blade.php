@@ -50,7 +50,15 @@
     $selectedFollowTimeRaw = old('follow_time', $enquiry->follow_time);
     $selectedFollowTime = $selectedFollowTimeRaw ? substr((string) $selectedFollowTimeRaw, 0, 5) : null;
     $selectedLeadStatus = old('lead_status', $prospect->lead_status);
-    $customerRemark = old('customer_remark', $prospect->customer_remark);
+    $remarkOptions = [
+        'Customer visited showroom and is interested in this model.',
+        'Customer asked for a better offer and will confirm after discussion.',
+        'Customer requested a follow up call after comparing other brands.',
+        'Customer wants exchange valuation before final decision.',
+        'Customer requested a test drive before booking.',
+    ];
+    $defaultCustomerRemark = $remarkOptions[0];
+    $customerRemark = old('customer_remark', !empty($prospect->customer_remark) ? $prospect->customer_remark : $defaultCustomerRemark);
 
     $latestFollowupText = 'No followup scheduled yet';
     if (!empty($enquiry->follow_type) || !empty($enquiry->follow_date) || !empty($enquiry->follow_time)) {
@@ -87,10 +95,23 @@
             <img src="{{ asset('icons/logo.png') }}" alt="Ideal Motors" class="brand-logo">
         </a>
 
+        <label class="prospect-top-search" for="prospectSearch">
+            <input id="prospectSearch" type="search" placeholder="Search here">
+        </label>
+
         <div class="top-icons-right"></div>
     </header>
 
-    @if(session('success'))
+    @if(session('success') === 'Prospect sheet submitted successfully.')
+        <div class="prospect-submit-popup" id="prospectSubmitPopup" role="dialog" aria-modal="true" aria-labelledby="prospectSubmitTitle">
+            <div class="prospect-submit-popup-card">
+                <div class="prospect-submit-icon" aria-hidden="true">✓</div>
+                <h4 id="prospectSubmitTitle">Prospect Sheet Submitted</h4>
+                <p>Prospect sheet submit correctly.</p>
+                <button type="button" class="btn btn-primary prospect-submit-popup-btn" id="prospectSubmitPopupOk">OK</button>
+            </div>
+        </div>
+    @elseif(session('success'))
         <div class="flash flash-success">{{ session('success') }}</div>
     @endif
 
@@ -425,10 +446,46 @@
 
                 <div id="exchangeImageFields" class="exchange-images-wrap">
                     <div class="exchange-upload-grid">
-                        <label class="exchange-upload-tile">Blue Book<input type="file" name="blue_book_image" accept="image/*"></label>
-                        <label class="exchange-upload-tile">Lot No<input type="file" name="lot_no_image" accept="image/*"></label>
-                        <label class="exchange-upload-tile">Car picture 1<input type="file" name="car_pic_1_image" accept="image/*"></label>
-                        <label class="exchange-upload-tile">Car picture 2<input type="file" name="car_pic_2_image" accept="image/*"></label>
+                        <label class="exchange-upload-tile" data-upload-tile>
+                            <span class="exchange-upload-text">Blue Book</span>
+                            <img class="exchange-upload-preview" alt="Blue Book preview" hidden>
+                            <input
+                                type="file"
+                                name="blue_book_image"
+                                accept="image/*"
+                                data-existing-src="{{ !empty($prospect->blue_book_image) ? asset('storage/' . $prospect->blue_book_image) : '' }}"
+                            >
+                        </label>
+                        <label class="exchange-upload-tile" data-upload-tile>
+                            <span class="exchange-upload-text">Lot No</span>
+                            <img class="exchange-upload-preview" alt="Lot No preview" hidden>
+                            <input
+                                type="file"
+                                name="lot_no_image"
+                                accept="image/*"
+                                data-existing-src="{{ !empty($prospect->lot_no_image) ? asset('storage/' . $prospect->lot_no_image) : '' }}"
+                            >
+                        </label>
+                        <label class="exchange-upload-tile" data-upload-tile>
+                            <span class="exchange-upload-text">Car picture 1</span>
+                            <img class="exchange-upload-preview" alt="Car picture 1 preview" hidden>
+                            <input
+                                type="file"
+                                name="car_pic_1_image"
+                                accept="image/*"
+                                data-existing-src="{{ !empty($prospect->car_pic_1_image) ? asset('storage/' . $prospect->car_pic_1_image) : '' }}"
+                            >
+                        </label>
+                        <label class="exchange-upload-tile" data-upload-tile>
+                            <span class="exchange-upload-text">Car picture 2</span>
+                            <img class="exchange-upload-preview" alt="Car picture 2 preview" hidden>
+                            <input
+                                type="file"
+                                name="car_pic_2_image"
+                                accept="image/*"
+                                data-existing-src="{{ !empty($prospect->car_pic_2_image) ? asset('storage/' . $prospect->car_pic_2_image) : '' }}"
+                            >
+                        </label>
                     </div>
 
                     @if(!empty($prospect->blue_book_image) || !empty($prospect->lot_no_image) || !empty($prospect->car_pic_1_image) || !empty($prospect->car_pic_2_image))
@@ -444,19 +501,43 @@
 
                     <div id="extraExchangeImagesContainer" class="exchange-upload-grid exchange-upload-grid-extra">
                         <div class="extra-image-row">
-                            <label class="exchange-upload-tile exchange-upload-tile-extra">Car picture 3<input type="file" name="extra_exchange_images[]" accept="image/*"></label>
+                            <label class="exchange-upload-tile exchange-upload-tile-extra" data-upload-tile>
+                                <span class="exchange-upload-text">Car picture 3</span>
+                                <img class="exchange-upload-preview" alt="Car picture 3 preview" hidden>
+                                <button type="button" class="extra-image-remove-top" aria-label="Remove image slot">-</button>
+                                <input type="file" name="extra_exchange_images[]" accept="image/*">
+                            </label>
                         </div>
                         <div class="extra-image-row">
-                            <label class="exchange-upload-tile exchange-upload-tile-extra">Car picture 4<input type="file" name="extra_exchange_images[]" accept="image/*"></label>
+                            <label class="exchange-upload-tile exchange-upload-tile-extra" data-upload-tile>
+                                <span class="exchange-upload-text">Car picture 4</span>
+                                <img class="exchange-upload-preview" alt="Car picture 4 preview" hidden>
+                                <button type="button" class="extra-image-remove-top" aria-label="Remove image slot">-</button>
+                                <input type="file" name="extra_exchange_images[]" accept="image/*">
+                            </label>
                         </div>
                         <div class="extra-image-row">
-                            <label class="exchange-upload-tile exchange-upload-tile-extra">Car picture 5<input type="file" name="extra_exchange_images[]" accept="image/*"></label>
+                            <label class="exchange-upload-tile exchange-upload-tile-extra" data-upload-tile>
+                                <span class="exchange-upload-text">Car picture 5</span>
+                                <img class="exchange-upload-preview" alt="Car picture 5 preview" hidden>
+                                <button type="button" class="extra-image-remove-top" aria-label="Remove image slot">-</button>
+                                <input type="file" name="extra_exchange_images[]" accept="image/*">
+                            </label>
                         </div>
                     </div>
 
                     @if(!empty($extraExchangeImages))
                         <div class="existing-files">
                             <small>{{ count($extraExchangeImages) }} extra image(s) already uploaded.</small>
+                        </div>
+                        <div class="exchange-existing-preview-grid">
+                            @foreach($extraExchangeImages as $index => $extraImagePath)
+                                @if(!empty($extraImagePath))
+                                    <div class="exchange-existing-preview-item">
+                                        <img src="{{ asset('storage/' . $extraImagePath) }}" alt="Existing extra exchange image {{ $index + 1 }}">
+                                    </div>
+                                @endif
+                            @endforeach
                         </div>
                     @endif
                 </div>
@@ -474,7 +555,6 @@
             <div class="offer-panel-card">
                 <div class="offer-panel-head">
                     <span>Unit price - without VAT</span>
-                    <button type="button" class="offer-close-btn" aria-label="Close">Ã—</button>
                 </div>
 
                 <div class="offer-price-value-row">
@@ -487,6 +567,7 @@
                         <input type="checkbox" name="offer_unit_price_free" id="offer_unit_price_free" value="1" @checked($offerUnitPriceFree)>
                         <span>Free</span>
                     </label>
+                    <span class="offer-discount-label">Discount</span>
                     <input type="number" name="offer_unit_price_discount" id="offer_unit_price_discount" step="0.01" min="0" value="{{ $offerUnitPriceDiscount }}" placeholder="Discount">
                 </div>
             </div>
@@ -494,7 +575,6 @@
             <div class="offer-panel-card">
                 <div class="offer-panel-head">
                     <span>VAT</span>
-                    <button type="button" class="offer-close-btn" aria-label="Close">Ã—</button>
                 </div>
 
                 <div class="offer-price-value-row">
@@ -507,6 +587,7 @@
                         <input type="checkbox" name="offer_vat_free" id="offer_vat_free" value="1" @checked($offerVatFree)>
                         <span>Free</span>
                     </label>
+                    <span class="offer-discount-label">Discount</span>
                     <input type="number" name="offer_vat_discount" id="offer_vat_discount" step="0.01" min="0" value="{{ $offerVatDiscount }}" placeholder="Discount">
                 </div>
             </div>
@@ -557,14 +638,18 @@
 
                 <div class="plan-schedule-grid">
                     <div class="plan-schedule-field">
-                        <label>Followup Details</label>
-                        <input type="date" name="follow_date" value="{{ $selectedFollowDate }}">
-                        <span class="plan-input-icon calendar" aria-hidden="true"></span>
+                        <label>Follow up date</label>
+                        <div class="plan-schedule-input-wrap">
+                            <input type="date" name="follow_date" value="{{ $selectedFollowDate }}">
+                            <span class="plan-input-icon calendar" aria-hidden="true"></span>
+                        </div>
                     </div>
                     <div class="plan-schedule-field">
                         <label>Follow up time</label>
-                        <input type="time" name="follow_time" value="{{ $selectedFollowTime }}">
-                        <span class="plan-input-icon clock" aria-hidden="true"></span>
+                        <div class="plan-schedule-input-wrap">
+                            <input type="time" name="follow_time" value="{{ $selectedFollowTime }}">
+                            <span class="plan-input-icon clock" aria-hidden="true"></span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -573,29 +658,40 @@
             <div class="plan-status-row">
                 <label class="plan-status-item hot">
                     <input type="radio" name="lead_status" value="hot" @checked($selectedLeadStatus === 'hot')>
-                    <span class="face">:-)</span>
+                    <span class="face">
+                        <img src="{{ asset('icons/hot.png') }}" alt="Hot status" class="plan-status-icon">
+                    </span>
                     <em>Hot</em>
                 </label>
                 <label class="plan-status-item warm">
                     <input type="radio" name="lead_status" value="warm" @checked($selectedLeadStatus === 'warm')>
-                    <span class="face">:-|</span>
+                    <span class="face">
+                        <img src="{{ asset('icons/warm.png') }}" alt="Warm status" class="plan-status-icon">
+                    </span>
                     <em>Warm</em>
                 </label>
                 <label class="plan-status-item cold">
                     <input type="radio" name="lead_status" value="cold" @checked($selectedLeadStatus === 'cold')>
-                    <span class="face">:-(</span>
+                    <span class="face">
+                        <img src="{{ asset('icons/cold.png') }}" alt="Cold status" class="plan-status-icon">
+                    </span>
                     <em>Cold</em>
                 </label>
             </div>
 
             <div class="plan-remark-wrap">
-                <input type="text" name="customer_remark" value="{{ $customerRemark }}" placeholder="Add customer remark here">
-                <span class="arrow"></span>
+                <select id="customerRemarkPreset" name="customer_remark" class="plan-remark-select">
+                    <option value="">Select remark template</option>
+                    @foreach($remarkOptions as $remarkOption)
+                        <option value="{{ $remarkOption }}" @selected($customerRemark === $remarkOption)>{{ $remarkOption }}</option>
+                    @endforeach
+                </select>
             </div>
         </section>
 
         <div class="summary-modal" id="offerSummaryModal">
             <div class="summary-modal-card">
+                <button type="button" class="summary-modal-close" id="summaryModalCloseBtn" aria-label="Close summary">×</button>
                 <h3>SUMMARY</h3>
 
                 <div class="summary-modern-vehicle">
@@ -647,20 +743,33 @@
     window.PROSPECT_SOURCE_INFO_MAP = @json($sourceInfoMap);
 </script>
 <script src="{{ asset('js/prospect.js') }}"></script>
+<script>
+    (() => {
+        const popup = document.getElementById('prospectSubmitPopup');
+        if (!popup) {
+            return;
+        }
+
+        const closeBtn = document.getElementById('prospectSubmitPopupOk');
+        const eprUrl = @json(url('/epr'));
+        const closePopup = () => popup.classList.add('hidden');
+
+        closeBtn?.addEventListener('click', () => {
+            window.location.href = eprUrl;
+        });
+        popup.addEventListener('click', (event) => {
+            if (event.target === popup) {
+                closePopup();
+            }
+        });
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                closePopup();
+            }
+        });
+    })();
+</script>
 @endsection
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

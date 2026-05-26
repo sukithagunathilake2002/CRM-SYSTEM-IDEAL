@@ -519,7 +519,7 @@ body.filter-open {
 .card-footer {
     margin-top: 8px;
     position: relative;
-    padding-right: 22px;
+    padding-right: 0;
 }
 
 .chip-row {

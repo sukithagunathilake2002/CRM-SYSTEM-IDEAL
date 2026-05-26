@@ -16,9 +16,11 @@ body {
 .booking-topbar {
     height: 64px;
     background: #000;
-    display: flex;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
     align-items: center;
-    justify-content: center;
+    gap: 12px;
+    padding: 0 12px;
     border-bottom: 1px solid #222;
 }
 
@@ -26,6 +28,13 @@ body {
     display: inline-flex;
     text-decoration: none;
     line-height: 0;
+    justify-self: start;
+}
+
+.booking-topbar .top-icons-right {
+    justify-self: end;
+    display: inline-flex;
+    align-items: center;
 }
 
 .brand-logo {

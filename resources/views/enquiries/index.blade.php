@@ -189,20 +189,6 @@
                         <a href="{{ route('prospect.show', $e->id) }}" class="chip-btn">Prospect Sheet</a>
                         <a href="{{ route('booking.show', $e->id) }}" class="chip-btn">Booking</a>
                     </div>
-
-                    <button type="button" class="menu-dot-btn" onclick="toggleCardMenu(this)" aria-label="More actions" aria-expanded="false">
-                        <span></span><span></span><span></span>
-                    </button>
-
-                    <nav class="card-menu">
-                        <a href="tel:{{ $primaryPhone }}">Call</a>
-                        <a href="sms:{{ $primaryPhone }}">Message</a>
-                        <a href="{{ $whatsAppPhone ? 'https://wa.me/' . $whatsAppPhone : '#' }}" target="_blank">WhatsApp</a>
-                        <a href="mailto:">Email</a>
-                        <a href="/transfer/{{ $e->id }}">Transfer Lead</a>
-                        <a href="/followup-history/{{ $e->id }}">Followup History</a>
-                        <a href="/test-drive/{{ $e->id }}">Test Drive</a>
-                    </nav>
                 </div>
             </article>
         @empty
@@ -215,4 +201,3 @@
 
 <script src="{{ asset('js/enquiries.js') }}"></script>
 @endsection
-

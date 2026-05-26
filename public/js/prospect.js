@@ -42,6 +42,7 @@
     const offerFinalPriceDisplay = document.getElementById('offerFinalPriceDisplay');
     const offerSummaryModal = document.getElementById('offerSummaryModal');
     const summaryLooksGoodBtn = document.getElementById('summaryLooksGoodBtn');
+    const summaryModalCloseBtn = document.getElementById('summaryModalCloseBtn');
     const summaryInterestedVehicle = document.getElementById('summaryInterestedVehicle');
     const summaryVatCost = document.getElementById('summaryVatCost');
     const summaryVatOffer = document.getElementById('summaryVatOffer');
@@ -54,8 +55,10 @@
     const summaryFinalPrice = document.getElementById('summaryFinalPrice');
     const mobileNumbersInput = form.querySelector('input[name="mobile_numbers"]');
     const addContactNumberBtn = document.getElementById('addContactNumberBtn');
+    const customerRemarkPreset = document.getElementById('customerRemarkPreset');
     const rescheduleFollowupToggle = document.getElementById('rescheduleFollowupToggle');
     const rescheduleFields = document.getElementById('rescheduleFields');
+    const exchangePreviewObjectUrls = new WeakMap();
 
     let currentStep = parseInt(form.dataset.initialStep || '1', 10);
     if (Number.isNaN(currentStep) || currentStep < 1 || currentStep > 5) {
@@ -75,7 +78,7 @@
         });
 
         activeStepInput.value = currentStep;
-        nextBtn.textContent = currentStep === 5 ? 'Save' : 'Next';
+        nextBtn.textContent = currentStep === 5 ? 'Submit' : 'Next';
     }
 
     function selectedValue(name) {
@@ -315,6 +318,23 @@
         }
     }
 
+    function formatCompactInputNumber(value) {
+        if (!Number.isFinite(value)) {
+            return '0';
+        }
+
+        const rounded = Math.round(value * 100) / 100;
+        if (Math.abs(rounded) < 0.005) {
+            return '0';
+        }
+
+        if (Number.isInteger(rounded)) {
+            return String(rounded);
+        }
+
+        return rounded.toFixed(2).replace(/\.?0+$/, '');
+    }
+
     function formatSummaryNumber(value) {
         if (!Number.isFinite(value)) {
             return '0';
@@ -353,13 +373,13 @@
         if (isUnitFree) {
             unitDiscount = unitPrice;
             if (offerUnitDiscountInput) {
-                offerUnitDiscountInput.value = unitPrice.toFixed(2);
+                offerUnitDiscountInput.value = formatCompactInputNumber(unitPrice);
                 offerUnitDiscountInput.readOnly = true;
             }
         } else if (offerUnitDiscountInput) {
             if (unitDiscount > unitPrice) {
                 unitDiscount = unitPrice;
-                offerUnitDiscountInput.value = unitDiscount.toFixed(2);
+                offerUnitDiscountInput.value = formatCompactInputNumber(unitDiscount);
             }
             offerUnitDiscountInput.readOnly = !isOfferEditable();
         }
@@ -367,15 +387,23 @@
         if (isVatFree) {
             vatDiscount = vatAmount;
             if (offerVatDiscountInput) {
-                offerVatDiscountInput.value = vatAmount.toFixed(2);
+                offerVatDiscountInput.value = formatCompactInputNumber(vatAmount);
                 offerVatDiscountInput.readOnly = true;
             }
         } else if (offerVatDiscountInput) {
             if (vatDiscount > vatAmount) {
                 vatDiscount = vatAmount;
-                offerVatDiscountInput.value = vatDiscount.toFixed(2);
+                offerVatDiscountInput.value = formatCompactInputNumber(vatDiscount);
             }
             offerVatDiscountInput.readOnly = !isOfferEditable();
+        }
+
+        if (offerUnitDiscountInput) {
+            offerUnitDiscountInput.value = formatCompactInputNumber(unitDiscount);
+        }
+
+        if (offerVatDiscountInput) {
+            offerVatDiscountInput.value = formatCompactInputNumber(vatDiscount);
         }
 
         const totalCost = unitPrice + vatAmount;
@@ -433,16 +461,18 @@
 
         const unitPayable = Math.max(0, unitCost - unitOffer);
         const vatPayable = Math.max(0, vatCost - vatOffer);
+        const isVatFreeSummary = !!offerVatFreeInput?.checked || (vatCost > 0 && Math.abs(vatCost - vatOffer) < 0.005);
+        const isUnitFreeSummary = !!offerUnitFreeInput?.checked || (unitCost > 0 && Math.abs(unitCost - unitOffer) < 0.005);
         const totalCost = toNonNegativeNumber(offerTotalCostInput?.value);
         const totalOffer = toNonNegativeNumber(offerTotalDiscountInput?.value);
         const finalPrice = toNonNegativeNumber(offerFinalPriceInput?.value);
 
-        if (summaryVatCost) summaryVatCost.textContent = formatSummaryNumber(vatCost);
-        if (summaryVatOffer) summaryVatOffer.textContent = formatSummaryNumber(vatOffer);
+        if (summaryVatCost) summaryVatCost.textContent = isVatFreeSummary ? 'Free' : formatSummaryNumber(vatCost);
+        if (summaryVatOffer) summaryVatOffer.textContent = isVatFreeSummary ? 'Free' : formatSummaryNumber(vatOffer);
         if (summaryVatPayable) summaryVatPayable.textContent = formatSummaryNumber(vatPayable);
 
         if (summaryUnitCost) summaryUnitCost.textContent = formatSummaryNumber(unitCost);
-        if (summaryUnitOffer) summaryUnitOffer.textContent = formatSummaryNumber(unitOffer);
+        if (summaryUnitOffer) summaryUnitOffer.textContent = isUnitFreeSummary ? 'Free' : formatSummaryNumber(unitOffer);
         if (summaryUnitPayable) summaryUnitPayable.textContent = formatSummaryNumber(unitPayable);
 
         if (summaryTotalCost) summaryTotalCost.textContent = formatSummaryNumber(totalCost);
@@ -455,19 +485,131 @@
             return;
         }
 
-        const tileCount = extraExchangeImagesContainer.querySelectorAll('.exchange-upload-tile-extra').length;
+        const tileCount = extraExchangeImagesContainer.querySelectorAll('.extra-image-row').length;
         const nextPictureNo = tileCount + 3;
 
         const row = document.createElement('div');
         row.className = 'extra-image-row';
         row.innerHTML = `
-            <label class="exchange-upload-tile exchange-upload-tile-extra">
-                Car picture ${nextPictureNo}
+            <label class="exchange-upload-tile exchange-upload-tile-extra" data-upload-tile>
+                <span class="exchange-upload-text">Car picture ${nextPictureNo}</span>
+                <img class="exchange-upload-preview" alt="Car picture ${nextPictureNo} preview" hidden>
+                <button type="button" class="extra-image-remove-top" aria-label="Remove image slot">-</button>
                 <input type="file" name="extra_exchange_images[]" accept="image/*">
             </label>
         `;
 
         extraExchangeImagesContainer.appendChild(row);
+
+        const newInput = row.querySelector('input[type="file"]');
+        if (newInput) {
+            bindExchangeUploadPreview(newInput);
+        }
+
+        renumberExtraExchangeRows();
+    }
+
+    function renumberExtraExchangeRows() {
+        if (!extraExchangeImagesContainer) {
+            return;
+        }
+
+        const rows = Array.from(extraExchangeImagesContainer.querySelectorAll('.extra-image-row'));
+        rows.forEach((row, index) => {
+            const pictureNo = index + 3;
+            const textEl = row.querySelector('.exchange-upload-text');
+            const previewEl = row.querySelector('.exchange-upload-preview');
+            if (textEl) {
+                textEl.textContent = `Car picture ${pictureNo}`;
+            }
+            if (previewEl) {
+                previewEl.alt = `Car picture ${pictureNo} preview`;
+            }
+        });
+    }
+
+    function removeExtraExchangeImageRow(buttonEl) {
+        if (!extraExchangeImagesContainer || !buttonEl) {
+            return;
+        }
+
+        const row = buttonEl.closest('.extra-image-row');
+        if (!row) {
+            return;
+        }
+
+        const fileInput = row.querySelector('input[type="file"]');
+        if (fileInput) {
+            const previousObjectUrl = exchangePreviewObjectUrls.get(fileInput);
+            if (previousObjectUrl) {
+                URL.revokeObjectURL(previousObjectUrl);
+                exchangePreviewObjectUrls.delete(fileInput);
+            }
+        }
+
+        row.remove();
+        renumberExtraExchangeRows();
+    }
+
+    function applyExchangePreviewToTile(inputEl, sourceUrl) {
+        const tile = inputEl.closest('[data-upload-tile]');
+        if (!tile) {
+            return;
+        }
+
+        const previewEl = tile.querySelector('.exchange-upload-preview');
+        const textEl = tile.querySelector('.exchange-upload-text');
+
+        if (!previewEl) {
+            return;
+        }
+
+        if (!sourceUrl) {
+            previewEl.hidden = true;
+            previewEl.removeAttribute('src');
+            tile.classList.remove('has-preview');
+            if (textEl) {
+                textEl.hidden = false;
+            }
+            return;
+        }
+
+        previewEl.src = sourceUrl;
+        previewEl.hidden = false;
+        tile.classList.add('has-preview');
+        if (textEl) {
+            textEl.hidden = true;
+        }
+    }
+
+    function bindExchangeUploadPreview(inputEl) {
+        if (!inputEl) {
+            return;
+        }
+
+        const existingSrc = String(inputEl.dataset.existingSrc || '').trim();
+        if (existingSrc !== '') {
+            applyExchangePreviewToTile(inputEl, existingSrc);
+        }
+
+        inputEl.addEventListener('change', () => {
+            const previousObjectUrl = exchangePreviewObjectUrls.get(inputEl);
+            if (previousObjectUrl) {
+                URL.revokeObjectURL(previousObjectUrl);
+                exchangePreviewObjectUrls.delete(inputEl);
+            }
+
+            const file = inputEl.files && inputEl.files[0] ? inputEl.files[0] : null;
+            if (!file) {
+                const fallbackExisting = String(inputEl.dataset.existingSrc || '').trim();
+                applyExchangePreviewToTile(inputEl, fallbackExisting);
+                return;
+            }
+
+            const objectUrl = URL.createObjectURL(file);
+            exchangePreviewObjectUrls.set(inputEl, objectUrl);
+            applyExchangePreviewToTile(inputEl, objectUrl);
+        });
     }
 
     stepButtons.forEach((btn) => {
@@ -534,6 +676,22 @@
 
     if (addMoreExchangeImagesBtn) {
         addMoreExchangeImagesBtn.addEventListener('click', addExtraExchangeImageRow);
+    }
+
+    if (extraExchangeImagesContainer) {
+        extraExchangeImagesContainer.addEventListener('click', (event) => {
+            const target = event.target;
+            if (!(target instanceof Element)) {
+                return;
+            }
+
+            const removeButton = target.closest('.extra-image-remove-top');
+            if (removeButton) {
+                event.preventDefault();
+                event.stopPropagation();
+                removeExtraExchangeImageRow(removeButton);
+            }
+        });
     }
 
     if (offerUnitDiscountInput) {
@@ -609,6 +767,12 @@
         });
     }
 
+    if (summaryModalCloseBtn) {
+        summaryModalCloseBtn.addEventListener('click', () => {
+            closeOfferSummaryModal();
+        });
+    }
+
     if (offerSummaryModal) {
         offerSummaryModal.addEventListener('click', (event) => {
             if (event.target === offerSummaryModal) {
@@ -625,6 +789,14 @@
             mobileNumbersInput.setSelectionRange(mobileNumbersInput.value.length, mobileNumbersInput.value.length);
         });
     }
+
+    if (customerRemarkPreset && !customerRemarkPreset.value) {
+        const firstTemplateOption = Array.from(customerRemarkPreset.options).find((option) => option.value);
+        if (firstTemplateOption) {
+            customerRemarkPreset.value = firstTemplateOption.value;
+        }
+    }
+
     const personalEditCheckbox = document.getElementById('allowPersonalEdit');
     if (personalEditCheckbox) {
         personalEditCheckbox.addEventListener('change', (event) => {
@@ -665,6 +837,12 @@
     updateRescheduleVisibility();
     updateExchangeDifference();
     updateOfferTotals();
+
+    form.querySelectorAll('#exchangeImageFields input[type="file"]').forEach((inputEl) => {
+        bindExchangeUploadPreview(inputEl);
+    });
+
+    renumberExtraExchangeRows();
 })();
 
 
