@@ -60,6 +60,13 @@ class EnquiryController extends Controller
         $permittedDistricts = $viewer instanceof User
             ? $viewer->resolvePermittedDistricts()
             : User::DISTRICT_OPTIONS;
+        $allowedProvinces = collect(User::PROVINCE_DISTRICT_MAP)
+            ->filter(function (array $districts) use ($permittedDistricts): bool {
+                return !empty(array_intersect($districts, $permittedDistricts));
+            })
+            ->keys()
+            ->values()
+            ->all();
 
         $request->validate([
             'model' => ['required', 'string'],
@@ -68,17 +75,19 @@ class EnquiryController extends Controller
             'title' => ['nullable', 'string', 'max:10'],
             'name' => ['required', 'string', 'max:150'],
             'mobiles' => ['required', 'array', 'min:1'],
-            'mobiles.*' => ['nullable', 'string', 'max:30'],
-            'province' => ['nullable', 'string', Rule::in(array_keys(User::PROVINCE_DISTRICT_MAP))],
-            'district' => ['nullable', 'string', 'max:100', Rule::in($permittedDistricts)],
+            'mobiles.*' => ['nullable', 'regex:/^0\d{9}$/'],
+            'province' => ['required', 'string', Rule::in($allowedProvinces)],
+            'district' => ['required', 'string', 'max:100', Rule::in($permittedDistricts)],
             'location' => ['nullable', 'string', 'max:150'],
             'state' => ['nullable', 'string', 'max:100'],
             'address1' => ['nullable', 'string', 'max:255'],
             'address2' => ['nullable', 'string', 'max:255'],
-            'lead_source' => ['nullable', 'string', 'max:100'],
-            'follow_type' => ['nullable', 'string', 'max:100'],
-            'follow_date' => ['nullable', 'date'],
-            'follow_time' => ['nullable', 'date_format:H:i'],
+            'lead_source' => ['required', Rule::in(['Walk-In', 'Tele-In', 'Activity', 'Digital', 'Referral', 'Press'])],
+            'follow_type' => ['required', Rule::in(['Home Visit', 'Showroom Visit', 'Call'])],
+            'follow_date' => ['required', 'date'],
+            'follow_time' => ['required', 'date_format:H:i'],
+        ], [
+            'mobiles.*.regex' => 'Contact number must be 10 digits and start with 0.',
         ]);
 
         $latitude = is_numeric($request->input('latitude'))
@@ -101,30 +110,26 @@ class EnquiryController extends Controller
 
         $district = trim((string) $request->input('district', ''));
         $selectedProvince = trim((string) $request->input('province', ''));
-        if ($district === '') {
-            $district = 'N/A';
-        } else {
-            $normalizedDistrict = User::normalizeDistrictName($district);
-            if ($normalizedDistrict === null || !in_array($normalizedDistrict, $permittedDistricts, true)) {
-                return back()
-                    ->withErrors(['district' => 'Please select a permitted district.'])
-                    ->withInput();
-            }
-
-            if ($selectedProvince === '') {
-                return back()
-                    ->withErrors(['province' => 'Please select a province first.'])
-                    ->withInput();
-            }
-
-            $districtProvince = User::provinceForDistrict($normalizedDistrict);
-            if ($districtProvince !== $selectedProvince) {
-                return back()
-                    ->withErrors(['district' => 'Selected district does not belong to selected province.'])
-                    ->withInput();
-            }
-            $district = $normalizedDistrict;
+        $normalizedDistrict = User::normalizeDistrictName($district);
+        if ($normalizedDistrict === null || !in_array($normalizedDistrict, $permittedDistricts, true)) {
+            return back()
+                ->withErrors(['district' => 'Please select a permitted district.'])
+                ->withInput();
         }
+
+        if ($selectedProvince === '') {
+            return back()
+                ->withErrors(['province' => 'Please select a province first.'])
+                ->withInput();
+        }
+
+        $districtProvince = User::provinceForDistrict($normalizedDistrict);
+        if ($districtProvince !== $selectedProvince) {
+            return back()
+                ->withErrors(['district' => 'Selected district does not belong to selected province.'])
+                ->withInput();
+        }
+        $district = $normalizedDistrict;
 
         $location = trim((string) $request->input('location', ''));
         if ($location === '') {
