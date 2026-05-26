@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return auth()->check()
-        ? redirect()->route('dashboard.main')
+        ? redirect()->route('dashboard.home')
         : redirect()->route('login');
 });
 
@@ -93,7 +93,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/get-engines/{model}', [EnquiryController::class, 'getEngines']);
     Route::get('/get-variants/{model}/{engine}', [EnquiryController::class, 'getVariants']);
     Route::post('/save-enquiry', [EnquiryController::class, 'store'])->name('save.customer');
-    Route::get('/epr', [EnquiryController::class, 'list']);
+    
+    // EPR List Routes with Filters
+    Route::get('/epr', [EnquiryController::class, 'list'])->name('enquiries.list');
+    Route::get('/epr/call', [EnquiryController::class, 'listCallEpds'])->name('enquiries.list.call');
+    Route::get('/epr/showroom', [EnquiryController::class, 'listShowroomEpds'])->name('enquiries.list.showroom');
+    Route::get('/epr/home', [EnquiryController::class, 'listHomeEpds'])->name('enquiries.list.home');
+    
     Route::get('/epr-map', [EnquiryController::class, 'map'])->name('enquiries.map');
     Route::get('/followup/{enquiry}', [FollowUpController::class, 'show'])->name('followup.show');
     Route::post('/followup/{enquiry}/status', [FollowUpController::class, 'updateStatus'])->name('followup.update_status');

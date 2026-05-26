@@ -189,24 +189,78 @@ class EnquiryController extends Controller
         return redirect()->back()->with('success', 'ERP Enquiry Saved Successfully');
     }
 
+    
+
     public function list(Request $request)
-    {
-        $viewer = $request->user();
-        $enquiriesQuery = Enquiry::with(['customer', 'vehicle', 'user']);
+{
+    $viewer = $request->user();
+    $enquiriesQuery = Enquiry::with(['customer', 'vehicle', 'user']);
 
-        if ($viewer && $viewer->role !== User::ROLE_SUPER_ADMIN) {
-            $accessibleUserIds = $this->resolveAccessibleUserIds($viewer);
-
-            // Non-super users can only view leads owned by users in their accessible hierarchy.
-            $enquiriesQuery->whereIn('user_id', $accessibleUserIds);
-        }
-
-        $enquiries = $enquiriesQuery
-            ->latest()
-            ->get();
-
-        return view('enquiries.index', compact('enquiries'));
+    if ($viewer && $viewer->role !== User::ROLE_SUPER_ADMIN) {
+        $accessibleUserIds = $this->resolveAccessibleUserIds($viewer);
+        $enquiriesQuery->whereIn('user_id', $accessibleUserIds);
     }
+
+    $enquiries = $enquiriesQuery
+        ->latest()
+        ->get();
+
+    return view('enquiries.index', compact('enquiries'));
+}
+
+public function listCallEpds(Request $request)
+{
+    $viewer = $request->user();
+    $enquiriesQuery = Enquiry::with(['customer', 'vehicle', 'user'])
+        ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%call%']);
+
+    if ($viewer && $viewer->role !== User::ROLE_SUPER_ADMIN) {
+        $accessibleUserIds = $this->resolveAccessibleUserIds($viewer);
+        $enquiriesQuery->whereIn('user_id', $accessibleUserIds);
+    }
+
+    $enquiries = $enquiriesQuery
+        ->latest()
+        ->get();
+
+    return view('enquiries.index', compact('enquiries'));
+}
+
+public function listShowroomEpds(Request $request)
+{
+    $viewer = $request->user();
+    $enquiriesQuery = Enquiry::with(['customer', 'vehicle', 'user'])
+        ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%showroom%']);
+
+    if ($viewer && $viewer->role !== User::ROLE_SUPER_ADMIN) {
+        $accessibleUserIds = $this->resolveAccessibleUserIds($viewer);
+        $enquiriesQuery->whereIn('user_id', $accessibleUserIds);
+    }
+
+    $enquiries = $enquiriesQuery
+        ->latest()
+        ->get();
+
+    return view('enquiries.index', compact('enquiries'));
+}
+
+public function listHomeEpds(Request $request)
+{
+    $viewer = $request->user();
+    $enquiriesQuery = Enquiry::with(['customer', 'vehicle', 'user'])
+        ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%home%']);
+
+    if ($viewer && $viewer->role !== User::ROLE_SUPER_ADMIN) {
+        $accessibleUserIds = $this->resolveAccessibleUserIds($viewer);
+        $enquiriesQuery->whereIn('user_id', $accessibleUserIds);
+    }
+
+    $enquiries = $enquiriesQuery
+        ->latest()
+        ->get();
+
+    return view('enquiries.index', compact('enquiries'));
+}
 
     public function map(Request $request)
     {
