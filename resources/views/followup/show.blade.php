@@ -56,12 +56,16 @@
             <p><strong>Interested In :</strong> {{ strtoupper($interestedIn) }}</p>
             <p><strong>Total price :</strong> {{ number_format($totalPrice, 2) }}</p>
             <p><strong>DMS ID :</strong> {{ $primaryPhone }}</p>
+            @if($enquiry->follow_type)
+                <p><strong>Followup Type :</strong> {{ $enquiry->follow_type }}</p>
+            @endif
         </section>
 
         <section class="followup-card">
             <form method="POST" action="{{ route('followup.update_status', $enquiry->id) }}" enctype="multipart/form-data" id="followupForm">
                 @csrf
                 <input type="hidden" name="followup_status" id="followupStatusInput" value="{{ $selectedFollowupStatus }}">
+                <input type="hidden" name="is_call_followup" id="isCallFollowup" value="{{ $isCallFollowup ? '1' : '0' }}">
 
                 <div class="followup-head-grid">
                     <div class="followup-left">
@@ -80,36 +84,39 @@
                 </div>
 
                 <div id="doneQuestionWrap" class="done-question-wrap {{ $selectedFollowupStatus === 'done' ? '' : 'hidden' }}">
-                    <div class="done-question-row">
-                        <div class="done-field">
-                            <label>Visit Date</label>
-                            <input type="date" name="followup_visit_date" value="{{ $selectedVisitDate }}">
+                    {{-- Visit Date and Met Whom - Hidden for Call EPRs --}}
+                    @if($isHomeOrShowroomFollowup)
+                        <div class="done-question-row">
+                            <div class="done-field">
+                                <label>Visit Date</label>
+                                <input type="date" name="followup_visit_date" value="{{ $selectedVisitDate }}">
+                            </div>
+                            <div class="done-field">
+                                <label>Met whom?</label>
+                                <input type="text" name="followup_met_whom" value="{{ $selectedMetWhom }}" placeholder="Mr Sampath">
+                            </div>
                         </div>
-                        <div class="done-field">
-                            <label>Met whom?</label>
-                            <input type="text" name="followup_met_whom" value="{{ $selectedMetWhom }}" placeholder="Mr Sampath">
+
+                        <div class="photo-tile-grid">
+                            <label class="photo-tile">
+                                <input type="file" name="followup_picture_1" accept=".jpg,.jpeg,.png,.webp">
+                                <span>Picture 1</span>
+                            </label>
+                            <label class="photo-tile">
+                                <input type="file" name="followup_picture_2" accept=".jpg,.jpeg,.png,.webp">
+                                <span>Picture 2</span>
+                            </label>
                         </div>
-                    </div>
 
-                    <div class="photo-tile-grid">
-                        <label class="photo-tile">
-                            <input type="file" name="followup_picture_1" accept=".jpg,.jpeg,.png,.webp">
-                            <span>Picture 1</span>
-                        </label>
-                        <label class="photo-tile">
-                            <input type="file" name="followup_picture_2" accept=".jpg,.jpeg,.png,.webp">
-                            <span>Picture 2</span>
-                        </label>
-                    </div>
-
-                    <div class="photo-links">
-                        @if(!empty($enquiry->followup_picture_1))
-                            <a href="{{ asset('storage/' . $enquiry->followup_picture_1) }}" target="_blank" rel="noopener">View Picture 1</a>
-                        @endif
-                        @if(!empty($enquiry->followup_picture_2))
-                            <a href="{{ asset('storage/' . $enquiry->followup_picture_2) }}" target="_blank" rel="noopener">View Picture 2</a>
-                        @endif
-                    </div>
+                        <div class="photo-links">
+                            @if(!empty($enquiry->followup_picture_1))
+                                <a href="{{ asset('storage/' . $enquiry->followup_picture_1) }}" target="_blank" rel="noopener">View Picture 1</a>
+                            @endif
+                            @if(!empty($enquiry->followup_picture_2))
+                                <a href="{{ asset('storage/' . $enquiry->followup_picture_2) }}" target="_blank" rel="noopener">View Picture 2</a>
+                            @endif
+                        </div>
+                    @endif
 
                     <label class="done-label">Interested in Competition</label>
                     <div class="result-segment">
@@ -272,7 +279,8 @@
                     </div>
                 </div>
 
-                <div class="followup-form-actions">
+                {{-- Action buttons - only shown when Done is clicked --}}
+                <div id="formActions" class="followup-form-actions {{ $selectedFollowupStatus === 'done' ? '' : 'hidden' }}">
                     <a href="{{ url('/epr') }}" class="status-btn cancel-btn">Cancel</a>
                     <button type="submit" class="status-btn save-btn">Save</button>
                 </div>
@@ -288,6 +296,7 @@
         const doneWrap = document.getElementById('doneQuestionWrap');
         const activeWrap = document.getElementById('activeQuestionWrap');
         const lostWrap = document.getElementById('lostQuestionWrap');
+        const formActions = document.getElementById('formActions');
         const toggleButtons = Array.from(document.querySelectorAll('.status-toggle-btn'));
         const resultRadios = Array.from(document.querySelectorAll('input[name="followup_result"]'));
         const testDriveNoWrap = document.getElementById('testDriveNoWrap');
@@ -370,6 +379,11 @@
 
             if (lostWrap) {
                 lostWrap.classList.toggle('hidden', !(selectedStatus === 'done' && selectedResult === 'lost'));
+            }
+
+            // Show/hide form action buttons based on Done selection
+            if (formActions) {
+                formActions.classList.toggle('hidden', selectedStatus !== 'done');
             }
 
             if (testDriveNoWrap) {
