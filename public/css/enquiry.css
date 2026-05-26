@@ -1,19 +1,19 @@
 body {
     margin: 0;
     font-family: 'Segoe UI', Tahoma, sans-serif;
-    background: #ececec;
-    color: #1f1f1f;
+    background: var(--page-bg);
+    color: var(--text);
 }
 
 .enquiry-page {
     min-height: 100vh;
-    background: linear-gradient(180deg, #0a0a0a 0 74px, #ececec 74px 100%);
+    background: linear-gradient(180deg, #0a0a0a 0 74px, var(--page-bg) 74px 100%);
 }
 
 .topbar {
     height: 74px;
     background: #080808;
-    border-bottom: 1px solid #d8d8d8;
+    border-bottom: 1px solid var(--line);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -74,8 +74,8 @@ body {
 .enquiry-shell {
     max-width: 1180px;
     margin: 12px auto;
-    background: #ececec;
-    border: 2px solid #bb4b4b;
+    background: var(--surface);
+    border: 1px solid var(--line);
     border-radius: 16px;
     box-shadow: 0 5px 14px rgba(0, 0, 0, 0.12);
     padding: 12px;
@@ -115,11 +115,24 @@ body {
     text-align: center;
     font-size: 20px;
     font-weight: 700;
+    color: var(--text);
 }
 
 .field-row {
     display: grid;
     gap: 10px;
+}
+
+.stack-field {
+    display: grid;
+    gap: 4px;
+}
+
+.stack-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-soft);
+    padding-left: 6px;
 }
 
 .field-row.triple {
@@ -135,9 +148,9 @@ body {
 }
 
 .province-filter-box {
-    border: 2px solid #bcbcbc;
+    border: 1px solid var(--line);
     border-radius: 18px;
-    background: #f1f1f1;
+    background: var(--surface-card);
     padding: 10px 12px;
 }
 
@@ -145,7 +158,7 @@ body {
     margin: 0 0 8px;
     font-size: 14px;
     font-weight: 700;
-    color: #343434;
+    color: var(--text);
 }
 
 .province-checkbox-grid {
@@ -163,7 +176,7 @@ body {
     gap: 8px;
     font-size: 13px;
     font-weight: 600;
-    color: #1f2937;
+    color: var(--text);
     cursor: pointer;
 }
 
@@ -185,12 +198,12 @@ body {
 
 .input-pill {
     width: 100%;
-    border: 2px solid #bcbcbc;
+    border: 1px solid var(--line);
     border-radius: 18px;
-    background: #f1f1f1;
+    background: var(--surface-card);
     padding: 10px 14px;
     font-size: 16px;
-    color: #343434;
+    color: var(--text);
     box-sizing: border-box;
 }
 
@@ -220,8 +233,8 @@ select.input-pill {
     width: 38px;
     height: 38px;
     border-radius: 50%;
-    border: 2px solid #17223f;
-    background: #17223f;
+    border: 2px solid var(--navy);
+    background: var(--navy);
     color: #fff;
     font-size: 22px;
     line-height: 1;
@@ -233,18 +246,40 @@ select.input-pill {
     background: #a00;
 }
 
-.add-address {
+.add-address-btn {
     margin: 4px 0 2px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     font-size: 18px;
     font-weight: 600;
-    color: #212121;
+    color: var(--text);
     cursor: pointer;
+}
+
+.add-address-plus {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 2px solid var(--navy);
+    background: var(--navy);
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    line-height: 1;
+    font-weight: 700;
+    box-sizing: border-box;
 }
 
 .geo-status {
     margin: 0 2px;
     font-size: 13px;
-    color: #495163;
+    color: var(--text-soft);
 }
 
 .geo-status.success {
@@ -263,10 +298,10 @@ select.input-pill {
 .segmented-row {
     display: grid;
     gap: 0;
-    border: 2px solid #b70000;
+    border: 1px solid var(--line);
     border-radius: 24px;
     overflow: hidden;
-    background: #fff;
+    background: var(--surface-card);
 }
 
 .segmented-row.six-col {
@@ -279,9 +314,9 @@ select.input-pill {
 
 .segment-btn {
     border: none;
-    border-right: 2px solid #b70000;
-    background: #fff;
-    color: #222;
+    border-right: 1px solid var(--line);
+    background: var(--surface-card);
+    color: var(--text);
     height: 42px;
     font-size: 16px;
     cursor: pointer;
@@ -292,7 +327,7 @@ select.input-pill {
 }
 
 .segment-btn.active {
-    background: #e60000;
+    background: var(--red);
     color: #fff;
     font-weight: 700;
 }
@@ -351,7 +386,7 @@ select.input-pill {
 }
 
 .switch-wrap input:checked + .slider {
-    background: #ea2a2a;
+    background: var(--red);
 }
 
 .switch-wrap input:checked + .slider::before {
@@ -379,11 +414,11 @@ select.input-pill {
 }
 
 .btn-epr {
-    background: #1a2447;
+    background: var(--navy);
 }
 
 .btn-cancel {
-    background: #be0000;
+    background: var(--red);
 }
 
 @media (max-width: 980px) {
