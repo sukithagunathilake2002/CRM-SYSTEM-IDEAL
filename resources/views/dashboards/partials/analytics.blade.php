@@ -171,10 +171,6 @@
             <canvas id="leadsByUserChart" aria-label="Leads by user chart"></canvas>
         </div>
         <div class="analytics-chart-card">
-            <h3>Leads By Hierarchy</h3>
-            <canvas id="leadsByHierarchyChart" aria-label="Leads by hierarchy chart"></canvas>
-        </div>
-        <div class="analytics-chart-card">
             <h3>Leads By District</h3>
             <canvas id="leadsByDistrictChart" aria-label="Leads by district chart"></canvas>
         </div>
@@ -448,7 +444,6 @@
         const followupTotals = @json($analytics['charts']['followup_totals']);
         const followupStatusByType = @json($analytics['charts']['followup_by_status']);
         const leadsByUser = @json($analytics['charts']['user_totals']);
-        const leadsByHierarchy = @json($analytics['charts']['hierarchy_totals']);
         const leadsByDistrict = @json($analytics['charts']['district_totals']);
 
         const colors = {
@@ -601,27 +596,6 @@
                 plugins: { legend: { display: false } },
                 scales: { x: { beginAtZero: true, ticks: { precision: 0 } } },
                 animations: { x: { from: 0 } }
-            }
-        });
-
-        createChart('leadsByHierarchyChart', {
-            type: 'bar',
-            data: {
-                labels: leadsByHierarchy.labels,
-                datasets: [{
-                    label: 'Total Leads',
-                    data: leadsByHierarchy.values,
-                    backgroundColor: '#0f766e',
-                    borderRadius: 8,
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: barAnimation(),
-                plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
-                animations: { y: { from: 0 } }
             }
         });
 
