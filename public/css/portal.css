@@ -61,6 +61,39 @@ html.theme-dark .theme-toggle-btn {
     height: 18px;
 }
 
+.portal-icon-btn {
+    border: 1px solid #cbd5e1;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #1f2937;
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease, color 160ms ease;
+}
+
+.portal-icon-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.14);
+}
+
+.portal-icon-btn svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+}
+
+html.theme-dark .portal-icon-btn {
+    border-color: #475569;
+    background: #0f172a;
+    color: #e2e8f0;
+}
+
 .portal-shell {
     min-height: 100vh;
 }

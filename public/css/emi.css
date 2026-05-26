@@ -1,68 +1,160 @@
-.emi-container {
-    background: black;
+.emi-page {
     min-height: 100vh;
-    padding: 20px;
-    padding-bottom: 80px;
+    padding: 14px;
+    box-sizing: border-box;
 }
 
-.emi-title {
-    color: white;
+.emi-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.emi-brand-logo {
+    width: 74px;
+    height: auto;
+}
+
+.emi-shell {
+    max-width: 540px;
+    margin: 10px auto 0;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    padding: 24px 20px;
+}
+
+.emi-heading {
     text-align: center;
-    margin-bottom: 20px;
+    margin-bottom: 14px;
+}
+
+.emi-heading h1 {
+    margin: 0;
+    font-size: 28px;
+    line-height: 1.2;
+    color: var(--text);
+}
+
+.emi-heading p {
+    margin: 8px 0 0;
+    color: var(--text-soft);
+    font-size: 13px;
 }
 
 .emi-card {
-    background: white;
-    border-radius: 12px;
-    padding: 20px;
-    max-width: 400px;
-    margin: auto;
-    box-shadow: 0 0 15px rgba(255,0,0,0.4);
+    background: var(--surface-card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 10px 22px rgba(15, 23, 42, 0.1);
 }
 
 .emi-group {
-    margin-bottom: 15px;
+    margin-bottom: 14px;
+}
+
+.emi-group:last-of-type {
+    margin-bottom: 0;
 }
 
 .emi-group label {
-    font-size: 13px;
-    color: #444;
     display: block;
     margin-bottom: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-soft);
 }
 
 .emi-group input,
 .emi-group select {
     width: 100%;
-    padding: 12px;
-    border: none;
-    border-bottom: 2px solid #d10000;
+    box-sizing: border-box;
+    min-height: 42px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 0 12px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 15px;
     outline: none;
-    font-size: 16px;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.emi-group input:focus,
+.emi-group select:focus {
+    border-color: var(--navy);
+    box-shadow: 0 0 0 3px rgba(22, 31, 67, 0.15);
 }
 
 .emi-result {
-    background: black;
-    color: white;
+    margin-top: 16px;
+    border-radius: 12px;
+    border: 1px solid #1f2a4a;
+    background: linear-gradient(140deg, #121a33, #1d2c57);
+    color: #ffffff;
     text-align: center;
-    padding: 20px;
-    border-radius: 10px;
-    margin-top: 20px;
+    padding: 16px 14px;
+}
+
+.emi-result span {
+    font-size: 13px;
+    color: #cbd5e1;
 }
 
 .emi-result h2 {
-    margin: 10px 0;
-    font-size: 26px;
-    color: #d10000;
+    margin: 8px 0;
+    font-size: 30px;
+    color: #ffffff;
+}
+
+.emi-result h2 span {
+    font-size: inherit;
+    color: #ffffff;
+}
+
+.emi-result small {
+    font-size: 13px;
+    color: #dbe4ff;
 }
 
 .emi-btn {
     width: 100%;
-    background: #d10000;
-    color: white;
-    padding: 14px;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    margin-top: 20px;
+    margin-top: 16px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--red);
+    color: #ffffff;
+    min-height: 42px;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    cursor: pointer;
+    box-shadow: 0 8px 16px rgba(239, 31, 45, 0.3);
+    transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.emi-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 18px rgba(239, 31, 45, 0.35);
+}
+
+@media (max-width: 620px) {
+    .emi-page {
+        padding: 10px;
+    }
+
+    .emi-shell {
+        border-radius: 18px;
+        padding: 16px 12px;
+    }
+
+    .emi-heading h1 {
+        font-size: 24px;
+    }
+
+    .emi-card {
+        padding: 12px;
+    }
 }
