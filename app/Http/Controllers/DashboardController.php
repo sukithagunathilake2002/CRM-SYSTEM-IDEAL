@@ -172,8 +172,11 @@ class DashboardController extends Controller
             ->get(['id', 'name', 'email', 'phone', 'role', 'manager_id']);
 
         $analytics = $this->buildAnalytics($user, $request);
+        
+        // Get dashboard EPR data for quick view
+        $dashboardEpds = $this->getDashboardEpData($user);
 
-        return view('dashboards.super-admin', compact('counts', 'headHierarchy', 'dependentCounts', 'manageableUsers', 'analytics'));
+        return view('dashboards.super-admin', compact('counts', 'headHierarchy', 'dependentCounts', 'manageableUsers', 'analytics', 'dashboardEpds'));
     }
 
     public function headOfSales(Request $request): View
@@ -270,8 +273,11 @@ class DashboardController extends Controller
             + $hierarchyCounts['sales_consultants'];
 
         $analytics = $this->buildAnalytics($user, $request);
+        
+        // Get dashboard EPR data for quick view
+        $dashboardEpds = $this->getDashboardEpData($user);
 
-        return view('dashboards.head-of-sales', compact('regionalManagers', 'hierarchy', 'hierarchyCounts', 'analytics'));
+        return view('dashboards.head-of-sales', compact('regionalManagers', 'hierarchy', 'hierarchyCounts', 'analytics', 'dashboardEpds'));
     }
 
     public function regionalManager(Request $request): View
@@ -284,8 +290,11 @@ class DashboardController extends Controller
             ->orderBy('name')
             ->get();
         $analytics = $this->buildAnalytics($user, $request);
+        
+        // Get dashboard EPR data for quick view
+        $dashboardEpds = $this->getDashboardEpData($user);
 
-        return view('dashboards.regional-manager', compact('areaManagers', 'analytics'));
+        return view('dashboards.regional-manager', compact('areaManagers', 'analytics', 'dashboardEpds'));
     }
 
     public function areaManager(Request $request): View
@@ -297,16 +306,116 @@ class DashboardController extends Controller
             ->orderBy('name')
             ->get();
         $analytics = $this->buildAnalytics($user, $request);
+        
+        // Get dashboard EPR data for quick view
+        $dashboardEpds = $this->getDashboardEpData($user);
 
-        return view('dashboards.area-manager', compact('salesConsultants', 'analytics'));
+        return view('dashboards.area-manager', compact('salesConsultants', 'analytics', 'dashboardEpds'));
     }
 
     public function salesConsultant(Request $request): View
     {
         $user = $request->user()->load('manager.manager.manager');
         $analytics = $this->buildAnalytics($user, $request);
+        
+        // Get dashboard EPR data for quick view
+        $dashboardEpds = $this->getDashboardEpData($user);
 
-        return view('dashboards.sales-consultant', compact('user', 'analytics'));
+        return view('dashboards.sales-consultant', compact('user', 'analytics', 'dashboardEpds'));
+    }
+
+    /**
+     * Get dashboard EPR data filtered by followup type
+     */
+    private function getDashboardEpData(User $viewer): array
+    {
+        $accessibleUserIds = $this->resolveAccessibleUserIds($viewer);
+        
+        // Base query for enquiries - only pending followups
+        $baseQuery = Enquiry::with(['customer', 'vehicle'])
+            ->whereIn('user_id', $accessibleUserIds)
+            ->whereRaw("LOWER(COALESCE(followup_status, '')) <> ?", ['done']);
+        
+        // Filter by followup type - Call EPRs
+        $callEpds = (clone $baseQuery)
+            ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%call%'])
+            ->orderBy('follow_date', 'asc')
+            ->limit(10)
+            ->get()
+            ->map(function ($enquiry) {
+                $customer = $enquiry->customer;
+                $vehicle = $enquiry->vehicle;
+                $mobiles = is_array($customer?->mobile_numbers) ? $customer->mobile_numbers : [];
+                $primaryPhone = count($mobiles) ? (string) $mobiles[0] : 'N/A';
+                
+                return (object) [
+                    'id' => $enquiry->id,
+                    'customer_name' => trim(($customer?->title ? $customer->title . '. ' : '') . ($customer?->name ?? 'Unknown')),
+                    'primary_phone' => $primaryPhone,
+                    'vehicle_name' => trim(($vehicle?->model ?? '') . ' ' . ($vehicle?->variant ?? '')),
+                    'follow_type' => $enquiry->follow_type,
+                    'follow_date' => $enquiry->follow_date,
+                    'follow_time' => $enquiry->follow_time,
+                    'created_at' => $enquiry->created_at,
+                ];
+            });
+        
+        // Showroom visit EPRs
+        $showroomEpds = (clone $baseQuery)
+            ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%showroom%'])
+            ->orderBy('follow_date', 'asc')
+            ->limit(10)
+            ->get()
+            ->map(function ($enquiry) {
+                $customer = $enquiry->customer;
+                $vehicle = $enquiry->vehicle;
+                $mobiles = is_array($customer?->mobile_numbers) ? $customer->mobile_numbers : [];
+                $primaryPhone = count($mobiles) ? (string) $mobiles[0] : 'N/A';
+                
+                return (object) [
+                    'id' => $enquiry->id,
+                    'customer_name' => trim(($customer?->title ? $customer->title . '. ' : '') . ($customer?->name ?? 'Unknown')),
+                    'primary_phone' => $primaryPhone,
+                    'vehicle_name' => trim(($vehicle?->model ?? '') . ' ' . ($vehicle?->variant ?? '')),
+                    'follow_type' => $enquiry->follow_type,
+                    'follow_date' => $enquiry->follow_date,
+                    'follow_time' => $enquiry->follow_time,
+                    'created_at' => $enquiry->created_at,
+                ];
+            });
+        
+        // Home visit EPRs
+        $homeEpds = (clone $baseQuery)
+            ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%home%'])
+            ->orderBy('follow_date', 'asc')
+            ->limit(10)
+            ->get()
+            ->map(function ($enquiry) {
+                $customer = $enquiry->customer;
+                $vehicle = $enquiry->vehicle;
+                $mobiles = is_array($customer?->mobile_numbers) ? $customer->mobile_numbers : [];
+                $primaryPhone = count($mobiles) ? (string) $mobiles[0] : 'N/A';
+                
+                return (object) [
+                    'id' => $enquiry->id,
+                    'customer_name' => trim(($customer?->title ? $customer->title . '. ' : '') . ($customer?->name ?? 'Unknown')),
+                    'primary_phone' => $primaryPhone,
+                    'vehicle_name' => trim(($vehicle?->model ?? '') . ' ' . ($vehicle?->variant ?? '')),
+                    'follow_type' => $enquiry->follow_type,
+                    'follow_date' => $enquiry->follow_date,
+                    'follow_time' => $enquiry->follow_time,
+                    'created_at' => $enquiry->created_at,
+                ];
+            });
+        
+        return [
+            'call_epds' => $callEpds,
+            'showroom_epds' => $showroomEpds,
+            'home_epds' => $homeEpds,
+            'call_count' => $callEpds->count(),
+            'showroom_count' => $showroomEpds->count(),
+            'home_count' => $homeEpds->count(),
+        ];
     }
 
     public function downloadAnalyticsReport(Request $request)
@@ -1314,7 +1423,4 @@ class DashboardController extends Controller
 
         return $startOfDay ? $date->startOfDay() : $date->endOfDay();
     }
-
-    //testNimesh
-
 }

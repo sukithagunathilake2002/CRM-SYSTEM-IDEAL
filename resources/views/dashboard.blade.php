@@ -156,38 +156,38 @@
             </div>
 
             <div class="crm-action-grid">
-                <a href="{{ url('/epr') }}" class="crm-action-card">
-                    <span class="crm-action-badge">
-                        <img src="{{ asset('icons/Call.png') }}" alt="Call">
-                    </span>
-                    <h3>CALL</h3>
-                    <p>Log and track customer calls</p>
-                </a>
+    <a href="{{ route('enquiries.list.call') }}" class="crm-action-card">
+        <span class="crm-action-badge">
+            <img src="{{ asset('icons/Call.png') }}" alt="Call">
+        </span>
+        <h3>CALL</h3>
+        <p>Log and track customer calls</p>
+    </a>
 
-                <a href="{{ route('enquiries.map', ['date' => now()->toDateString()]) }}" class="crm-action-card">
-                    <span class="crm-action-badge">
-                        <img src="{{ asset('icons/showroom.png') }}" alt="Showroom Visit">
-                    </span>
-                    <h3>SHOWROOM VISIT</h3>
-                    <p>Track customer showroom visits</p>
-                </a>
+    <a href="{{ route('enquiries.list.showroom') }}" class="crm-action-card">
+        <span class="crm-action-badge">
+            <img src="{{ asset('icons/showroom.png') }}" alt="Showroom Visit">
+        </span>
+        <h3>SHOWROOM VISIT</h3>
+        <p>Track customer showroom visits</p>
+    </a>
 
-                <a href="{{ url('/epr') }}" class="crm-action-card">
-                    <span class="crm-action-badge">
-                        <img src="{{ asset('icons/home123.png') }}" alt="Home Visit">
-                    </span>
-                    <h3>HOME VISIT</h3>
-                    <p>Manage customer home visits</p>
-                </a>
+    <a href="{{ route('enquiries.list.home') }}" class="crm-action-card">
+        <span class="crm-action-badge">
+            <img src="{{ asset('icons/home123.png') }}" alt="Home Visit">
+        </span>
+        <h3>HOME VISIT</h3>
+        <p>Manage customer home visits</p>
+    </a>
 
-                <a href="{{ url('/epr') }}" class="crm-action-card">
-                    <span class="crm-action-badge">
-                        <img src="{{ asset('icons/epr.png') }}" alt="EPR">
-                    </span>
-                    <h3>EPR</h3>
-                    <p>Manage customer inquiries and records</p>
-                </a>
-            </div>
+    <a href="{{ route('enquiries.list') }}" class="crm-action-card">
+        <span class="crm-action-badge">
+            <img src="{{ asset('icons/epr.png') }}" alt="EPR">
+        </span>
+        <h3>EPR</h3>
+        <p>Manage customer inquiries and records</p>
+    </a>
+</div>
 
             <div class="crm-cta-row">
                 <a href="{{ route('emi.calculator') }}" class="crm-cta">EMI Calculator</a>
