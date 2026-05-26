@@ -98,6 +98,11 @@ class FollowUpController extends Controller
             'not_done' => 'Not Done',
             default => 'Pending',
         };
+        
+        // Determine if this is a Home Visit EPR (only these should show physical visit fields)
+        // Call and Showroom Visit EPRs should NOT show Visit Date, Met Whom, and image upload fields
+        $isHomeVisit = stripos($enquiry->follow_type ?? '', 'home') !== false;
+        $showPhysicalVisitFields = $isHomeVisit;
 
         return view('followup.show', [
             'enquiry' => $enquiry,
@@ -135,17 +140,22 @@ class FollowUpController extends Controller
             'selectedLostRejectReasons' => $selectedLostRejectReasons,
             'selectedLostRejectOtherText' => $selectedLostRejectOtherText,
             'statusLabel' => $statusLabel,
+            'showPhysicalVisitFields' => $showPhysicalVisitFields,
+            'isHomeVisit' => $isHomeVisit,
         ]);
     }
 
     public function updateStatus(Request $request, Enquiry $enquiry): RedirectResponse
     {
         abort_unless($this->canAccessEnquiry($request->user(), $enquiry), 403);
+        
+        // Determine if this is a Home Visit EPR (only these require physical visit fields)
+        $isHomeVisit = stripos($enquiry->follow_type ?? '', 'home') !== false;
 
         $validated = $request->validate([
             'followup_status' => ['required', Rule::in(['done', 'not_done'])],
-            'followup_visit_date' => ['nullable', 'date', 'required_if:followup_status,done'],
-            'followup_met_whom' => ['nullable', 'string', 'max:255', 'required_if:followup_status,done'],
+            'followup_visit_date' => ['nullable', 'date', Rule::requiredIf(fn() => $request->input('followup_status') === 'done' && $isHomeVisit)],
+            'followup_met_whom' => ['nullable', 'string', 'max:255', Rule::requiredIf(fn() => $request->input('followup_status') === 'done' && $isHomeVisit)],
             'followup_result' => ['nullable', Rule::in(['active', 'lost', 'closed']), 'required_if:followup_status,done'],
             'followup_picture_1' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'followup_picture_2' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
@@ -270,8 +280,15 @@ class FollowUpController extends Controller
         $enquiry->followup_marked_at = now();
 
         if ($validated['followup_status'] === 'done') {
-            $enquiry->followup_visit_date = $validated['followup_visit_date'] ?? null;
-            $enquiry->followup_met_whom = $validated['followup_met_whom'] ?? null;
+            // Only set visit date and met whom for Home Visit followups
+            if ($isHomeVisit) {
+                $enquiry->followup_visit_date = $validated['followup_visit_date'] ?? null;
+                $enquiry->followup_met_whom = $validated['followup_met_whom'] ?? null;
+            } else {
+                $enquiry->followup_visit_date = null;
+                $enquiry->followup_met_whom = null;
+            }
+            
             $enquiry->followup_result = $validated['followup_result'] ?? null;
 
             if (($validated['followup_result'] ?? null) === 'active') {
@@ -375,7 +392,6 @@ class FollowUpController extends Controller
         } else {
             $enquiry->followup_visit_date = null;
             $enquiry->followup_met_whom = null;
-            $enquiry->followup_result = null;
             $this->clearActiveFollowupFields($enquiry);
             $this->clearLostFollowupFields($enquiry);
         }
