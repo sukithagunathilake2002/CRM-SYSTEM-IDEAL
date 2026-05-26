@@ -65,7 +65,7 @@
             <form method="POST" action="{{ route('followup.update_status', $enquiry->id) }}" enctype="multipart/form-data" id="followupForm">
                 @csrf
                 <input type="hidden" name="followup_status" id="followupStatusInput" value="{{ $selectedFollowupStatus }}">
-                <input type="hidden" name="is_call_followup" id="isCallFollowup" value="{{ $isCallFollowup ? '1' : '0' }}">
+                <input type="hidden" name="is_home_visit" id="isHomeVisit" value="{{ $isHomeVisit ? '1' : '0' }}">
 
                 <div class="followup-head-grid">
                     <div class="followup-left">
@@ -84,8 +84,8 @@
                 </div>
 
                 <div id="doneQuestionWrap" class="done-question-wrap {{ $selectedFollowupStatus === 'done' ? '' : 'hidden' }}">
-                    {{-- Visit Date and Met Whom - Hidden for Call EPRs --}}
-                    @if($isHomeOrShowroomFollowup)
+                    {{-- Visit Date, Met Whom, and Image Upload - Only for Home Visit EPRs --}}
+                    @if($showPhysicalVisitFields)
                         <div class="done-question-row">
                             <div class="done-field">
                                 <label>Visit Date</label>
