@@ -202,6 +202,10 @@ body {
     position: relative;
 }
 
+.crm-profile-menu-wrap {
+    position: relative;
+}
+
 .crm-notify-btn {
     list-style: none;
     width: 34px;
@@ -229,6 +233,39 @@ body {
 }
 
 .crm-notify-btn svg {
+    width: 17px;
+    height: 17px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+}
+
+.crm-profile-btn {
+    list-style: none;
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--surface-card);
+    color: var(--navy);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15);
+    transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.crm-profile-btn::-webkit-details-marker {
+    display: none;
+}
+
+.crm-profile-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 7px 14px rgba(15, 23, 42, 0.2);
+}
+
+.crm-profile-btn svg {
     width: 17px;
     height: 17px;
     fill: none;
@@ -266,6 +303,49 @@ body {
     box-shadow: 0 14px 28px rgba(15, 23, 42, 0.18);
     padding: 10px;
     z-index: 1200;
+}
+
+.crm-profile-menu {
+    position: absolute;
+    top: 42px;
+    right: 0;
+    width: 240px;
+    background: var(--surface-card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: 0 14px 28px rgba(15, 23, 42, 0.18);
+    padding: 10px;
+    z-index: 1200;
+}
+
+.crm-profile-name {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.crm-profile-detail {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: var(--text-soft);
+    word-break: break-word;
+}
+
+.crm-logout-form {
+    margin-top: 10px;
+}
+
+.crm-logout-btn {
+    width: 100%;
+    min-height: 34px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--red);
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
 }
 
 .crm-notify-title {

@@ -105,6 +105,28 @@
                         <path d="M6 11l4-3 3 2 5-5" stroke-linecap="round" stroke-linejoin="round"></path>
                     </svg>
                 </a>
+
+                <details class="crm-profile-menu-wrap">
+                    <summary class="crm-profile-btn" aria-label="Open profile menu">
+                        <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                            <circle cx="12" cy="8" r="3.5"></circle>
+                            <path d="M5 19c0-3.3 3.1-6 7-6s7 2.7 7 6" stroke-linecap="round"></path>
+                        </svg>
+                    </summary>
+                    <div class="crm-profile-menu">
+                        <p class="crm-profile-name">{{ $displayName }}</p>
+                        <p class="crm-profile-detail">{{ $user?->email ?? 'No email' }}</p>
+                        <p class="crm-profile-detail">{{ $user?->role_label ?? 'User' }}</p>
+                        @if(!empty($user?->phone))
+                            <p class="crm-profile-detail">{{ $user->phone }}</p>
+                        @endif
+
+                        <form method="POST" action="{{ route('auth.logout') }}" class="crm-logout-form">
+                            @csrf
+                            <button type="submit" class="crm-logout-btn">Log out</button>
+                        </form>
+                    </div>
+                </details>
             </div>
         </header>
 

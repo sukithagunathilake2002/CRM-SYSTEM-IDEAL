@@ -45,7 +45,7 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->route('dashboard.home');
+        return redirect()->route('dashboard.main');
     }
 
     public function roles(): View
@@ -91,7 +91,7 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->route('dashboard.home');
+        return redirect()->route('dashboard.main');
     }
 
     public function showRegistrationForm(string $roleSlug): View
@@ -224,7 +224,7 @@ class AuthController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
-        return redirect()->route('dashboard.home');
+        return redirect()->route('dashboard.main');
     }
 
     public function logout(Request $request): RedirectResponse
