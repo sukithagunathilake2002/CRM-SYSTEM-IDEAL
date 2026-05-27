@@ -42,6 +42,7 @@ html.theme-dark .emi-page {
 html.theme-dark .crm-shell,
 html.theme-dark .crm-stats-card,
 html.theme-dark .crm-action-card,
+html.theme-dark .crm-lower-card,
 html.theme-dark .enquiry-shell,
 html.theme-dark .epr-filter-sheet,
 html.theme-dark .epr-list,
@@ -81,8 +82,65 @@ html.theme-dark .lead-phone,
 html.theme-dark .card-info,
 html.theme-dark .crm-title,
 html.theme-dark .crm-greeting,
-html.theme-dark .crm-action-card p {
+html.theme-dark .crm-action-card p,
+html.theme-dark .crm-subline,
+html.theme-dark .crm-overview-head h3,
+html.theme-dark .crm-quick-head,
+html.theme-dark .crm-lower-item span {
     color: #dbe7ff !important;
+}
+
+html.theme-dark .crm-left-nav {
+    background: #05070d;
+    border-right-color: #20365f;
+}
+
+html.theme-dark .crm-left-group p {
+    color: #8ca8d8;
+}
+
+html.theme-dark .crm-left-group a {
+    color: #e5eeff;
+}
+
+html.theme-dark .crm-left-group a:hover {
+    background: #132242;
+}
+
+html.theme-dark .crm-left-profile {
+    background: #0f172a;
+    border-color: #2f446d;
+}
+
+html.theme-dark .crm-menu-toggle {
+    background: #132447;
+    border-color: #355182;
+}
+
+html.theme-dark .crm-menu-toggle span {
+    background: #dbe7ff;
+}
+
+html.theme-dark .crm-current-date-box {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+}
+
+html.theme-dark .crm-current-date-pill {
+    background: #0f1a31;
+    border-color: #3d5b92;
+    color: #eef4ff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
+}
+
+html.theme-dark .crm-current-date-pill svg {
+    stroke: #eef4ff;
+}
+
+html.theme-dark .crm-overview-head,
+html.theme-dark .crm-lower-item {
+    border-color: #314a7e;
 }
 
 html.theme-dark input[type="text"],
@@ -566,8 +624,145 @@ html.theme-dark .prospect-page .summary-modal-close {
 
 .crm-dashboard {
     min-height: 100vh;
-    padding: 8px;
+    padding: 6px;
     box-sizing: border-box;
+}
+
+.crm-layout-shell {
+    display: block;
+    min-height: calc(100vh - 12px);
+}
+
+.crm-left-nav {
+    background: #060606;
+    color: #ffffff;
+    border-right: 1px solid #1a1a1a;
+    padding: 14px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 230px;
+    z-index: 1400;
+    transform: translateX(-100%);
+    transition: transform 180ms ease;
+    box-sizing: border-box;
+    overflow-y: auto;
+}
+
+.crm-dashboard.sidebar-open .crm-left-nav {
+    transform: translateX(0);
+}
+
+.crm-sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(2, 6, 23, 0.4);
+    border: 0;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 180ms ease;
+    z-index: 1350;
+}
+
+.crm-dashboard.sidebar-open .crm-sidebar-overlay {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.crm-left-brand-link {
+    display: inline-flex;
+    width: fit-content;
+}
+
+.crm-left-brand-logo {
+    width: 92px;
+    height: auto;
+}
+
+.crm-left-group {
+    display: grid;
+    gap: 6px;
+}
+
+.crm-left-group p {
+    margin: 10px 0 4px;
+    font-size: 11px;
+    color: #9ca3af;
+    text-transform: uppercase;
+}
+
+.crm-left-group a {
+    color: #f3f4f6;
+    text-decoration: none;
+    font-size: 13px;
+    border-radius: 8px;
+    padding: 7px 8px;
+    transition: background 160ms ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.crm-left-group a:hover {
+    background: #171717;
+}
+
+.crm-left-group a::before {
+    content: "";
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    border: 1.4px solid #e5e7eb;
+    box-sizing: border-box;
+    flex: 0 0 14px;
+}
+
+.crm-left-sep {
+    width: 100%;
+    border: 0;
+    border-top: 1px solid #3d3f46;
+    margin: 2px 0;
+}
+
+.crm-left-profile {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-radius: 10px;
+    padding: 8px;
+    background: #0f0f11;
+    border: 1px solid #2e313a;
+}
+
+.crm-left-profile-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 999px;
+    background: #e5e7eb;
+    color: #111827;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+}
+
+.crm-left-profile strong {
+    display: block;
+    font-size: 14px;
+    line-height: 1.2;
+}
+
+.crm-left-profile small {
+    display: block;
+    margin-top: 2px;
+    color: #d1d5db;
+    font-size: 11px;
 }
 
 .crm-sidebar {
@@ -618,18 +813,47 @@ html.theme-dark .prospect-page .summary-modal-close {
 
 .crm-main {
     min-width: 0;
+    padding: 0 8px;
+    transition: padding-left 180ms ease;
+}
+
+.crm-dashboard.sidebar-open .crm-main {
+    padding-left: 238px;
 }
 
 .crm-header {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
     align-items: center;
     gap: 10px;
-    padding: 6px 2px 10px;
+    padding: 8px 2px 12px;
+    border-bottom: 1px solid #bcc4d4;
+}
+
+.crm-menu-toggle {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 1px solid #c6cedf;
+    background: #ffffff;
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+}
+
+.crm-menu-toggle span {
+    width: 16px;
+    height: 2px;
+    background: #1f2937;
+    border-radius: 2px;
+    display: block;
 }
 
 .crm-brand-logo {
-    width: 78px;
+    width: 76px;
     height: auto;
 }
 
@@ -913,10 +1137,10 @@ html.theme-dark .prospect-page .summary-modal-close {
 }
 
 .crm-shell {
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: 24px;
-    padding: 20px 18px 24px;
+    background: #efeff2;
+    border: 1px solid #bcc4d4;
+    border-radius: 22px;
+    padding: 18px 18px 20px;
     margin-top: 10px;
 }
 
@@ -929,26 +1153,27 @@ html.theme-dark .prospect-page .summary-modal-close {
 
 .crm-greeting {
     margin: 0;
-    font-size: 30px;
+    font-size: 40px;
     font-weight: 700;
+    line-height: 1.12;
 }
 
-.crm-title {
-    margin: 6px 0 0;
-    font-size: 32px;
-    line-height: 1.15;
-    letter-spacing: 0.2px;
+.crm-subline {
+    margin: 8px 0 0;
+    font-size: 15px;
+    color: #4b5563;
 }
 
 .crm-stats-card {
     border: 4px solid #b9c5f5;
-    border-radius: 22px;
-    padding: 14px;
+    border-right-color: #1a2650;
+    border-radius: 24px;
+    padding: 14px 16px;
     display: flex;
-    gap: 14px;
+    gap: 12px;
     align-items: center;
-    justify-content: space-between;
-    max-width: 480px;
+    justify-content: flex-start;
+    max-width: 420px;
     width: 100%;
 }
 
@@ -959,63 +1184,92 @@ html.theme-dark .prospect-page .summary-modal-close {
 }
 
 .crm-stat-pill {
-    min-width: 170px;
+    min-width: 220px;
     background: var(--navy);
     color: #ffffff;
     border-radius: 999px;
-    font-size: 12px;
-    font-weight: 500;
-    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 14px;
     display: flex;
     align-items: center;
     gap: 8px;
+    box-shadow: 6px 8px 10px rgba(0, 0, 0, 0.25);
 }
 
 .crm-stat-dot {
-    width: 13px;
-    height: 13px;
+    width: 14px;
+    height: 14px;
     border-radius: 999px;
-    background: #12d165;
-    border: 2px solid #0d803f;
+    background: #6cff4c;
+    border: 2px solid #118131;
     box-sizing: border-box;
 }
 
-.crm-profile-mini {
-    text-align: center;
+.crm-overview-head {
+    margin-top: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #c8cfde;
+    padding-top: 14px;
 }
 
-.crm-avatar {
-    width: 54px;
-    height: 54px;
-    border-radius: 999px;
+.crm-overview-head h3 {
+    margin: 0;
+    font-size: 28px;
+}
+
+.crm-overview-head > span {
+    border: 1px solid #c2c8d6;
     background: #ffffff;
-    border: 4px solid var(--navy);
-    color: var(--navy);
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: #374151;
+}
+
+.crm-current-date-box {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    font-weight: 700;
 }
 
-.crm-profile-mini p {
-    margin: 8px 0 0;
+.crm-current-date-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid #b8c2d6;
+    background: #ffffff;
+    border-radius: 9px;
+    padding: 6px 11px;
     font-size: 12px;
     font-weight: 600;
+    color: #1f2a44;
+    line-height: 1.2;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.crm-current-date-pill svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: #111827;
+    stroke-width: 1.8;
+    flex: 0 0 16px;
 }
 
 .crm-action-grid {
-    margin-top: 18px;
+    margin-top: 14px;
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 12px;
+    gap: 16px;
 }
 
 .crm-action-card {
-    background: var(--surface-card);
-    border: 2px solid var(--navy);
-    border-radius: 14px;
-    padding: 14px 12px 16px;
+    background: #f8f8fa;
+    border: 1px solid #c3cada;
+    border-radius: 22px;
+    padding: 14px 12px;
     text-decoration: none;
     color: var(--text);
     text-align: center;
@@ -1028,44 +1282,29 @@ html.theme-dark .prospect-page .summary-modal-close {
 }
 
 .crm-action-badge {
-    width: 56px;
-    height: 56px;
+    width: 62px;
+    height: 62px;
     border-radius: 999px;
     margin: 0 auto 10px;
-    background: var(--navy);
+    background: #ffffff;
+    border: 2px solid #dbe1ec;
     display: inline-flex;
     align-items: center;
     justify-content: center;
 }
 
 .crm-action-badge img {
-    width: 28px;
-    height: 28px;
+    width: 34px;
+    height: 34px;
     object-fit: contain;
-    filter: brightness(0) invert(1);
+    filter: none;
 }
 
 .crm-action-card h3 {
     margin: 0;
-    color: #ffffff;
-    font-size: 11px;
-    line-height: 1;
-}
-
-.crm-action-card h3 {
-    background: var(--navy);
-    display: inline-block;
-    border-radius: 999px;
-    padding: 5px 12px;
-}
-
-.crm-action-card p {
-    margin: 10px 0 0;
-    color: var(--text);
-    font-size: 14px;
-    font-weight: 500;
-    line-height: 1.25;
-    letter-spacing: 0.2px;
+    color: #111827;
+    font-size: 18px;
+    line-height: 1.2;
 }
 
 .crm-cta-row {
@@ -1077,7 +1316,7 @@ html.theme-dark .prospect-page .summary-modal-close {
 }
 
 .crm-cta {
-    min-width: 176px;
+    min-width: 190px;
     text-align: center;
     text-decoration: none;
     background: var(--red);
@@ -1094,17 +1333,143 @@ html.theme-dark .prospect-page .summary-modal-close {
     transform: translateY(-1px);
 }
 
+.crm-quick-head {
+    margin-top: 20px;
+    font-size: 26px;
+    font-weight: 700;
+}
+
+.crm-quick-actions {
+    margin-top: 12px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.crm-quick-chip {
+    text-decoration: none;
+    border: 1px solid #b9c0d2;
+    border-radius: 20px;
+    padding: 14px 18px;
+    font-size: 19px;
+    font-weight: 600;
+    color: #334155;
+    background: #f6f8fb;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: center;
+}
+
+.crm-quick-chip img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    flex: 0 0 28px;
+}
+
+.crm-quick-chip span {
+    line-height: 1;
+}
+
+.crm-quick-chip.hot {
+    border-color: #8bc0ed;
+    color: #0d63ad;
+}
+
+.crm-quick-chip.warm {
+    border-color: #9f8de6;
+    color: #6242b9;
+}
+
+.crm-quick-chip.cold {
+    border-color: #9ed6b4;
+    color: #2e9b59;
+}
+
+.crm-lower-grid {
+    margin-top: 16px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.crm-lower-card {
+    background: #ffffff;
+    border: 1px solid #c6cedd;
+    border-radius: 18px;
+    padding: 12px 14px;
+}
+
+.crm-lower-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.crm-lower-head h4 {
+    margin: 0;
+    font-size: 24px;
+}
+
+.crm-lower-head a {
+    text-decoration: none;
+    color: #5b67c9;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.crm-lower-list {
+    display: grid;
+    gap: 8px;
+}
+
+.crm-lower-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    border-top: 1px solid #e4e8f0;
+    padding-top: 8px;
+}
+
+.crm-lower-item span {
+    font-size: 14px;
+    color: #1f2937;
+}
+
+.crm-lower-item small {
+    font-size: 12px;
+    color: #6b7280;
+}
+
 @media (max-width: 1180px) {
     .crm-greeting {
         font-size: 24px;
     }
 
-    .crm-title {
-        font-size: 25px;
+    .crm-subline {
+        font-size: 14px;
     }
 
-    .crm-action-card p {
+    .crm-action-card h3 {
+        font-size: 15px;
+    }
+
+    .crm-quick-chip {
+        font-size: 16px;
+    }
+
+    .crm-lower-head h4 {
+        font-size: 18px;
+    }
+
+    .crm-lower-item span {
         font-size: 14px;
+    }
+
+    .crm-lower-item small {
+        font-size: 12px;
     }
 }
 
@@ -1118,10 +1483,6 @@ html.theme-dark .prospect-page .summary-modal-close {
         justify-content: center;
     }
 
-    .crm-header {
-        grid-template-columns: auto 1fr auto;
-    }
-
     .crm-perf-top {
         flex-direction: column;
     }
@@ -1132,6 +1493,15 @@ html.theme-dark .prospect-page .summary-modal-close {
 
     .crm-action-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .crm-quick-actions,
+    .crm-lower-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .crm-dashboard.sidebar-open .crm-main {
+        padding-left: 8px;
     }
 }
 
@@ -1145,26 +1515,10 @@ html.theme-dark .prospect-page .summary-modal-close {
         font-size: 20px;
     }
 
-    .crm-title {
-        font-size: 22px;
-    }
-
     .crm-stats-card {
         border-width: 2px;
         border-radius: 14px;
         padding: 10px;
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .crm-profile-mini {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .crm-profile-mini p {
-        margin: 0;
     }
 
     .crm-stat-pill {
@@ -1176,13 +1530,14 @@ html.theme-dark .prospect-page .summary-modal-close {
         grid-template-columns: 1fr;
     }
 
-    .crm-action-card p {
-        font-size: 13px;
-    }
-
     .crm-cta {
         width: 100%;
         min-width: 0;
+    }
+
+    .crm-overview-head h3,
+    .crm-quick-head {
+        font-size: 20px;
     }
 }
 

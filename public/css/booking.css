@@ -535,17 +535,19 @@ select {
 }
 
 .buying-lead-summary {
-    background: #4a0606;
-    border: 1px solid #8e9099;
-    border-radius: 10px;
+    background: #6b0000;
+    border: 1px solid #8f95a4;
+    border-radius: 12px;
     color: #fff;
-    padding: 10px 12px;
+    padding: 10px 12px 8px;
     margin-bottom: 10px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
 .buying-lead-summary p {
-    margin: 0 0 4px;
-    font-size: 11px;
+    margin: 0 0 3px;
+    font-size: 12px;
+    font-weight: 600;
     line-height: 1.2;
     letter-spacing: 0.2px;
 }
@@ -561,23 +563,23 @@ select {
 
 .buying-section .section-heading {
     margin: 0;
-    font-size: 14px;
+    font-size: 28px;
     font-weight: 700;
 }
 
 .buying-section .inline-edit-check {
-    font-size: 12px;
+    font-size: 14px;
     gap: 4px;
 }
 
 .buying-section label {
-    font-size: 10px;
-    color: #4d4d57;
+    font-size: 11px;
+    color: #5c6170;
     margin-bottom: 3px;
 }
 
 .buying-section .row {
-    margin-bottom: 8px;
+    margin-bottom: 10px;
 }
 
 .buying-section .row.three {
@@ -590,12 +592,12 @@ select {
 .buying-section input[type="text"],
 .buying-section input[type="date"],
 .buying-section select {
-    min-height: 34px;
+    min-height: 36px;
     border-radius: 999px;
-    border: 1px solid #a6acbb;
-    background: #f9f9fb;
-    font-size: 10px;
-    padding: 6px 12px;
+    border: 1px solid #9fa6b8;
+    background: #f3f4f7;
+    font-size: 12px;
+    padding: 7px 12px;
 }
 
 .buying-section input[type="text"]:hover,
@@ -609,17 +611,17 @@ select {
 }
 
 .buying-section .segment-row {
-    border: 1px solid #9fa2ad;
+    border: 1px solid #9aa1b2;
     border-radius: 999px;
     overflow: hidden;
     margin-bottom: 8px;
 }
 
 .buying-section .segment-row span {
-    min-height: 28px;
-    background: #f8f8f9;
-    border-right: 1px solid #b9bcc4;
-    font-size: 10px;
+    min-height: 30px;
+    background: #f7f7f8;
+    border-right: 1px solid #b8beca;
+    font-size: 12px;
 }
 
 .buying-section .segment-row label:hover span {
@@ -627,7 +629,7 @@ select {
 }
 
 .buying-section .segment-row input:checked + span {
-    background: #4a0606;
+    background: #6b0000;
     color: #fff;
 }
 
@@ -650,6 +652,188 @@ select {
 
 .exchange-mode-row.disabled {
     opacity: 0.45;
+}
+
+.exchange-section .section-heading,
+.offer-section .section-heading,
+.booking-form-section .section-heading {
+    margin: 0 0 8px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #12141a;
+}
+
+.exchange-section label {
+    font-size: 11px;
+    color: #4d4f58;
+    margin-bottom: 3px;
+}
+
+.exchange-section .row {
+    margin-bottom: 8px;
+}
+
+.exchange-section .segment-row {
+    border: 1px solid #9fa3ad;
+    border-radius: 999px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.exchange-section .segment-row span {
+    min-height: 28px;
+    font-size: 10px;
+    background: #f8f8f9;
+    border-right: 1px solid #b9bcc4;
+}
+
+.exchange-section .segment-row input:checked + span {
+    background: #4a0606;
+    color: #fff;
+}
+
+.exchange-section .exchange-detail-wrap {
+    margin-top: 8px;
+    border: 1px solid #bcc0c8;
+    border-radius: 14px;
+    background: #eceef3;
+    padding: 10px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.exchange-section .exchange-edit-fields .row.split,
+.exchange-section .exchange-edit-fields .row.triple {
+    gap: 10px;
+}
+
+.exchange-section .vehicle-pill-display,
+.exchange-section .buying-select,
+.exchange-section input[type="text"],
+.exchange-section input[type="number"],
+.exchange-section select {
+    min-height: 34px;
+    border-radius: 12px;
+    border: 1px solid #adb1bb;
+    background: #f6f7f9;
+    font-size: 12px;
+    padding: 6px 10px;
+}
+
+.exchange-section .exchange-difference-input,
+.exchange-section .exchange-difference-input[readonly] {
+    background: #c62828 !important;
+    border-color: #a61f1f !important;
+    color: #fff !important;
+    -webkit-text-fill-color: #fff;
+    opacity: 1;
+}
+
+.exchange-section .exchange-difference-input::placeholder,
+.exchange-section .exchange-difference-input[readonly]::placeholder {
+    color: #ffe1e1;
+}
+
+.exchange-section .upload-tile {
+    min-height: 96px;
+    border-radius: 10px;
+    border: 1px solid #b9bec9;
+    background: #f6f8fc;
+    color: #1f2533;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.exchange-section input[type="file"][multiple] {
+    border: 1px dashed #aab1bf;
+    background: #f9fafd;
+    border-radius: 10px;
+    min-height: 40px;
+    font-size: 12px;
+}
+
+.offer-section .offer-edit-group {
+    gap: 10px;
+}
+
+.offer-section .offer-card {
+    border: 1px solid #c6cad3;
+    border-radius: 14px;
+    background: #eceef3;
+    padding: 10px 12px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.offer-section .offer-card-title {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #161922;
+}
+
+.offer-section .offer-card-amount-row input[type="number"] {
+    width: 100%;
+    max-width: 260px;
+    border: 1px solid #b3b8c3;
+    border-radius: 10px;
+    background: #f8f9fc;
+    text-align: right;
+    font-size: 18px;
+    font-weight: 700;
+    padding: 6px 10px;
+}
+
+.offer-section .offer-card-bottom-row {
+    margin-top: 8px;
+    justify-content: space-between;
+}
+
+.offer-section .offer-card-bottom-row input[type="number"] {
+    width: 100%;
+    max-width: 180px;
+    border: 1px solid #b3b8c3;
+    border-radius: 10px;
+    background: #f8f9fc;
+    text-align: right;
+    font-size: 14px;
+    padding: 6px 10px;
+}
+
+.offer-section .offer-free-check span {
+    font-size: 13px;
+    font-weight: 700;
+    color: #161922;
+}
+
+.offer-section .offer-total-panel {
+    border: 1px solid #d6b992;
+    border-radius: 14px;
+    background: #f4e3c7;
+    padding: 10px 12px;
+}
+
+.offer-section .offer-total-head span {
+    font-size: 12px;
+    font-weight: 700;
+    color: #4a3921;
+}
+
+.offer-section .offer-total-values strong {
+    font-size: 18px;
+    color: #b90000;
+    font-weight: 700;
+}
+
+.booking-form-section .readonly-card {
+    border: 1px solid #bcc0c8;
+    border-radius: 14px;
+    background: #eceef3;
+    padding: 12px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.booking-form-section .readonly-card p {
+    font-size: 13px;
+    color: #1f2533;
 }
 
 .upload-tile {
@@ -929,6 +1113,14 @@ select:focus {
         font-size: 12px;
     }
 
+    .buying-section .section-heading {
+        font-size: 22px;
+    }
+
+    .buying-lead-summary p {
+        font-size: 11px;
+    }
+
     .personal-row-top,
     .personal-row-two,
     .personal-row-three {
@@ -1012,5 +1204,15 @@ select:focus {
 
     .offer-total-values strong {
         font-size: 18px;
+    }
+
+    .offer-section .offer-card-amount-row input[type="number"],
+    .offer-section .offer-card-bottom-row input[type="number"] {
+        max-width: 100%;
+    }
+
+    .offer-section .offer-card-bottom-row {
+        flex-wrap: wrap;
+        justify-content: flex-start;
     }
 }

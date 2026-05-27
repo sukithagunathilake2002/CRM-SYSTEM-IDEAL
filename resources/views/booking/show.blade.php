@@ -491,7 +491,7 @@
                 </div>
             </section>
 
-            <section class="booking-section {{ $currentStep === 3 ? 'active' : '' }}">
+            <section class="booking-section exchange-section {{ $currentStep === 3 ? 'active' : '' }}">
                 <h3 class="section-heading">Exchange Details</h3>
 
                 <div class="row">
@@ -512,7 +512,7 @@
                     </div>
                 </div>
 
-                <div id="exchangeDetailsWrap" class="{{ $selectedInterestedExchange === 'yes' ? '' : 'hidden' }}">
+                <div id="exchangeDetailsWrap" class="exchange-detail-wrap {{ $selectedInterestedExchange === 'yes' ? '' : 'hidden' }}">
 
                     <div class="section-head-inline">
                         <label>Exchange detail</label>
@@ -527,7 +527,7 @@
                         <div class="vehicle-pill-display">{{ strtoupper($exchangeVehicleLine) }}</div>
                     </div>
 
-                    <div id="exchangeEditFields" class="{{ $isExchangeEdit ? '' : 'hidden' }}">
+                    <div id="exchangeEditFields" class="exchange-edit-fields {{ $isExchangeEdit ? '' : 'hidden' }}">
                         <div class="row split">
                             <div>
                                 <label>Brand</label>
@@ -586,7 +586,7 @@
                             </div>
                             <div>
                                 <label>Difference</label>
-                                <input type="number" step="0.01" id="exchange_price_difference" name="exchange_price_difference" value="{{ $selectedExchangeDifference }}" readonly>
+                                <input type="number" step="0.01" id="exchange_price_difference" name="exchange_price_difference" class="exchange-difference-input" value="{{ $selectedExchangeDifference }}" readonly>
                             </div>
                         </div>
 
@@ -620,7 +620,7 @@
                 </div>
             </section>
 
-            <section class="booking-section {{ $currentStep === 4 ? 'active' : '' }}">
+            <section class="booking-section offer-section {{ $currentStep === 4 ? 'active' : '' }}">
                 <div class="section-head-inline">
                     <h3 class="section-heading">Offer Details</h3>
                     <label class="inline-edit-check">
@@ -682,7 +682,7 @@
                 </div>
             </section>
 
-            <section class="booking-section {{ $currentStep === 5 ? 'active' : '' }}">
+            <section class="booking-section booking-form-section {{ $currentStep === 5 ? 'active' : '' }}">
                 <h3 class="section-heading">Part 5 - Booking Form</h3>
                 <div class="readonly-card">
                     <p><strong>Personal Details:</strong> Completed</p>
