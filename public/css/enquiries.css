@@ -13,7 +13,7 @@
 body {
     margin: 0;
     background: var(--app-bg);
-    font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+    font-family: "Poppins", "Segoe UI", Tahoma, Arial, sans-serif;
     color: var(--text-main);
 }
 
@@ -206,13 +206,13 @@ body {
 }
 
 .tool-btn {
-    min-width: 36px;
-    height: 34px;
+    min-width: 30px;
+    height: 28px;
     border: none;
     border-radius: 8px;
     background: #c0c2cc;
     color: #64666e;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 600;
     padding: 0 10px;
     cursor: pointer;
@@ -713,5 +713,355 @@ body.filter-open {
         min-width: 120px;
         height: 40px;
         font-size: 18px;
+    }
+}
+
+/* Dashboard-aligned UI layer */
+:root {
+    --app-bg: #eceef3;
+    --panel-bg: #efeff2;
+    --top-bg: #eef1f6;
+    --card-bg: #ffffff;
+    --card-border: #c3cada;
+}
+
+.epr-page {
+    background: var(--app-bg);
+}
+
+.epr-topbar {
+    min-height: 56px;
+    height: auto;
+    background: var(--top-bg);
+    border: 1px solid #c7cfde;
+    border-radius: 14px;
+    margin: 8px;
+    padding: 8px 12px;
+}
+
+.toolbar {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 10px 12px 0;
+}
+
+.search-box input {
+    background: #ffffff;
+    border: 1px solid #c8cfde;
+    color: #1f2937;
+}
+
+.tool-btn {
+    background: #ffffff;
+    border: 1px solid #c8cfde;
+    color: #1f2937;
+    border-radius: 10px;
+}
+
+.epr-list {
+    max-width: 1240px;
+    margin: 0 auto;
+}
+
+.epr-card {
+    border-radius: 16px;
+    box-shadow: none;
+}
+
+.chip-btn {
+    border-radius: 999px;
+}
+
+.card-menu {
+    box-shadow: none;
+}
+
+/* EPR card style (dashboard design) */
+.epr-card {
+    background: #ffffff;
+    border: 1px solid #d9dde6;
+    border-radius: 14px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+}
+
+.epr-card-top {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 8px;
+}
+
+.lead-flags {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.flag-pill {
+    min-width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    background: #ffffff;
+    border: 2px solid #ccd3df;
+    color: #1e2430;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.flag-pill.money {
+    background: #12151d;
+    color: #f8c23b;
+    border-color: #e0e4eb;
+}
+
+.epr-customer {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.epr-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    background: #f8ecec;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 34px;
+}
+
+.epr-avatar svg {
+    width: 18px;
+    height: 18px;
+    fill: #dc2f2f;
+    stroke: #dc2f2f;
+    stroke-width: 1.4;
+}
+
+.epr-customer-text {
+    text-align: center;
+}
+
+.lead-name {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    color: #1e2430;
+}
+
+.epr-name-underline {
+    display: inline-block;
+    width: 26px;
+    height: 3px;
+    border-radius: 999px;
+    margin-top: 8px;
+    background: #de2c2c;
+}
+
+.lead-phone-pill {
+    border: 1px solid #d2d8e3;
+    border-radius: 18px;
+    min-height: 32px;
+    padding: 0 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: #1e2430;
+}
+
+.lead-phone-icon {
+    width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.lead-phone-icon svg {
+    width: 12px;
+    height: 12px;
+    fill: #db2b2b;
+    stroke: #db2b2b;
+    stroke-width: 1.1;
+}
+
+.lead-phone {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    color: #1e2430;
+}
+
+.epr-card-body {
+    margin-top: 8px;
+    display: grid;
+    grid-template-columns: 1.25fr .75fr;
+    gap: 10px;
+}
+
+.epr-vehicle-panel {
+    padding-right: 8px;
+}
+
+.epr-vehicle-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.epr-vehicle-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: #faeded;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 40px;
+}
+
+.epr-vehicle-icon svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: #db2b2b;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.epr-meta-label {
+    margin: 0;
+    color: #7f8797;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+}
+
+.vehicle-line {
+    margin: 6px 0 0;
+    font-size: 12px;
+    font-weight: 700;
+    color: #1e2430;
+    letter-spacing: 0.2px;
+}
+
+.card-footer {
+    margin-top: 8px;
+    padding-right: 0;
+}
+
+.chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.chip-btn {
+    min-width: 112px;
+    justify-content: center;
+    min-height: 30px;
+    padding: 0 8px;
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #f12c2c 0%, #d81818 100%);
+    box-shadow: none;
+}
+
+.epr-date-panel {
+    border-left: 1px solid #e0e4ec;
+    padding-left: 10px;
+    display: grid;
+    gap: 8px;
+}
+
+.epr-date-item {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 6px;
+}
+
+.epr-date-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: #faeded;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.epr-date-icon svg {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: #db2b2b;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.epr-date-item p {
+    margin: 0;
+    color: #6d7586;
+    font-size: 10px;
+    font-weight: 500;
+}
+
+.epr-date-item strong {
+    color: #1e2430;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+}
+
+@media (max-width: 1200px) {
+    .lead-name {
+        font-size: 14px;
+    }
+
+    .lead-phone {
+        font-size: 11px;
+    }
+
+    .vehicle-line {
+        font-size: 11px;
+    }
+}
+
+@media (max-width: 900px) {
+    .epr-card-top {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        text-align: center;
+        gap: 10px;
+    }
+
+    .epr-card-body {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    .epr-vehicle-panel {
+        padding-right: 0;
+    }
+
+    .epr-date-panel {
+        border-left: 0;
+        border-top: 1px solid #e0e4ec;
+        padding-left: 0;
+        padding-top: 12px;
     }
 }

@@ -2660,3 +2660,33 @@ body {
         bottom: 8px;
     }
 }
+
+/* Dashboard-aligned UI layer */
+.prospect-page {
+    max-width: 1240px;
+    background: #eceef3;
+    padding: 8px;
+}
+
+.prospect-topbar {
+    min-height: 56px;
+    height: auto;
+    background: #eef1f6;
+    border: 1px solid #c7cfde;
+    border-radius: 14px;
+    padding: 8px 12px;
+}
+
+.summary-card {
+    border: 1px solid #bcc4d4;
+    border-radius: 14px;
+    box-shadow: 0 4px 12px rgba(17, 24, 39, 0.06);
+}
+
+.prospect-step {
+    background: #efeff2;
+    border: 1px solid #bcc4d4;
+    border-radius: 18px;
+    padding: 14px;
+    margin-bottom: 12px;
+}

@@ -445,3 +445,49 @@ select.input-pill {
         min-width: 0;
     }
 }
+
+/* Dashboard-aligned UI layer */
+.enquiry-page {
+    background: #eceef3;
+}
+
+.topbar {
+    min-height: 56px;
+    height: auto;
+    background: #eef1f6;
+    border: 1px solid #c7cfde;
+    border-radius: 14px;
+    margin: 8px;
+    padding: 8px 12px;
+}
+
+.enquiry-shell {
+    background: #efeff2;
+    border: 1px solid #bcc4d4;
+    border-radius: 20px;
+    box-shadow: 0 6px 16px rgba(17, 24, 39, 0.06);
+}
+
+.section-title {
+    font-size: 24px;
+    margin-bottom: 10px;
+}
+
+.input-pill {
+    border-radius: 14px;
+    border-color: #b9c1d2;
+    background: #ffffff;
+}
+
+.province-filter-box,
+.segment-wrap {
+    border-radius: 14px;
+    border-color: #b9c1d2;
+    background: #f8f9fc;
+}
+
+.btn-epr,
+.btn-cancel {
+    border-radius: 999px;
+    box-shadow: 0 5px 10px rgba(17, 24, 39, 0.14);
+}

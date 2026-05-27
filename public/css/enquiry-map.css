@@ -178,3 +178,45 @@ body {
         min-height: 360px;
     }
 }
+
+/* Dashboard-aligned UI layer */
+:root {
+    --map-bg: #eceef3;
+    --panel-bg: #efeff2;
+    --top-bg: #eef1f6;
+}
+
+.enquiry-map-page {
+    background: var(--map-bg);
+}
+
+.map-topbar {
+    min-height: 56px;
+    height: auto;
+    background: var(--top-bg);
+    border: 1px solid #c7cfde;
+    border-radius: 14px;
+    margin: 8px;
+    padding: 8px 12px;
+}
+
+.map-shell {
+    max-width: 1240px;
+}
+
+.map-filter-form,
+.map-summary,
+.map-list {
+    border-radius: 14px;
+    border-color: #bcc4d4;
+    box-shadow: 0 5px 12px rgba(17, 24, 39, 0.05);
+}
+
+.day-map {
+    border-radius: 14px;
+    border-color: #bcc4d4;
+}
+
+.map-filter-form button {
+    border-radius: 999px;
+}

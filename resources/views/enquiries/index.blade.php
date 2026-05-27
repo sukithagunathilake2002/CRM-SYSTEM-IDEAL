@@ -158,7 +158,7 @@
                 data-owner-role-label="{{ $ownerRoleLabel }}"
                 data-date="{{ optional($e->created_at)->timestamp ?? 0 }}"
             >
-                <div class="card-head-pill">
+                <div class="epr-card-top">
                     <div class="lead-flags">
                         @if($e->exchange)
                             <span class="flag-pill" title="Exchange">EX</span>
@@ -166,28 +166,76 @@
                         @if($e->finance)
                             <span class="flag-pill money" title="Finance">$</span>
                         @endif
-                        @if(!$e->exchange && !$e->finance)
-                            <span class="flag-pill muted">-</span>
-                        @endif
                     </div>
 
-                    <h3 class="lead-name">{{ strtoupper($customerName) }}</h3>
-                    <p class="lead-phone">{{ $primaryPhone }}</p>
-                </div>
-
-                <div class="card-info">
-                    <p class="vehicle-line">{{ strtoupper($vehicleName ?: 'VEHICLE NOT SET') }}</p>
-                    <div class="date-block">
-                        <p>Date of Inquiry : {{ $inquiryDate ?: '--' }}</p>
-                        <p>{{ $followLabel }} : {{ $followDate }}</p>
+                    <div class="epr-customer">
+                        <span class="epr-avatar" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <circle cx="12" cy="8" r="3.4"></circle>
+                                <path d="M5 19c0-3.2 3.1-5.8 7-5.8s7 2.6 7 5.8"></path>
+                            </svg>
+                        </span>
+                        <div class="epr-customer-text">
+                            <h3 class="lead-name">{{ strtoupper($customerName) }}</h3>
+                            <span class="epr-name-underline"></span>
+                        </div>
                     </div>
+
+                    <a href="{{ $whatsAppPhone !== '' ? 'tel:' . $primaryPhone : '#' }}" class="lead-phone-pill" aria-label="Call {{ $primaryPhone }}">
+                        <span class="lead-phone-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M7.7 10.5c1.4 2.8 3 4.4 5.8 5.8l1.9-1.9a1.1 1.1 0 0 1 1.1-.3 11.4 11.4 0 0 0 3.6.6 1.2 1.2 0 0 1 1.2 1.2V20a1.2 1.2 0 0 1-1.2 1.2A18.8 18.8 0 0 1 2.8 3.9 1.2 1.2 0 0 1 4 2.8h4.1A1.2 1.2 0 0 1 9.3 4a11.4 11.4 0 0 0 .6 3.6 1.1 1.1 0 0 1-.3 1.1Z"></path>
+                            </svg>
+                        </span>
+                        <span class="lead-phone">{{ $primaryPhone }}</span>
+                    </a>
                 </div>
 
-                <div class="card-footer">
-                    <div class="chip-row">
-                        <a href="{{ route('followup.show', $e->id) }}" class="chip-btn">Followup</a>
-                        <a href="{{ route('prospect.show', $e->id) }}" class="chip-btn">Prospect Sheet</a>
-                        <a href="{{ route('booking.show', $e->id) }}" class="chip-btn">Booking</a>
+                <div class="epr-card-body">
+                    <div class="epr-vehicle-panel">
+                        <div class="epr-vehicle-row">
+                            <span class="epr-vehicle-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false">
+                                    <path d="M3 13h14l2 3v3h-2a2 2 0 0 1-4 0H9a2 2 0 0 1-4 0H3v-6Z"></path>
+                                    <path d="M6 13 8 8h7l2 5"></path>
+                                    <circle cx="7" cy="19" r="1.2"></circle>
+                                    <circle cx="15" cy="19" r="1.2"></circle>
+                                </svg>
+                            </span>
+                            <div class="epr-vehicle-text">
+                                <p class="epr-meta-label">VEHICLE / INTEREST</p>
+                                <p class="vehicle-line">{{ strtoupper($vehicleName ?: 'VEHICLE NOT SET') }}</p>
+                            </div>
+                        </div>
+
+                        <div class="card-footer">
+                            <div class="chip-row">
+                                <a href="{{ route('followup.show', $e->id) }}" class="chip-btn">Followup</a>
+                                <a href="{{ route('prospect.show', $e->id) }}" class="chip-btn">Prospect Sheet</a>
+                                <a href="{{ route('booking.show', $e->id) }}" class="chip-btn">Booking</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="epr-date-panel">
+                        <div class="epr-date-item">
+                            <span class="epr-date-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false">
+                                    <path d="M7 3v3M17 3v3M4 9h16M6 6h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z"></path>
+                                </svg>
+                            </span>
+                            <p>Date of Inquiry</p>
+                            <strong>{{ $inquiryDate ?: '--' }}</strong>
+                        </div>
+                        <div class="epr-date-item">
+                            <span class="epr-date-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false">
+                                    <path d="M7 3v3M17 3v3M4 9h16M6 6h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z"></path>
+                                </svg>
+                            </span>
+                            <p>{{ $followLabel }}</p>
+                            <strong>{{ $followDate }}</strong>
+                        </div>
                     </div>
                 </div>
             </article>

@@ -1216,3 +1216,37 @@ select:focus {
         justify-content: flex-start;
     }
 }
+
+/* Dashboard-aligned UI layer */
+.booking-page {
+    background: #eceef3;
+}
+
+.booking-topbar {
+    min-height: 56px;
+    height: auto;
+    background: #eef1f6;
+    border: 1px solid #c7cfde;
+    border-radius: 14px;
+    margin: 8px;
+    padding: 8px 12px;
+}
+
+.booking-shell {
+    max-width: 1240px;
+    margin: 0 auto;
+}
+
+.booking-summary {
+    border-radius: 14px;
+    border: 1px solid #bcc4d4;
+    box-shadow: 0 4px 12px rgba(17, 24, 39, 0.06);
+}
+
+.booking-section.active {
+    background: #efeff2;
+    border: 1px solid #bcc4d4;
+    border-radius: 18px;
+    padding: 14px;
+    box-shadow: 0 5px 12px rgba(17, 24, 39, 0.05);
+}

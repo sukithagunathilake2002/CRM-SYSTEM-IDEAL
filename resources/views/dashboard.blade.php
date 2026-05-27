@@ -114,10 +114,6 @@ $query->where('user_id', $viewerId);
                             <img src="{{ asset('icons/logo.png') }}" alt="Ideal Motors" class="crm-brand-logo">
                         </a>
 
-                        <label class="crm-search" for="dashboardSearch">
-                            <input id="dashboardSearch" type="search" placeholder="Search here">
-                        </label>
-
                         <div class="top-icons-right crm-header-actions">
                             <details class="crm-notifications">
                                 <summary class="crm-notify-btn" aria-label="Today's follow-up notifications">
@@ -201,6 +197,9 @@ $query->where('user_id', $viewerId);
                             <span>{{ $todayLeads }} Today Leads</span>
                         </div>
                     </div>
+                    <a href="{{ route('enquiries.map', ['date' => $todaySriLanka]) }}" class="crm-day-map-link" aria-label="Open day map">
+                        <img src="{{ asset('icons/mapdsh.png') }}" alt="Day Map">
+                    </a>
                 </article>
                         </div>
 

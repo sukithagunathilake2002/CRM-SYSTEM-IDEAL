@@ -417,3 +417,37 @@ body {
         min-width: 88px;
     }
 }
+
+/* Dashboard-aligned UI layer */
+.followup-page {
+    background: #eceef3;
+}
+
+.followup-topbar {
+    min-height: 56px;
+    height: auto;
+    background: #eef1f6;
+    border: 1px solid #c7cfde;
+    border-radius: 14px;
+    margin: 8px;
+    padding: 8px 12px;
+}
+
+.followup-shell {
+    max-width: 1240px;
+    margin: 0 auto;
+    background: #efeff2;
+    border: 1px solid #bcc4d4;
+    border-radius: 18px;
+    box-shadow: 0 5px 14px rgba(17, 24, 39, 0.05);
+}
+
+.lead-summary-card {
+    border-radius: 14px;
+}
+
+.followup-card {
+    background: #ffffff;
+    border: 1px solid #c3cada;
+    box-shadow: 0 4px 10px rgba(17, 24, 39, 0.04);
+}

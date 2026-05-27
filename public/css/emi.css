@@ -2,6 +2,7 @@
     min-height: 100vh;
     padding: 14px;
     box-sizing: border-box;
+    background: #eceef3;
 }
 
 .emi-topbar {
@@ -9,6 +10,11 @@
     align-items: center;
     justify-content: space-between;
     gap: 12px;
+    min-height: 56px;
+    background: #eef1f6;
+    border: 1px solid #c7cfde;
+    border-radius: 14px;
+    padding: 8px 12px;
 }
 
 .emi-brand-logo {
@@ -17,12 +23,13 @@
 }
 
 .emi-shell {
-    max-width: 540px;
+    max-width: 620px;
     margin: 10px auto 0;
-    background: var(--surface);
-    border: 1px solid var(--line);
+    background: #efeff2;
+    border: 1px solid #bcc4d4;
     border-radius: 24px;
     padding: 24px 20px;
+    box-shadow: 0 6px 16px rgba(17, 24, 39, 0.06);
 }
 
 .emi-heading {
