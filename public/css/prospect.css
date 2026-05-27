@@ -1498,6 +1498,10 @@ body {
     grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.exchange-step .exchange-price-title {
+    margin-top: 10px;
+}
+
 .exchange-step select,
 .exchange-step input[type='text'],
 .exchange-step input[type='number'] {
@@ -1514,6 +1518,21 @@ body {
 
 .exchange-step input::placeholder {
     color: #858991;
+}
+
+.exchange-step .exchange-difference-input,
+.exchange-step .exchange-difference-input[readonly] {
+    background: #c62828 !important;
+    border-color: #a61f1f !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff;
+    opacity: 1;
+}
+
+.exchange-step .exchange-difference-input::placeholder,
+.exchange-step .exchange-difference-input[readonly]::placeholder {
+    color: #ffffff;
+    opacity: 1;
 }
 
 .exchange-step select {

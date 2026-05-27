@@ -421,15 +421,19 @@
                     </div>
                 </div>
 
+                <h4 class="sub-title exchange-price-title">Price details</h4>
                 <div class="grid-3 exchange-price-grid">
                     <div>
+                        <label>Expected price</label>
                         <input type="number" step="0.01" min="0" name="exchange_expected_price" value="{{ old('exchange_expected_price', $prospect->exchange_expected_price) }}" placeholder="Expected price">
                     </div>
                     <div>
+                        <label>Quoted price</label>
                         <input type="number" step="0.01" min="0" name="exchange_quoted_price" value="{{ old('exchange_quoted_price', $prospect->exchange_quoted_price) }}" placeholder="Quoted Price">
                     </div>
                     <div>
-                        <input type="number" step="0.01" name="exchange_price_difference" readonly value="{{ old('exchange_price_difference', $prospect->exchange_price_difference) }}" placeholder="Difference">
+                        <label>Difference</label>
+                        <input class="exchange-difference-input" type="number" step="0.01" name="exchange_price_difference" readonly value="{{ old('exchange_price_difference', $prospect->exchange_price_difference) }}" placeholder="Difference">
                     </div>
                 </div>
 
@@ -770,8 +774,6 @@
     })();
 </script>
 @endsection
-
-
 
 
 
