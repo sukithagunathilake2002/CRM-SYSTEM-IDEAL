@@ -1,36 +1,19 @@
 .emi-page {
-    --emi-bg: #eef2f8;
-    --emi-surface: #ffffff;
-    --emi-surface-soft: #f8faff;
-    --emi-line: #d6dfef;
-    --emi-text: #111b35;
-    --emi-text-soft: #5f6d86;
-    --emi-focus: #ef1f2d;
-    --emi-navy-start: #0f1a39;
-    --emi-navy-end: #24396f;
-    --emi-red-start: #ff2a3b;
-    --emi-red-end: #df0f22;
     min-height: 100vh;
-    padding: 18px;
+    padding: 14px;
+    background: #e7e9ee;
     box-sizing: border-box;
-    background:
-        radial-gradient(1200px 500px at -10% -10%, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0)),
-        radial-gradient(900px 420px at 110% 20%, rgba(220, 229, 247, 0.8), rgba(220, 229, 247, 0)),
-        var(--emi-bg);
 }
 
 .emi-topbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
     min-height: 58px;
-    background: rgba(255, 255, 255, 0.86);
-    border: 1px solid #d7e0f0;
-    border-radius: 16px;
     padding: 8px 14px;
-    backdrop-filter: blur(8px);
-    box-shadow: 0 8px 24px rgba(25, 39, 72, 0.08);
+    border: 1px solid #cdd3df;
+    border-radius: 14px;
+    background: #f0f2f7;
 }
 
 .emi-brand-logo {
@@ -39,194 +22,276 @@
 }
 
 .emi-shell {
-    max-width: 700px;
-    margin: 16px auto 0;
-    background: linear-gradient(180deg, #f9fbff 0%, #f2f5fb 100%);
-    border: 1px solid #cfdaee;
-    border-radius: 28px;
-    padding: 28px 24px;
-    box-shadow:
-        0 30px 50px rgba(18, 35, 69, 0.12),
-        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    max-width: 980px;
+    margin: 14px auto 0;
+    border: 1px solid #cfd4df;
+    border-radius: 18px;
+    background: #f3f4f8;
+    box-shadow: 0 12px 26px rgba(17, 24, 39, 0.08);
+    padding: 18px 18px 16px;
+}
+
+.emi-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 350px;
+    gap: 14px;
+    align-items: stretch;
+}
+
+.emi-form-panel {
+    background: #f3f4f8;
+    border-radius: 16px;
+    padding: 2px 4px;
+    max-width: 480px;
+    width: 100%;
+    margin: 0 auto;
 }
 
 .emi-heading {
     text-align: center;
-    margin-bottom: 18px;
+    margin-bottom: 14px;
 }
 
 .emi-heading h1 {
     margin: 0;
-    font-size: clamp(30px, 5vw, 42px);
-    line-height: 1.05;
-    letter-spacing: 0.2px;
-    color: var(--emi-text);
-    font-weight: 800;
+    font-size: 40px;
+    line-height: 1.1;
+    color: #111827;
+    font-weight: 700;
 }
 
 .emi-heading p {
-    margin: 10px 0 0;
-    color: var(--emi-text-soft);
-    font-size: 15px;
-    font-weight: 500;
-}
-
-.emi-card {
-    background: rgba(255, 255, 255, 0.75);
-    border: 1px solid var(--emi-line);
-    border-radius: 20px;
-    padding: 20px;
-    box-shadow: 0 16px 34px rgba(15, 23, 42, 0.09);
-    backdrop-filter: blur(6px);
+    margin: 7px 0 0;
+    font-size: 14px;
+    color: #4b5563;
 }
 
 .emi-group {
-    margin-bottom: 16px;
-}
-
-.emi-group:last-of-type {
-    margin-bottom: 0;
+    margin-bottom: 15px;
 }
 
 .emi-group label {
     display: block;
     margin-bottom: 7px;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.3px;
-    color: var(--emi-text-soft);
-}
-
-.emi-group input,
-.emi-group select {
-    width: 100%;
-    box-sizing: border-box;
-    min-height: 48px;
-    border: 1px solid var(--emi-line);
-    border-radius: 12px;
-    padding: 0 14px;
-    background: var(--emi-surface-soft);
-    color: var(--emi-text);
-    font-size: 16px;
-    font-weight: 600;
-    outline: none;
-    transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
-}
-
-.emi-group input::placeholder {
-    color: #8b96ad;
-}
-
-.emi-group input:focus,
-.emi-group select:focus {
-    border-color: var(--emi-focus);
-    background: #ffffff;
-    box-shadow: 0 0 0 4px rgba(239, 31, 45, 0.16);
-}
-
-.emi-result {
-    margin-top: 20px;
-    border-radius: 16px;
-    border: 1px solid #263a6b;
-    background: linear-gradient(130deg, var(--emi-navy-start), var(--emi-navy-end));
-    color: #ffffff;
-    text-align: center;
-    padding: 22px 16px;
-    position: relative;
-    overflow: hidden;
-}
-
-.emi-result::before {
-    content: "";
-    position: absolute;
-    width: 240px;
-    height: 240px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0));
-    top: -100px;
-    right: -70px;
-}
-
-.emi-result span {
-    position: relative;
-    z-index: 1;
-    font-size: 14px;
-    color: #d7e3ff;
-    font-weight: 600;
-}
-
-.emi-result h2 {
-    position: relative;
-    z-index: 1;
-    margin: 8px 0;
-    font-size: clamp(30px, 5vw, 44px);
-    line-height: 1.05;
-    color: #ffffff;
-    letter-spacing: 0.3px;
-}
-
-.emi-result h2 span {
-    font-size: inherit;
-    color: #ffffff;
-}
-
-.emi-result small {
-    position: relative;
-    z-index: 1;
     font-size: 13px;
-    color: #dbe4ff;
-    letter-spacing: 0.2px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.emi-group small {
+    display: block;
+    margin-top: 6px;
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.emi-input-wrap {
+    display: grid;
+    grid-template-columns: 38px 1fr;
+    align-items: center;
+    min-height: 46px;
+    border: 1px solid #c6cbd8;
+    border-radius: 12px;
+    background: #f6f7fb;
+    padding: 0 10px 0 8px;
+}
+
+.emi-input-prefix {
+    font-size: 13px;
+    color: #4b5563;
+    font-weight: 600;
+}
+
+.emi-input-wrap input,
+.emi-input-wrap select {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: #111827;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.emi-input-wrap input:focus,
+.emi-input-wrap select:focus {
+    box-shadow: none;
+}
+
+.emi-result-panel {
+    border-radius: 16px;
+    overflow: hidden;
+    background: #112a5b;
+    display: grid;
+    grid-template-rows: 1fr auto;
+}
+
+.emi-result-card {
+    background: #0f2b62;
+    color: #fff;
+    text-align: center;
+    padding: 18px 16px 14px;
+    min-height: 280px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.emi-result-title {
+    display: block;
+    font-size: 19px;
+    font-weight: 600;
+    color: #e6eeff;
+    line-height: 1.15;
+}
+
+.emi-title-rule {
+    display: block;
+    width: 78px;
+    height: 3px;
+    border-radius: 99px;
+    background: rgba(255, 255, 255, 0.95);
+    margin-top: 10px;
+}
+
+.emi-result-card h2 {
+    margin: 10px 0 4px;
+    font-size: 56px;
+    line-height: 1.04;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.emi-result-subtitle {
+    display: block;
+    font-size: 16px;
+    color: #e6eeff;
+    font-weight: 600;
+}
+
+.emi-result-icon {
+    margin: 12px auto 0;
+    width: 80px;
+    height: 80px;
+    border-radius: 999px;
+    background: #1b4dad;
+    display: grid;
+    place-items: center;
+}
+
+.emi-estimate-icon {
+    width: 46px;
+    height: 46px;
+}
+
+.emi-benefits {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    border-top: 1px solid #cbd2dd;
+    background: #e6e8ec;
+}
+
+.emi-benefit {
+    padding: 16px 12px;
+    text-align: center;
+    border-right: 1px solid #e6e8f0;
+}
+
+.emi-benefit:last-child {
+    border-right: 0;
+}
+
+.emi-benefit img,
+.emi-benefit-shield {
+    display: inline-flex;
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    margin: 0 auto 8px;
+}
+
+.emi-benefit h4 {
+    margin: 0;
+    font-size: 13px;
+    color: #111827;
+    font-weight: 700;
+}
+
+.emi-benefit p {
+    margin: 4px 0 0;
+    font-size: 11px;
+    color: #6b7280;
 }
 
 .emi-btn {
     width: 100%;
-    margin-top: 18px;
-    border: 0;
-    border-radius: 999px;
-    background: linear-gradient(180deg, var(--emi-red-start) 0%, var(--emi-red-end) 100%);
-    color: #ffffff;
+    max-width: 400px;
+    margin: 18px auto 0;
     min-height: 50px;
-    font-size: 17px;
+    border: 0;
+    border-radius: 13px;
+    background: linear-gradient(180deg, #1550ba 0%, #0d41a4 100%);
+    color: #fff;
+    font-size: 31px;
     font-weight: 700;
     letter-spacing: 0.2px;
     cursor: pointer;
-    box-shadow: 0 12px 24px rgba(223, 15, 34, 0.34);
-    transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    box-shadow: 0 10px 20px rgba(13, 65, 164, 0.26);
 }
 
 .emi-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 16px 28px rgba(223, 15, 34, 0.42);
-    filter: saturate(1.04);
+    filter: brightness(0.95);
 }
 
-.emi-btn:active {
-    transform: translateY(0);
+@media (max-width: 1024px) {
+    .emi-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .emi-result-panel {
+        max-width: 520px;
+        margin: 0 auto;
+    }
 }
 
 @media (max-width: 760px) {
     .emi-page {
-        padding: 12px;
+        padding: 10px;
     }
 
     .emi-shell {
-        border-radius: 20px;
-        padding: 18px 14px;
+        border-radius: 14px;
+        padding: 14px 12px;
     }
 
-    .emi-card {
-        border-radius: 16px;
-        padding: 14px;
+    .emi-heading h1 {
+        font-size: 30px;
     }
 
-    .emi-group input,
-    .emi-group select {
-        min-height: 44px;
+    .emi-input-wrap input,
+    .emi-input-wrap select {
+        font-size: 16px;
+    }
+
+    .emi-result-card h2 {
+        font-size: 44px;
+    }
+
+    .emi-result-title {
+        font-size: 18px;
+    }
+
+    .emi-result-subtitle {
         font-size: 15px;
     }
 
     .emi-btn {
-        min-height: 46px;
-        font-size: 16px;
+        max-width: 100%;
+        font-size: 22px;
     }
 }

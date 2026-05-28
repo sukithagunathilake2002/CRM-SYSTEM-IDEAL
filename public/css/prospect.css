@@ -1439,10 +1439,10 @@ body {
 .exchange-step .exchange-interest-segment {
     max-width: 260px;
     margin: 0 auto 8px;
-    border: 1px solid #9fa3ac;
+    border: 1px solid #9ea8bb;
     border-radius: 16px;
     overflow: hidden;
-    background: #f7f7f9;
+    background: #ffffff;
 }
 
 .exchange-step .exchange-interest-segment label {
@@ -1456,8 +1456,8 @@ body {
     min-height: 30px;
     font-size: 12px;
     font-weight: 500;
-    color: #1f2227;
-    border-right: 1px solid #b9bcc3;
+    color: #0f172a;
+    border-right: 1px solid #c3cad7;
 }
 
 .exchange-step .exchange-interest-segment label:last-child span {
@@ -1465,17 +1465,17 @@ body {
 }
 
 .exchange-step .exchange-interest-segment input:checked + span {
-    background: #4b0000;
+    background: #7b0000;
     color: #fff;
 }
 
 .exchange-step .exchange-detail-wrap {
     margin-top: 8px;
-    border: 1px solid #bcc0c8;
+    border: 1px solid #b6c1d4;
     border-radius: 14px;
-    background: #eceef3;
+    background: #eef1f6;
     padding: 10px;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .exchange-step .sub-title {
@@ -1507,12 +1507,12 @@ body {
 .exchange-step input[type='number'] {
     width: 100%;
     box-sizing: border-box;
-    border: 1px solid #adb1bb;
+    border: 1px solid #b6c1d4;
     border-radius: 12px;
-    background: #f6f7f9;
+    background: #ffffff;
     padding: 6px 10px;
     font-size: 12px;
-    color: #22242a;
+    color: #0f172a;
     min-height: 34px;
 }
 
@@ -1522,8 +1522,8 @@ body {
 
 .exchange-step .exchange-difference-input,
 .exchange-step .exchange-difference-input[readonly] {
-    background: #c62828 !important;
-    border-color: #a61f1f !important;
+    background: #8c0000 !important;
+    border-color: #740000 !important;
     color: #ffffff !important;
     -webkit-text-fill-color: #ffffff;
     opacity: 1;
@@ -1588,8 +1588,8 @@ body {
 
 .exchange-step #exchangeImageFields {
     margin-top: 8px;
-    border: 1px solid #c6cad2;
-    background: #f5f6fa;
+    border: 1px solid #c7cfdf;
+    background: #f7f9fc;
     border-radius: 12px;
     padding: 10px;
 }
@@ -1608,9 +1608,9 @@ body {
     position: relative;
     min-height: 112px;
     border-radius: 10px;
-    border: 1px dashed #8b909a;
-    background: linear-gradient(160deg, #8f939c, #7f848e);
-    color: #fff;
+    border: 1px dashed #aeb9cc;
+    background: #e7ebf3;
+    color: #5b6270;
     font-size: 12px;
     font-weight: 600;
     display: flex;
@@ -1644,7 +1644,7 @@ body {
 .exchange-step .exchange-upload-tile.has-preview {
     background: #2a2a2d;
     border-style: solid;
-    border-color: #5c6370;
+    border-color: #7e899c;
 }
 
 .exchange-step .exchange-upload-tile input[type='file'] {
@@ -1667,9 +1667,9 @@ body {
 .exchange-step .exchange-more-btn {
     width: 28px;
     height: 28px;
-    border: 1px solid #141722;
+    border: 1px solid #7b0000;
     border-radius: 50%;
-    background: #121317;
+    background: #8c0000;
     color: #fff;
     font-size: 16px;
     font-weight: 700;
@@ -2595,15 +2595,17 @@ body {
 
 /* Final action bar refinement */
 .actions {
-    position: fixed;
-    left: 50%;
+    position: sticky;
+    left: auto;
     bottom: 10px;
-    transform: translateX(-50%);
+    transform: none;
     width: min(1120px, calc(100% - 20px));
     display: grid;
     grid-template-columns: 1fr 1.2fr 1fr;
     gap: 12px;
+    align-items: center;
     padding: 10px;
+    margin: 12px auto 0;
     border-radius: 18px;
     background: rgba(229, 232, 241, 0.92);
     border: 1px solid #b7bcc8;
@@ -2615,6 +2617,8 @@ body {
 .actions .btn {
     border: 0;
     min-height: 44px;
+    width: 100%;
+    min-width: 0;
     border-radius: 999px;
     color: #ffffff;
     font-size: 16px;

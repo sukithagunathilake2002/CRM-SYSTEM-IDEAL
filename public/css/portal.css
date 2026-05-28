@@ -415,20 +415,15 @@ body.login-page .portal-flash {
     display: grid;
     place-items: stretch;
     padding: 0;
-    background:
-        radial-gradient(110px 110px at 10% 16%, rgba(255, 255, 255, 0.08) 0, rgba(255, 255, 255, 0) 72%),
-        radial-gradient(120px 120px at 84% 85%, rgba(255, 255, 255, 0.08) 0, rgba(255, 255, 255, 0) 74%),
-        linear-gradient(180deg, #ff3841 0%, #f71a2c 100%);
+    background: #f71a2c url("../icons/logingbackground.png") center center / cover no-repeat;
 }
 
 .login-ui-right::before {
     content: "";
     position: absolute;
     inset: 0;
-    opacity: 0.23;
-    background:
-        radial-gradient(closest-side, transparent calc(100% - 2px), rgba(255, 255, 255, 0.7) 100%) -20px -30px / 180px 180px repeat,
-        radial-gradient(closest-side, transparent calc(100% - 2px), rgba(255, 255, 255, 0.6) 100%) 50px 40px / 210px 210px repeat;
+    background: rgba(0, 0, 0, 0.26);
+    pointer-events: none;
 }
 
 .login-ui-hero {
@@ -438,7 +433,7 @@ body.login-page .portal-flash {
     min-height: 100vh;
     border-radius: 0;
     padding: clamp(36px, 6vh, 64px) clamp(30px, 4vw, 52px);
-    background: linear-gradient(150deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.06));
+    background: transparent;
     border: 0;
     box-shadow: none;
 }

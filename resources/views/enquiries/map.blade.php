@@ -6,7 +6,8 @@
 @php
     $resolvedDate = $selectedDate ?? now()->toDateString();
     $resolvedMapDateLabel = $mapDateLabel ?? $resolvedDate;
-    $resolvedListHeading = $listHeading ?? ('Enquiries on ' . $resolvedDate);
+    $resolvedDateSlash = \Carbon\Carbon::parse($resolvedDate)->format('Y/m/d');
+    $resolvedListHeading = $listHeading ?? ('Enquiries on ' . $resolvedDateSlash);
 @endphp
 
 <div class="enquiry-map-page">
@@ -21,20 +22,34 @@
 
     <main class="map-shell">
         <form method="GET" action="{{ route('enquiries.map') }}" class="map-filter-form">
-            <label for="mapFromDate">From Date</label>
-            <input type="date" id="mapFromDate" name="from_date" value="{{ $selectedFromDate ?? '' }}">
-            <label for="mapToDate">To Date</label>
-            <input type="date" id="mapToDate" name="to_date" value="{{ $selectedToDate ?? '' }}">
-            <label for="mapUser">User</label>
-            <select id="mapUser" name="user_id">
-                <option value="">All visible hierarchy users</option>
-                @foreach($availableUsers as $mapUser)
-                    <option value="{{ $mapUser->id }}" @selected((string) $selectedUserId === (string) $mapUser->id)>
-                        {{ $mapUser->name }} ({{ $mapUser->role_label }})
-                    </option>
-                @endforeach
-            </select>
-            <button type="submit">Apply Filter</button>
+            <div class="map-filter-grid">
+                <label class="map-field" for="mapFromDate">
+                    <span>From Date</span>
+                    <input type="date" id="mapFromDate" name="from_date" value="{{ $selectedFromDate ?? '' }}">
+                </label>
+
+                <label class="map-field" for="mapToDate">
+                    <span>To Date</span>
+                    <input type="date" id="mapToDate" name="to_date" value="{{ $selectedToDate ?? '' }}">
+                </label>
+
+                <label class="map-field map-field-user" for="mapUser">
+                    <span>User</span>
+                    <select id="mapUser" name="user_id">
+                        <option value="">All visible hierarchy users</option>
+                        @foreach($availableUsers as $mapUser)
+                            <option value="{{ $mapUser->id }}" @selected((string) $selectedUserId === (string) $mapUser->id)>
+                                {{ $mapUser->name }} ({{ $mapUser->role_label }})
+                            </option>
+                        @endforeach
+                    </select>
+                </label>
+
+                <button type="submit" class="map-apply-btn">
+                    <span aria-hidden="true">⏷</span>
+                    Apply Filter
+                </button>
+            </div>
         </form>
 
         @if(!empty($selectedFilterUserName))
@@ -46,20 +61,23 @@
             </div>
         @endif
 
-        <div class="map-summary">
-            <strong>{{ $resolvedMapDateLabel }}</strong>
-            <span>{{ $mapPoints->count() }} enquiry location(s)</span>
-        </div>
+        <section class="map-panel">
+            <div class="map-summary">
+                <strong>{{ $resolvedMapDateLabel }}</strong>
+                <span>{{ $mapPoints->count() }} Enquiry location(s)</span>
+            </div>
 
-        <div id="dayMap" class="day-map" aria-label="Day wise enquiry location map"></div>
+            <div id="dayMap" class="day-map" aria-label="Day wise enquiry location map"></div>
+        </section>
+
+        <p class="map-list-footer">{{ $resolvedListHeading }}</p>
 
         <section class="map-list">
-            <h3>{{ $resolvedListHeading }}</h3>
             @forelse($mapPoints as $point)
                 <article class="map-list-card">
                     <p><strong>{{ $point['name'] }}</strong> ({{ $point['phone'] }})</p>
                     <p>{{ $point['vehicle'] ?: 'Vehicle not set' }}</p>
-                    <p>Created By: {{ $point['owner'] }}</p>
+                    <p>Created by {{ $point['owner'] }}</p>
                     <p>{{ $point['location'] }} | {{ $point['captured_at_label'] ?? $point['time'] }}</p>
                 </article>
             @empty

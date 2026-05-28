@@ -20,17 +20,73 @@ break;
 $initials = $initials !== '' ? $initials : 'U';
 
 $viewerId = (int) ($user?->id ?? 0);
+    $visibleUserIds = collect([$viewerId])->filter()->values();
+    $viewerRole = (string) ($user?->role ?? '');
 
-$activeBookings = \App\Models\Booking::query()
-->whereHas('enquiry', function ($query) use ($viewerId) {
-$query->where('user_id', $viewerId);
-})
-->count();
+    if ($viewerRole === \App\Models\User::ROLE_SUPER_ADMIN) {
+        $visibleUserIds = \App\Models\User::query()->pluck('id');
+    } elseif ($viewerRole === \App\Models\User::ROLE_HEAD_OF_SALES) {
+        $regionalIds = \App\Models\User::query()
+            ->where('role', \App\Models\User::ROLE_REGIONAL_MANAGER)
+            ->where('manager_id', $viewerId)
+            ->pluck('id');
+        $areaIds = \App\Models\User::query()
+            ->where('role', \App\Models\User::ROLE_AREA_MANAGER)
+            ->whereIn('manager_id', $regionalIds)
+            ->pluck('id');
+        $consultantIds = \App\Models\User::query()
+            ->where('role', \App\Models\User::ROLE_SALES_CONSULTANT)
+            ->whereIn('manager_id', $areaIds)
+            ->pluck('id');
 
-    $todaySriLanka = now('Asia/Colombo')->toDateString();
+        $visibleUserIds = $visibleUserIds
+            ->merge($regionalIds)
+            ->merge($areaIds)
+            ->merge($consultantIds)
+            ->unique()
+            ->values();
+    } elseif ($viewerRole === \App\Models\User::ROLE_REGIONAL_MANAGER) {
+        $areaIds = \App\Models\User::query()
+            ->where('role', \App\Models\User::ROLE_AREA_MANAGER)
+            ->where('manager_id', $viewerId)
+            ->pluck('id');
+        $consultantIds = \App\Models\User::query()
+            ->where('role', \App\Models\User::ROLE_SALES_CONSULTANT)
+            ->whereIn('manager_id', $areaIds)
+            ->pluck('id');
+
+        $visibleUserIds = $visibleUserIds
+            ->merge($areaIds)
+            ->merge($consultantIds)
+            ->unique()
+            ->values();
+    } elseif ($viewerRole === \App\Models\User::ROLE_AREA_MANAGER) {
+        $consultantIds = \App\Models\User::query()
+            ->where('role', \App\Models\User::ROLE_SALES_CONSULTANT)
+            ->where('manager_id', $viewerId)
+            ->pluck('id');
+
+        $visibleUserIds = $visibleUserIds
+            ->merge($consultantIds)
+            ->unique()
+            ->values();
+    }
+
+    $sriNow = now('Asia/Colombo');
+    $todaySriLanka = $sriNow->toDateString();
+    $todayStartUtc = $sriNow->copy()->startOfDay()->timezone('UTC');
+    $todayEndUtc = $sriNow->copy()->endOfDay()->timezone('UTC');
+
+    $activeBookings = \App\Models\Booking::query()
+        ->whereHas('enquiry', function ($query) use ($visibleUserIds) {
+            $query->whereIn('user_id', $visibleUserIds)
+                ->whereRaw("LOWER(COALESCE(status, 'open')) NOT IN ('closed', 'cancelled', 'canceled', 'lost')");
+        })
+        ->count();
+
     $todayLeads = \App\Models\Enquiry::query()
-        ->where('user_id', $viewerId)
-        ->whereDate('created_at', $todaySriLanka)
+        ->whereIn('user_id', $visibleUserIds)
+        ->whereBetween('created_at', [$todayStartUtc, $todayEndUtc])
         ->count();
 
     $todayFollowups = \App\Models\Enquiry::query()

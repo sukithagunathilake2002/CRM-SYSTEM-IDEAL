@@ -186,7 +186,7 @@ class BookingController extends Controller
             'offer_final_price' => ['nullable', 'numeric', 'min:0'],
             'purchase_order_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'booking_step' => ['nullable', 'integer', 'between:1,5'],
-            'action_type' => ['nullable', Rule::in(['next', 'save_exit'])],
+            'action_type' => ['nullable', Rule::in(['next', 'save_exit', 'save', 'submit'])],
         ]);
 
         $currentStep = (int) ($validated['booking_step'] ?? 1);
@@ -424,6 +424,19 @@ class BookingController extends Controller
 
         if ($actionType === 'save_exit') {
             return redirect('/epr')->with('success', 'Booking details saved.');
+        }
+
+        if ($actionType === 'save') {
+            return redirect()
+                ->route('booking.show', ['enquiry' => $enquiry->id, 'step' => $currentStep])
+                ->with('success', 'Booking details saved.');
+        }
+
+        if ($actionType === 'submit') {
+            return redirect()
+                ->route('booking.show', ['enquiry' => $enquiry->id, 'step' => 5])
+                ->with('booking_submitted_popup', true)
+                ->with('booking_submitted_message', 'Submitted successfully.');
         }
 
         $nextStep = min(5, $currentStep + 1);

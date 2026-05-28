@@ -96,6 +96,7 @@
         ? route('booking.show', ['enquiry' => $enquiry->id, 'step' => $currentStep - 1])
         : route('prospect.show', ['enquiry' => $enquiry->id, 'step' => 4]);
     $isExchangeNoMode = $currentStep === 3 && $selectedInterestedExchange === 'no';
+    $showExchangeDetails = $selectedInterestedExchange === 'yes' && in_array($selectedExchangeType, ['in_house', 'outhouse'], true);
     $selectedOfferUnitPrice = old('offer_unit_price', $defaultValues['offer_unit_price']);
     $selectedOfferUnitPriceDiscount = old('offer_unit_price_discount', $defaultValues['offer_unit_price_discount']);
     $selectedOfferUnitPriceFree = old('offer_unit_price_free', (int) ($defaultValues['offer_unit_price_free'] ?? 0)) == 1;
@@ -127,7 +128,6 @@
         5 => 'Booking Form',
     ];
     $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
-    $salesConsultantName = trim((string) ($enquiry->user->name ?? auth()->user()?->name ?? 'N/A'));
 @endphp
 
 <div class="booking-page">
@@ -297,7 +297,6 @@
                     <p><strong>Interested In :</strong> {{ strtoupper($interestedVehicleLine) }}</p>
                     <p><strong>Mobile No :</strong> {{ $summaryMobile }}</p>
                     <p><strong>Dist :</strong> {{ $selectedDistrict ?: 'N/A' }}</p>
-                    <p><strong>SC Name :</strong> {{ $salesConsultantName }}</p>
                 </div>
 
                 <div class="section-head-inline">
@@ -512,7 +511,7 @@
                     </div>
                 </div>
 
-                <div id="exchangeDetailsWrap" class="exchange-detail-wrap {{ $selectedInterestedExchange === 'yes' ? '' : 'hidden' }}">
+                <div id="exchangeDetailsWrap" class="exchange-detail-wrap {{ $showExchangeDetails ? '' : 'hidden' }}">
 
                     <div class="section-head-inline">
                         <label>Exchange detail</label>
@@ -523,11 +522,7 @@
                         </label>
                     </div>
 
-                    <div class="row">
-                        <div class="vehicle-pill-display">{{ strtoupper($exchangeVehicleLine) }}</div>
-                    </div>
-
-                    <div id="exchangeEditFields" class="exchange-edit-fields {{ $isExchangeEdit ? '' : 'hidden' }}">
+                    <div id="exchangeEditFields" class="exchange-edit-fields {{ $showExchangeDetails ? '' : 'hidden' }}">
                         <div class="row split">
                             <div>
                                 <label>Brand</label>
@@ -590,31 +585,72 @@
                             </div>
                         </div>
 
-                        <label>Add images</label>
-                        <div class="row split">
-                            <div class="upload-tile">
-                                <span>Blue Book</span>
-                                <input type="file" name="blue_book_image" accept=".jpg,.jpeg,.png,.webp">
+                        <div class="exchange-image-section">
+                            <div class="exchange-image-head">
+                                <label>Add images</label>
+                                <label class="exchange-image-switch">
+                                    <input type="checkbox" id="bookingImagesToggle" checked>
+                                    <span></span>
+                                </label>
                             </div>
-                            <div class="upload-tile">
-                                <span>Lot No</span>
-                                <input type="file" name="lot_no_image" accept=".jpg,.jpeg,.png,.webp">
-                            </div>
-                        </div>
-                        <div class="row split">
-                            <div class="upload-tile">
-                                <span>Car picture 1</span>
-                                <input type="file" name="car_pic_1_image" accept=".jpg,.jpeg,.png,.webp">
-                            </div>
-                            <div class="upload-tile">
-                                <span>Car picture 2</span>
-                                <input type="file" name="car_pic_2_image" accept=".jpg,.jpeg,.png,.webp">
-                            </div>
-                        </div>
 
-                        <div class="row">
-                            <label>Add more images</label>
-                            <input type="file" name="extra_exchange_images[]" multiple accept=".jpg,.jpeg,.png,.webp">
+                            <div id="bookingImageBody">
+                                <div class="exchange-upload-grid exchange-upload-grid-primary">
+                                    <div class="exchange-upload-tile">
+                                        <span class="exchange-upload-title">Blue Book</span>
+                                        <img class="exchange-upload-preview" alt="Blue Book preview" hidden>
+                                        <button type="button" class="exchange-preview-clear" aria-label="Remove selected image">&times;</button>
+                                        <input class="exchange-file-input" type="file" name="blue_book_image" accept=".jpg,.jpeg,.png,.webp">
+                                    </div>
+                                    <div class="exchange-upload-tile">
+                                        <span class="exchange-upload-title">Lot No</span>
+                                        <img class="exchange-upload-preview" alt="Lot No preview" hidden>
+                                        <button type="button" class="exchange-preview-clear" aria-label="Remove selected image">&times;</button>
+                                        <input class="exchange-file-input" type="file" name="lot_no_image" accept=".jpg,.jpeg,.png,.webp">
+                                    </div>
+                                    <div class="exchange-upload-tile">
+                                        <span class="exchange-upload-title">Car picture 1</span>
+                                        <img class="exchange-upload-preview" alt="Car picture 1 preview" hidden>
+                                        <button type="button" class="exchange-preview-clear" aria-label="Remove selected image">&times;</button>
+                                        <input class="exchange-file-input" type="file" name="car_pic_1_image" accept=".jpg,.jpeg,.png,.webp">
+                                    </div>
+                                    <div class="exchange-upload-tile">
+                                        <span class="exchange-upload-title">Car picture 2</span>
+                                        <img class="exchange-upload-preview" alt="Car picture 2 preview" hidden>
+                                        <button type="button" class="exchange-preview-clear" aria-label="Remove selected image">&times;</button>
+                                        <input class="exchange-file-input" type="file" name="car_pic_2_image" accept=".jpg,.jpeg,.png,.webp">
+                                    </div>
+                                </div>
+
+                                <div class="exchange-more-head">
+                                    <label>Add more images</label>
+                                    <button type="button" id="bookingAddMoreImagesBtn" class="exchange-more-add-btn" aria-label="Add more images">+</button>
+                                </div>
+
+                                <div id="bookingExtraImageGrid" class="exchange-upload-grid exchange-upload-grid-extra">
+                                    <div class="exchange-upload-tile exchange-upload-tile-extra">
+                                        <button type="button" class="exchange-remove-btn" aria-label="Remove extra image slot">-</button>
+                                        <span class="exchange-upload-title">Car picture 3</span>
+                                        <img class="exchange-upload-preview" alt="Car picture 3 preview" hidden>
+                                        <button type="button" class="exchange-preview-clear" aria-label="Remove selected image">&times;</button>
+                                        <input class="exchange-file-input" type="file" name="extra_exchange_images[]" accept=".jpg,.jpeg,.png,.webp">
+                                    </div>
+                                    <div class="exchange-upload-tile exchange-upload-tile-extra">
+                                        <button type="button" class="exchange-remove-btn" aria-label="Remove extra image slot">-</button>
+                                        <span class="exchange-upload-title">Car picture 4</span>
+                                        <img class="exchange-upload-preview" alt="Car picture 4 preview" hidden>
+                                        <button type="button" class="exchange-preview-clear" aria-label="Remove selected image">&times;</button>
+                                        <input class="exchange-file-input" type="file" name="extra_exchange_images[]" accept=".jpg,.jpeg,.png,.webp">
+                                    </div>
+                                    <div class="exchange-upload-tile exchange-upload-tile-extra">
+                                        <button type="button" class="exchange-remove-btn" aria-label="Remove extra image slot">-</button>
+                                        <span class="exchange-upload-title">Car picture 5</span>
+                                        <img class="exchange-upload-preview" alt="Car picture 5 preview" hidden>
+                                        <button type="button" class="exchange-preview-clear" aria-label="Remove selected image">&times;</button>
+                                        <input class="exchange-file-input" type="file" name="extra_exchange_images[]" accept=".jpg,.jpeg,.png,.webp">
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -684,23 +720,89 @@
 
             <section class="booking-section booking-form-section {{ $currentStep === 5 ? 'active' : '' }}">
                 <h3 class="section-heading">Part 5 - Booking Form</h3>
-                <div class="readonly-card">
-                    <p><strong>Personal Details:</strong> Completed</p>
-                    <p><strong>Buying Details:</strong> Completed</p>
-                    <p><strong>Exchange Details:</strong> Completed</p>
-                    <p><strong>Offer Details:</strong> Completed</p>
-                    <p><strong>Purchase Order:</strong> {{ empty($booking->purchase_order_image) ? 'Not uploaded' : 'Uploaded' }}</p>
+                <div class="booking-review-stack">
+                    <article class="booking-review-card">
+                        <h4>Enquiry Details</h4>
+                        <div class="booking-review-grid">
+                            <p><strong>Name</strong><span>{{ $summaryName }}</span></p>
+                            <p><strong>Mobile No</strong><span>{{ $summaryMobile }}</span></p>
+                            <p><strong>Interested In</strong><span>{{ strtoupper($interestedVehicleLine) }}</span></p>
+                        </div>
+                    </article>
+
+                    <article class="booking-review-card">
+                        <h4>Personal Details</h4>
+                        <div class="booking-review-grid">
+                            <p><strong>DOB</strong><span>{{ $selectedDob ?: 'N/A' }}</span></p>
+                            <p><strong>District</strong><span>{{ $selectedDistrict ?: 'N/A' }}</span></p>
+                            <p><strong>Location</strong><span>{{ $selectedLocation ?: 'N/A' }}</span></p>
+                            <p><strong>Address</strong><span>{{ $selectedAddress1 ?: 'N/A' }}</span></p>
+                            <p><strong>Customer Type</strong><span>{{ ucfirst(str_replace('_', ' ', $selectedCustomerType ?: 'N/A')) }}</span></p>
+                            <p><strong>Profession</strong><span>{{ ucfirst(str_replace('_', ' ', $selectedProfession ?: 'N/A')) }}</span></p>
+                        </div>
+                    </article>
+
+                    <article class="booking-review-card">
+                        <h4>Buying Details</h4>
+                        <div class="booking-review-grid">
+                            <p><strong>Quote Taken</strong><span>{{ ucfirst($selectedQuote ?: 'N/A') }}</span></p>
+                            <p><strong>Test Drive</strong><span>{{ ucfirst($selectedTestDrive ?: 'N/A') }}</span></p>
+                            <p><strong>Purchase Mode</strong><span>{{ ucfirst($selectedPurchaseMode ?: 'N/A') }}</span></p>
+                            <p><strong>Finance Form</strong><span>{{ $selectedFinanceForm ?: 'N/A' }}</span></p>
+                            <p><strong>Competition</strong><span>{{ ucfirst($selectedCompetition ?: 'N/A') }}</span></p>
+                            <p><strong>First Time Buyer</strong><span>{{ ucfirst($selectedFirstTimeBuyer ?: 'N/A') }}</span></p>
+                        </div>
+                    </article>
+
+                    <article class="booking-review-card">
+                        <h4>Exchange Details</h4>
+                        <div class="booking-review-grid">
+                            <p><strong>Interested In Exchange</strong><span>{{ ucfirst($selectedInterestedExchange ?: 'N/A') }}</span></p>
+                            <p><strong>Exchange Type</strong><span>{{ $selectedExchangeType ? ucfirst(str_replace('_', '-', $selectedExchangeType)) : 'N/A' }}</span></p>
+                            <p><strong>Vehicle</strong><span>{{ strtoupper($exchangeVehicleLine) }}</span></p>
+                            <p><strong>Expected Price</strong><span>{{ $money($selectedExchangeExpectedPrice) }}</span></p>
+                            <p><strong>Quoted Price</strong><span>{{ $money($selectedExchangeQuotedPrice) }}</span></p>
+                            <p><strong>Difference</strong><span>{{ $money($selectedExchangeDifference) }}</span></p>
+                        </div>
+                    </article>
+
+                    <article class="booking-review-card">
+                        <h4>Offer Details</h4>
+                        <div class="booking-review-grid">
+                            <p><strong>Total Cost</strong><span>{{ $money($selectedOfferTotalCost) }}</span></p>
+                            <p><strong>Total Discount</strong><span>{{ $money($selectedOfferTotalDiscount) }}</span></p>
+                            <p><strong>Final Offer Price</strong><span>{{ $money($selectedOfferFinalPrice) }}</span></p>
+                            <p><strong>Purchase Order</strong><span>{{ empty($booking->purchase_order_image) ? 'Not uploaded' : 'Uploaded' }}</span></p>
+                        </div>
+                    </article>
                 </div>
             </section>
 
-            <div id="actionRow" class="action-row {{ $isExchangeNoMode ? 'next-only' : '' }}">
+            <div id="actionRow" class="action-row {{ $currentStep === 5 ? 'step-five' : '' }} {{ $isExchangeNoMode ? 'next-only' : '' }}">
                 <a id="backAction" href="{{ $backUrl }}" class="action-btn back-btn {{ $isExchangeNoMode ? 'hidden' : '' }}">Back</a>
-                <button id="saveExitAction" type="submit" name="action_type" value="save_exit" class="action-btn save-exit-btn {{ $isExchangeNoMode ? 'hidden' : '' }}">Save & Exit</button>
-                <button type="submit" name="action_type" value="next" class="action-btn next-action-btn">Save & Next</button>
+                @if($currentStep === 5)
+                    <button type="submit" name="action_type" value="save" class="action-btn save-action-btn">Save</button>
+                    <button id="saveExitAction" type="submit" name="action_type" value="save_exit" class="action-btn save-exit-btn {{ $isExchangeNoMode ? 'hidden' : '' }}">Save & Exit</button>
+                    <button type="submit" name="action_type" value="submit" class="action-btn submit-action-btn">Submit</button>
+                @else
+                    <button id="saveExitAction" type="submit" name="action_type" value="save_exit" class="action-btn save-exit-btn {{ $isExchangeNoMode ? 'hidden' : '' }}">Save & Exit</button>
+                    <button type="submit" name="action_type" value="next" class="action-btn next-action-btn">Save & Next</button>
+                @endif
             </div>
         </form>
     </main>
 </div>
+
+@if(session('booking_submitted_popup'))
+    <div class="booking-submit-popup" id="bookingSubmitPopup" role="dialog" aria-modal="true" aria-labelledby="bookingSubmitTitle">
+        <div class="booking-submit-popup-card">
+            <div class="booking-submit-icon" aria-hidden="true">&#10003;</div>
+            <h4 id="bookingSubmitTitle">Submitted Successfully</h4>
+            <p>{{ session('booking_submitted_message', 'Booking submitted successfully.') }}</p>
+            <button type="button" class="booking-submit-popup-btn" id="bookingSubmitPopupOk">OK</button>
+        </div>
+    </div>
+@endif
 
 <script type="application/json" id="bookingCompetitionMapJson">@json($competitionMap->toArray())</script>
 <script>
@@ -749,6 +851,11 @@
         const exchangeExpectedPriceInput = document.getElementById('exchange_expected_price');
         const exchangeQuotedPriceInput = document.getElementById('exchange_quoted_price');
         const exchangeDifferenceInput = document.getElementById('exchange_price_difference');
+        const bookingImagesToggle = document.getElementById('bookingImagesToggle');
+        const bookingImageBody = document.getElementById('bookingImageBody');
+        const bookingAddMoreImagesBtn = document.getElementById('bookingAddMoreImagesBtn');
+        const bookingExtraImageGrid = document.getElementById('bookingExtraImageGrid');
+        const exchangePreviewObjectUrls = new WeakMap();
         const toggleOfferEdit = document.getElementById('toggleOfferEdit');
         const offerEditGroup = document.getElementById('offerEditGroup');
         const offerUnitPriceInput = document.getElementById('offer_unit_price');
@@ -921,15 +1028,24 @@
             }
 
             if (exchangeDetailsWrap) {
-                exchangeDetailsWrap.classList.toggle('hidden', picked('interested_in_exchange') !== 'yes');
+                const showExchangeDetails = picked('interested_in_exchange') === 'yes'
+                    && ['in_house', 'outhouse'].includes(picked('exchange_type'));
+                exchangeDetailsWrap.classList.toggle('hidden', !showExchangeDetails);
+
+                // Show full exchange input fields when Yes + (In-House/Outhouse),
+                // regardless of Edit checkbox state.
+                if (exchangeEditFields) {
+                    exchangeEditFields.classList.toggle('hidden', !showExchangeDetails);
+                }
             }
 
             syncExchangeNoActionMode();
         }
 
         function syncExchangeEditState() {
-            if (!toggleExchangeEdit || !exchangeEditFields) return;
-            exchangeEditFields.classList.toggle('hidden', !toggleExchangeEdit.checked);
+            if (!exchangeDetailsWrap || !exchangeEditFields) return;
+            const showExchangeDetails = !exchangeDetailsWrap.classList.contains('hidden');
+            exchangeEditFields.classList.toggle('hidden', !showExchangeDetails);
         }
 
         function syncCompetitionModels() {
@@ -980,6 +1096,101 @@
             }
 
             exchangeDifferenceInput.value = (expected - quoted).toFixed(2);
+        }
+
+        function renumberExtraImageTiles() {
+            if (!bookingExtraImageGrid) return;
+            const tiles = bookingExtraImageGrid.querySelectorAll('.exchange-upload-tile-extra');
+            tiles.forEach((tile, index) => {
+                const title = tile.querySelector('.exchange-upload-title');
+                if (title) {
+                    title.textContent = `Car picture ${index + 3}`;
+                }
+            });
+        }
+
+        function addExtraImageTile() {
+            if (!bookingExtraImageGrid) return;
+
+            const tile = document.createElement('div');
+            tile.className = 'exchange-upload-tile exchange-upload-tile-extra';
+            tile.innerHTML = `
+                <button type="button" class="exchange-remove-btn" aria-label="Remove extra image slot">-</button>
+                <span class="exchange-upload-title"></span>
+                <img class="exchange-upload-preview" alt="Extra exchange preview" hidden>
+                <button type="button" class="exchange-preview-clear" aria-label="Remove selected image">&times;</button>
+                <input class="exchange-file-input" type="file" name="extra_exchange_images[]" accept=".jpg,.jpeg,.png,.webp">
+            `;
+
+            bookingExtraImageGrid.appendChild(tile);
+            const fileInput = tile.querySelector('.exchange-file-input');
+            if (fileInput) {
+                bindExchangeUploadPreview(fileInput);
+            }
+            renumberExtraImageTiles();
+        }
+
+        function applyExchangePreviewToTile(inputEl, sourceUrl) {
+            const tile = inputEl.closest('.exchange-upload-tile');
+            if (!tile) return;
+            const previewEl = tile.querySelector('.exchange-upload-preview');
+
+            if (!previewEl || !sourceUrl) {
+                tile.classList.remove('has-preview');
+                if (previewEl) {
+                    previewEl.hidden = true;
+                    previewEl.removeAttribute('src');
+                }
+                return;
+            }
+
+            previewEl.src = sourceUrl;
+            previewEl.hidden = false;
+            tile.classList.add('has-preview');
+        }
+
+        function clearExchangeUploadPreview(inputEl) {
+            if (!inputEl) return;
+            const previousObjectUrl = exchangePreviewObjectUrls.get(inputEl);
+            if (previousObjectUrl) {
+                URL.revokeObjectURL(previousObjectUrl);
+                exchangePreviewObjectUrls.delete(inputEl);
+            }
+            inputEl.value = '';
+            applyExchangePreviewToTile(inputEl, '');
+        }
+
+        function bindExchangeUploadPreview(inputEl) {
+            if (!inputEl) return;
+
+            inputEl.addEventListener('change', () => {
+                const file = inputEl.files && inputEl.files[0] ? inputEl.files[0] : null;
+                if (!file) {
+                    clearExchangeUploadPreview(inputEl);
+                    return;
+                }
+
+                if (!String(file.type || '').startsWith('image/')) {
+                    alert('Please choose a valid image file.');
+                    clearExchangeUploadPreview(inputEl);
+                    return;
+                }
+
+                const previousObjectUrl = exchangePreviewObjectUrls.get(inputEl);
+                if (previousObjectUrl) {
+                    URL.revokeObjectURL(previousObjectUrl);
+                    exchangePreviewObjectUrls.delete(inputEl);
+                }
+
+                const objectUrl = URL.createObjectURL(file);
+                exchangePreviewObjectUrls.set(inputEl, objectUrl);
+                applyExchangePreviewToTile(inputEl, objectUrl);
+            });
+        }
+
+        function syncBookingImageBody() {
+            if (!bookingImagesToggle || !bookingImageBody) return;
+            bookingImageBody.classList.toggle('hidden', !bookingImagesToggle.checked);
         }
 
         function syncExchangeNoActionMode() {
@@ -1127,7 +1338,7 @@
         })();
 
         document.querySelectorAll(
-            'input[name="quote_taken"], input[name="test_drive_given"], input[name="purchase_mode"], input[name="interested_in_exchange"], input[name="interested_in_competition"], input[name="first_time_buyer"]'
+            'input[name="quote_taken"], input[name="test_drive_given"], input[name="purchase_mode"], input[name="interested_in_exchange"], input[name="exchange_type"], input[name="interested_in_competition"], input[name="first_time_buyer"]'
         ).forEach((input) => {
             input.addEventListener('change', syncBuyingState);
         });
@@ -1164,6 +1375,68 @@
             });
         }
 
+        if (bookingAddMoreImagesBtn) {
+            bookingAddMoreImagesBtn.addEventListener('click', addExtraImageTile);
+        }
+
+        if (bookingImagesToggle) {
+            bookingImagesToggle.addEventListener('change', syncBookingImageBody);
+        }
+
+        if (bookingExtraImageGrid) {
+            bookingExtraImageGrid.addEventListener('click', (event) => {
+                const target = event.target;
+                if (!(target instanceof Element)) return;
+
+                const clearBtn = target.closest('.exchange-preview-clear');
+                if (clearBtn) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const tile = clearBtn.closest('.exchange-upload-tile');
+                    const fileInput = tile ? tile.querySelector('.exchange-file-input') : null;
+                    if (fileInput) {
+                        clearExchangeUploadPreview(fileInput);
+                    }
+                    return;
+                }
+
+                const removeBtn = target.closest('.exchange-remove-btn');
+                if (!removeBtn) return;
+
+                event.preventDefault();
+                event.stopPropagation();
+
+                const tile = removeBtn.closest('.exchange-upload-tile-extra');
+                if (!tile) return;
+                const fileInput = tile.querySelector('.exchange-file-input');
+                if (fileInput) {
+                    clearExchangeUploadPreview(fileInput);
+                }
+                tile.remove();
+                renumberExtraImageTiles();
+            });
+        }
+
+        if (bookingImageBody) {
+            bookingImageBody.addEventListener('click', (event) => {
+                const target = event.target;
+                if (!(target instanceof Element)) return;
+                if (target.closest('#bookingExtraImageGrid')) return;
+
+                const clearBtn = target.closest('.exchange-preview-clear');
+                if (!clearBtn) return;
+
+                event.preventDefault();
+                event.stopPropagation();
+
+                const tile = clearBtn.closest('.exchange-upload-tile');
+                const fileInput = tile ? tile.querySelector('.exchange-file-input') : null;
+                if (fileInput) {
+                    clearExchangeUploadPreview(fileInput);
+                }
+            });
+        }
+
         [exchangeExpectedPriceInput, exchangeQuotedPriceInput].forEach((el) => {
             if (el) {
                 el.addEventListener('input', syncExchangeDifference);
@@ -1195,6 +1468,29 @@
         syncExchangeDifference();
         syncOfferTotals();
         syncExchangeNoActionMode();
+        renumberExtraImageTiles();
+        syncBookingImageBody();
+        document.querySelectorAll('.exchange-file-input').forEach((inputEl) => {
+            bindExchangeUploadPreview(inputEl);
+        });
     })();
 </script>
+@if(session('booking_submitted_popup'))
+<script>
+    (() => {
+        const popup = document.getElementById('bookingSubmitPopup');
+        if (!popup) return;
+
+        const okBtn = document.getElementById('bookingSubmitPopupOk');
+        const redirectUrl = @json(url('/epr'));
+        const goToEpr = () => {
+            window.location.href = redirectUrl;
+        };
+
+        okBtn?.addEventListener('click', goToEpr);
+        setTimeout(goToEpr, 1800);
+    })();
+</script>
+@endif
 @endsection
+
