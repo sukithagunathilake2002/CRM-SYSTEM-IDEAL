@@ -1,6 +1,6 @@
 body {
     margin: 0;
-    font-family: Arial, sans-serif;
+    font-family: "Rubik", Arial, sans-serif;
     background: #f3f3f3;
     color: #111;
 }
@@ -613,7 +613,7 @@ body {
 }
 
 .prospect-topbar .brand-logo {
-    width: 74px;
+    width: 118px;
     height: auto;
     display: block;
 }
@@ -1056,7 +1056,7 @@ body {
     }
 
     .prospect-topbar .brand-logo {
-        width: 66px;
+        width: 98px;
     }
 
     .prospect-top-search input {

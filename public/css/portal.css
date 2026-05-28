@@ -1,12 +1,19 @@
+@import url("https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&family=Playfair+Display:wght@400&display=swap");
+
 * {
     box-sizing: border-box;
 }
 
 body {
     margin: 0;
-    font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+    font-family: "Rubik", "Segoe UI", Tahoma, Arial, sans-serif;
     background: #f5f7fc;
     color: #111827;
+}
+
+body.login-page {
+    background: #dddddf;
+    color: #0f172a;
 }
 
 @keyframes portalFadeUp {
@@ -28,6 +35,11 @@ body {
 html.theme-dark body {
     background: #0b1220;
     color: #e5e7eb;
+}
+
+html.theme-dark body.login-page {
+    background: #dddddf;
+    color: #0f172a;
 }
 
 .theme-toggle-btn {
@@ -166,6 +178,316 @@ html.theme-dark .portal-user {
 
 html.theme-dark .portal-main {
     color: #e5e7eb;
+}
+
+body.login-page .portal-topbar {
+    display: none;
+}
+
+body.login-page .portal-main {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+}
+
+body.login-page .portal-shell {
+    width: 100%;
+    min-height: 100vh;
+}
+
+body.login-page .portal-flash {
+    position: relative;
+    z-index: 3;
+    width: min(360px, calc(100% - 24px));
+    margin: 14px auto 0;
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}
+
+.login-ui {
+    min-height: 100vh;
+    display: grid;
+    width: 100%;
+    grid-template-columns: minmax(420px, 46vw) 1fr;
+    font-family: "Playfair Display", "Times New Roman", serif;
+}
+
+.login-ui-left {
+    display: grid;
+    place-items: center;
+    padding: clamp(22px, 4vw, 56px) clamp(28px, 6vw, 88px);
+    background: #dddddf;
+}
+
+.login-ui-form-wrap {
+    width: min(560px, 100%);
+    max-width: 560px;
+}
+
+.login-ui-logo {
+    display: block;
+    width: 250px;
+    height: auto;
+    margin: 0 auto 14px;
+}
+
+.login-ui-form-wrap h1 {
+    margin: 0 0 18px;
+    text-align: center;
+    letter-spacing: 1.6px;
+    font-size: 34px;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.05;
+}
+
+.login-ui-role {
+    margin: -4px 0 18px;
+    text-align: center;
+    color: #4b5563;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+}
+
+.login-ui-inline-flash {
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin: 0 0 12px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.login-ui-inline-flash.success {
+    background: #dcfce7;
+    border: 1px solid #16a34a;
+    color: #14532d;
+}
+
+.login-ui-inline-flash.error {
+    background: #fee2e2;
+    border: 1px solid #dc2626;
+    color: #7f1d1d;
+}
+
+.auto-dismiss {
+    transition: opacity 320ms ease, transform 320ms ease;
+}
+
+.auto-dismiss.is-hidden {
+    opacity: 0;
+    transform: translateY(-4px);
+}
+
+.login-ui-form {
+    display: grid;
+    gap: 12px;
+    font-family: inherit;
+}
+
+.login-ui-field {
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    align-items: center;
+    height: 48px;
+    border: 1px solid #d3d4e0;
+    border-radius: 12px;
+    background: #e8e8f1;
+    padding: 0 10px 0 8px;
+}
+
+.login-ui-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #4b5563;
+}
+
+.login-ui-icon svg {
+    width: 15px;
+    height: 15px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.login-ui-field input,
+.login-ui-field select {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: #111827;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    font-family: "Playfair Display", "Times New Roman", serif;
+}
+
+.login-ui-field select {
+    cursor: pointer;
+}
+
+.login-ui-field input::placeholder {
+    color: #6b7280;
+    font-weight: 400;
+    font-family: "Playfair Display", "Times New Roman", serif;
+}
+
+.login-ui-remember {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: -2px;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: "Playfair Display", "Times New Roman", serif;
+    line-height: 1.2;
+    cursor: pointer;
+    user-select: none;
+}
+
+.login-ui-remember input {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: #e51f2f;
+    appearance: auto;
+    -webkit-appearance: checkbox;
+    cursor: pointer;
+    flex: 0 0 auto;
+    vertical-align: middle;
+}
+
+.login-ui-submit {
+    width: 160px;
+    height: 44px;
+    border: 0;
+    border-radius: 9px;
+    background: linear-gradient(180deg, #ef2a35 0%, #da101f 100%);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    font-family: "Playfair Display", "Times New Roman", serif;
+    cursor: pointer;
+    justify-self: center;
+    box-shadow: 0 8px 18px rgba(225, 21, 37, 0.28);
+    transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.login-ui-submit:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 24px rgba(225, 21, 37, 0.34);
+}
+
+.login-ui-links {
+    margin-top: 14px;
+    display: grid;
+    gap: 6px;
+    text-align: center;
+}
+
+.login-ui-links a {
+    color: #384a6b;
+    font-size: 13px;
+    font-weight: 400;
+    font-family: "Playfair Display", "Times New Roman", serif;
+    text-decoration: none;
+}
+
+.login-ui-right {
+    position: relative;
+    overflow: hidden;
+    display: grid;
+    place-items: stretch;
+    padding: 0;
+    background:
+        radial-gradient(110px 110px at 10% 16%, rgba(255, 255, 255, 0.08) 0, rgba(255, 255, 255, 0) 72%),
+        radial-gradient(120px 120px at 84% 85%, rgba(255, 255, 255, 0.08) 0, rgba(255, 255, 255, 0) 74%),
+        linear-gradient(180deg, #ff3841 0%, #f71a2c 100%);
+}
+
+.login-ui-right::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: 0.23;
+    background:
+        radial-gradient(closest-side, transparent calc(100% - 2px), rgba(255, 255, 255, 0.7) 100%) -20px -30px / 180px 180px repeat,
+        radial-gradient(closest-side, transparent calc(100% - 2px), rgba(255, 255, 255, 0.6) 100%) 50px 40px / 210px 210px repeat;
+}
+
+.login-ui-hero {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    min-height: 100vh;
+    border-radius: 0;
+    padding: clamp(36px, 6vh, 64px) clamp(30px, 4vw, 52px);
+    background: linear-gradient(150deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.06));
+    border: 0;
+    box-shadow: none;
+}
+
+.login-ui-hero p {
+    margin: 0;
+    color: #fff;
+    font-size: clamp(27px, 3vw, 40px);
+    line-height: 1.26;
+    font-weight: 700;
+    max-width: 380px;
+}
+
+.login-ui-hero img {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: min(880px, 100%);
+    height: auto;
+    object-fit: contain;
+    border-bottom-right-radius: 0;
+}
+
+@media (max-width: 1280px) {
+    .login-ui {
+        grid-template-columns: minmax(380px, 48vw) 1fr;
+    }
+
+    .login-ui-form-wrap {
+        width: min(460px, 100%);
+        max-width: 460px;
+    }
+
+    .login-ui-hero { min-height: 100vh; }
+}
+
+@media (max-width: 900px) {
+    .login-ui {
+        grid-template-columns: 1fr;
+    }
+
+    .login-ui-right {
+        display: none;
+    }
+
+    .login-ui-left {
+        min-height: 100vh;
+        padding: 24px 16px;
+    }
 }
 
 .portal-flash {
@@ -1012,7 +1334,7 @@ html.theme-dark .analytics-table tbody tr:nth-child(odd) {
     fill: #ffffff;
     font-size: 7px;
     font-weight: 700;
-    font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+    font-family: "Rubik", "Segoe UI", Tahoma, Arial, sans-serif;
 }
 
 .district-map-scale {

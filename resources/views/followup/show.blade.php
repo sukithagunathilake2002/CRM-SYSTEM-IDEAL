@@ -23,6 +23,8 @@
         'got_better_discount' => 'Got better discount',
         'other' => 'Other',
     ];
+    $existingFollowupPicture1Url = !empty($enquiry->followup_picture_1) ? asset('storage/' . $enquiry->followup_picture_1) : null;
+    $existingFollowupPicture2Url = !empty($enquiry->followup_picture_2) ? asset('storage/' . $enquiry->followup_picture_2) : null;
 @endphp
 
 <div class="followup-page">
@@ -52,13 +54,51 @@
         @endif
 
         <section class="lead-summary-card">
-            <p><strong>Name :</strong> {{ $customerName }}</p>
-            <p><strong>Interested In :</strong> {{ strtoupper($interestedIn) }}</p>
-            <p><strong>Total price :</strong> {{ number_format($totalPrice, 2) }}</p>
-            <p><strong>DMS ID :</strong> {{ $primaryPhone }}</p>
-            @if($enquiry->follow_type)
-                <p><strong>Followup Type :</strong> {{ $enquiry->follow_type }}</p>
-            @endif
+            <div class="lead-summary-grid">
+                <article class="summary-item">
+                    <span class="summary-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" focusable="false">
+                            <circle cx="12" cy="8" r="3.2"></circle>
+                            <path d="M5.8 18c1.4-2.8 3.8-4.2 6.2-4.2s4.8 1.4 6.2 4.2"></path>
+                        </svg>
+                    </span>
+                    <p><strong>Name :</strong> {{ $customerName }}</p>
+                </article>
+
+                <article class="summary-item">
+                    <span class="summary-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" focusable="false">
+                            <path d="M4 15.2v2.3h1.8"></path>
+                            <path d="M18.2 17.5H20v-2.3"></path>
+                            <path d="M6 15.2h12l-1.1-4.2a2.2 2.2 0 0 0-2.1-1.6H9.2a2.2 2.2 0 0 0-2.1 1.6L6 15.2Z"></path>
+                            <circle cx="8.3" cy="17.6" r="1.4"></circle>
+                            <circle cx="15.7" cy="17.6" r="1.4"></circle>
+                            <path d="M8.6 12.5h6.8"></path>
+                        </svg>
+                    </span>
+                    <p><strong>Interested In :</strong> {{ strtoupper($interestedIn) }}</p>
+                </article>
+
+                <article class="summary-item">
+                    <span class="summary-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" focusable="false">
+                            <path d="M21 16.4v2a1.7 1.7 0 0 1-1.8 1.7A16.8 16.8 0 0 1 3.9 4.8 1.7 1.7 0 0 1 5.6 3h2a1.7 1.7 0 0 1 1.7 1.5c.1 1 .3 2 .7 2.8a1.7 1.7 0 0 1-.4 1.8l-.8.8a13.6 13.6 0 0 0 5.7 5.7l.8-.8a1.7 1.7 0 0 1 1.8-.4c.9.4 1.8.6 2.8.7A1.7 1.7 0 0 1 21 16.4Z"></path>
+                        </svg>
+                    </span>
+                    <p><strong>Contact Number :</strong> {{ $primaryPhone }}</p>
+                </article>
+
+                <article class="summary-item">
+                    <span class="summary-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" focusable="false">
+                            <path d="M3 11.2 12 4l9 7.2"></path>
+                            <path d="M5.5 10.6V20h13V10.6"></path>
+                            <path d="M10 20v-5h4v5"></path>
+                        </svg>
+                    </span>
+                    <p><strong>Followup Type :</strong> {{ $enquiry->follow_type ?: 'N/A' }}</p>
+                </article>
+            </div>
         </section>
 
         <section class="followup-card">
@@ -68,10 +108,47 @@
                 <input type="hidden" name="is_home_visit" id="isHomeVisit" value="{{ $isHomeVisit ? '1' : '0' }}">
 
                 <div class="followup-head-grid">
-                    <div class="followup-left">
-                        <p class="followup-date">{{ strtoupper($followDateLabel) }}</p>
-                        <p class="followup-type">{{ $followTypeLabel }}</p>
-                        <p class="followup-status {{ $followupStatus }}">{{ $statusLabel }}</p>
+                    <div class="followup-left followup-metrics">
+                        <article class="metric-item">
+                            <span class="metric-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false">
+                                    <rect x="3.5" y="5" width="17" height="15" rx="2"></rect>
+                                    <path d="M7 3.5v3M17 3.5v3M3.5 9.5h17"></path>
+                                    <path d="M8 13h2M12 13h2M16 13h2M8 16h2M12 16h2"></path>
+                                </svg>
+                            </span>
+                            <div>
+                                <p class="followup-date">{{ strtoupper($followDateLabel) }}</p>
+                                <p class="metric-label">Date</p>
+                            </div>
+                        </article>
+
+                        <article class="metric-item">
+                            <span class="metric-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false">
+                                    <path d="M3 11.2 12 4l9 7.2"></path>
+                                    <path d="M5.5 10.6V20h13V10.6"></path>
+                                    <path d="M10 20v-5h4v5"></path>
+                                </svg>
+                            </span>
+                            <div>
+                                <p class="followup-type">{{ $followTypeLabel }}</p>
+                                <p class="metric-label">Follow-up Type</p>
+                            </div>
+                        </article>
+
+                        <article class="metric-item">
+                            <span class="metric-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false">
+                                    <circle cx="12" cy="12" r="7.8"></circle>
+                                    <path d="M12 7.8v4.4l2.8 1.7"></path>
+                                </svg>
+                            </span>
+                            <div>
+                                <p class="followup-status {{ $followupStatus }}">{{ $statusLabel }}</p>
+                                <p class="metric-label">Status</p>
+                            </div>
+                        </article>
                     </div>
 
                     <div class="followup-right">
@@ -98,23 +175,61 @@
                         </div>
 
                         <div class="photo-tile-grid">
-                            <label class="photo-tile">
-                                <input type="file" name="followup_picture_1" accept=".jpg,.jpeg,.png,.webp">
-                                <span>Picture 1</span>
-                            </label>
-                            <label class="photo-tile">
-                                <input type="file" name="followup_picture_2" accept=".jpg,.jpeg,.png,.webp">
-                                <span>Picture 2</span>
-                            </label>
-                        </div>
+                            <div class="photo-tile" data-photo-tile="1" data-existing-url="{{ $existingFollowupPicture1Url ?? '' }}">
+                                <input type="hidden" name="followup_remove_picture_1" id="followup_remove_picture_1" value="{{ old('followup_remove_picture_1', '0') }}">
+                                <label class="photo-pick" for="followup_picture_1">
+                                    <input
+                                        type="file"
+                                        id="followup_picture_1"
+                                        name="followup_picture_1"
+                                        accept=".jpg,.jpeg,.png,.webp"
+                                        data-preview-input="1"
+                                    >
+                                    <img
+                                        src="{{ $existingFollowupPicture1Url ?? '' }}"
+                                        alt="Picture 1 preview"
+                                        class="photo-preview {{ $existingFollowupPicture1Url ? '' : 'hidden' }}"
+                                        data-preview-img="1"
+                                    >
+                                    <span class="photo-tile-text {{ $existingFollowupPicture1Url ? 'hidden' : '' }}" data-preview-text="1">Picture 1</span>
+                                </label>
+                                <div class="photo-actions">
+                                    @if($existingFollowupPicture1Url)
+                                        <a href="{{ $existingFollowupPicture1Url }}" target="_blank" rel="noopener" class="photo-view-link" data-preview-view="1">View</a>
+                                    @else
+                                        <a href="#" class="photo-view-link hidden" data-preview-view="1">View</a>
+                                    @endif
+                                    <button type="button" class="photo-remove-btn {{ $existingFollowupPicture1Url ? '' : 'hidden' }}" data-preview-remove="1">Remove</button>
+                                </div>
+                            </div>
 
-                        <div class="photo-links">
-                            @if(!empty($enquiry->followup_picture_1))
-                                <a href="{{ asset('storage/' . $enquiry->followup_picture_1) }}" target="_blank" rel="noopener">View Picture 1</a>
-                            @endif
-                            @if(!empty($enquiry->followup_picture_2))
-                                <a href="{{ asset('storage/' . $enquiry->followup_picture_2) }}" target="_blank" rel="noopener">View Picture 2</a>
-                            @endif
+                            <div class="photo-tile" data-photo-tile="2" data-existing-url="{{ $existingFollowupPicture2Url ?? '' }}">
+                                <input type="hidden" name="followup_remove_picture_2" id="followup_remove_picture_2" value="{{ old('followup_remove_picture_2', '0') }}">
+                                <label class="photo-pick" for="followup_picture_2">
+                                    <input
+                                        type="file"
+                                        id="followup_picture_2"
+                                        name="followup_picture_2"
+                                        accept=".jpg,.jpeg,.png,.webp"
+                                        data-preview-input="2"
+                                    >
+                                    <img
+                                        src="{{ $existingFollowupPicture2Url ?? '' }}"
+                                        alt="Picture 2 preview"
+                                        class="photo-preview {{ $existingFollowupPicture2Url ? '' : 'hidden' }}"
+                                        data-preview-img="2"
+                                    >
+                                    <span class="photo-tile-text {{ $existingFollowupPicture2Url ? 'hidden' : '' }}" data-preview-text="2">Picture 2</span>
+                                </label>
+                                <div class="photo-actions">
+                                    @if($existingFollowupPicture2Url)
+                                        <a href="{{ $existingFollowupPicture2Url }}" target="_blank" rel="noopener" class="photo-view-link" data-preview-view="2">View</a>
+                                    @else
+                                        <a href="#" class="photo-view-link hidden" data-preview-view="2">View</a>
+                                    @endif
+                                    <button type="button" class="photo-remove-btn {{ $existingFollowupPicture2Url ? '' : 'hidden' }}" data-preview-remove="2">Remove</button>
+                                </div>
+                            </div>
                         </div>
                     @endif
 
@@ -289,6 +404,11 @@
     </main>
 </div>
 
+<div id="photoLightbox" class="photo-lightbox hidden" aria-hidden="true">
+    <button type="button" id="photoLightboxClose" class="photo-lightbox-close" aria-label="Close image viewer">&times;</button>
+    <img id="photoLightboxImage" src="" alt="Follow-up uploaded image">
+</div>
+
 <script type="application/json" id="followupCompetitionMapJson">@json($competitionMap)</script>
 <script>
     (function () {
@@ -310,6 +430,21 @@
         const lostBrandSelect = document.getElementById('followup_lost_competition_brand');
         const lostModelSelect = document.getElementById('followup_lost_competition_model');
         const mapScript = document.getElementById('followupCompetitionMapJson');
+        const photoSlots = [1, 2].map((slot) => ({
+            slot,
+            tile: document.querySelector('[data-photo-tile="' + slot + '"]'),
+            input: document.querySelector('[data-preview-input="' + slot + '"]'),
+            preview: document.querySelector('[data-preview-img="' + slot + '"]'),
+            text: document.querySelector('[data-preview-text="' + slot + '"]'),
+            removeBtn: document.querySelector('[data-preview-remove="' + slot + '"]'),
+            viewLink: document.querySelector('[data-preview-view="' + slot + '"]'),
+            removeFlag: document.getElementById('followup_remove_picture_' + slot),
+            objectUrl: null,
+            hasPendingFile: false,
+        }));
+        const photoLightbox = document.getElementById('photoLightbox');
+        const photoLightboxImage = document.getElementById('photoLightboxImage');
+        const photoLightboxClose = document.getElementById('photoLightboxClose');
         let competitionMap = {};
 
         if (mapScript) {
@@ -323,6 +458,38 @@
         function picked(name) {
             const selected = document.querySelector('input[name="' + name + '"]:checked');
             return selected ? selected.value : '';
+        }
+
+        function resetObjectUrl(slotState) {
+            if (slotState.objectUrl) {
+                URL.revokeObjectURL(slotState.objectUrl);
+                slotState.objectUrl = null;
+            }
+        }
+
+        function applyImageState(slotState, sourceUrl, keepAsExisting) {
+            if (!slotState.preview || !slotState.text || !slotState.removeBtn || !slotState.viewLink) {
+                return;
+            }
+
+            const hasImage = !!sourceUrl;
+
+            slotState.preview.src = hasImage ? sourceUrl : '';
+            slotState.preview.classList.toggle('hidden', !hasImage);
+            slotState.text.classList.toggle('hidden', hasImage);
+            slotState.removeBtn.classList.toggle('hidden', !hasImage);
+
+            if (hasImage) {
+                slotState.viewLink.classList.remove('hidden');
+                slotState.viewLink.href = sourceUrl;
+            } else {
+                slotState.viewLink.classList.add('hidden');
+                slotState.viewLink.href = '#';
+            }
+
+            if (keepAsExisting && slotState.removeFlag) {
+                slotState.removeFlag.value = '0';
+            }
         }
 
         function setSelectOptions(select, values, placeholder, selectedValue) {
@@ -359,6 +526,126 @@
             const models = competitionMap[lostBrandSelect.value || ''] || [];
             setSelectOptions(lostModelSelect, models, 'Select model', selectedModel);
             lostModelSelect.dataset.selectedModel = '';
+        }
+
+        function bindPhotoPreview() {
+            photoSlots.forEach((slotState) => {
+                if (!slotState.tile || !slotState.input || !slotState.preview || !slotState.text || !slotState.removeBtn || !slotState.viewLink) {
+                    return;
+                }
+
+                const existingUrl = slotState.tile.dataset.existingUrl || '';
+                const shouldStartRemoved = slotState.removeFlag && slotState.removeFlag.value === '1';
+
+                if (shouldStartRemoved) {
+                    applyImageState(slotState, '', false);
+                } else if (existingUrl) {
+                    applyImageState(slotState, existingUrl, true);
+                } else {
+                    applyImageState(slotState, '', false);
+                }
+
+                slotState.input.addEventListener('change', () => {
+                    const selectedFile = slotState.input.files && slotState.input.files[0] ? slotState.input.files[0] : null;
+                    resetObjectUrl(slotState);
+
+                    if (!selectedFile) {
+                        slotState.hasPendingFile = false;
+                        if (existingUrl && (!slotState.removeFlag || slotState.removeFlag.value !== '1')) {
+                            applyImageState(slotState, existingUrl, false);
+                        } else {
+                            applyImageState(slotState, '', false);
+                        }
+                        return;
+                    }
+
+                    slotState.objectUrl = URL.createObjectURL(selectedFile);
+                    slotState.hasPendingFile = true;
+                    if (slotState.removeFlag) {
+                        slotState.removeFlag.value = '0';
+                    }
+                    applyImageState(slotState, slotState.objectUrl, false);
+                });
+
+                slotState.removeBtn.addEventListener('click', () => {
+                    if (slotState.hasPendingFile) {
+                        slotState.input.value = '';
+                        slotState.hasPendingFile = false;
+                        resetObjectUrl(slotState);
+
+                        if (existingUrl && (!slotState.removeFlag || slotState.removeFlag.value !== '1')) {
+                            applyImageState(slotState, existingUrl, false);
+                        } else {
+                            applyImageState(slotState, '', false);
+                        }
+                        return;
+                    }
+
+                    if (slotState.removeFlag) {
+                        slotState.removeFlag.value = '1';
+                    }
+                    applyImageState(slotState, '', false);
+                });
+            });
+        }
+
+        function openPhotoLightbox(url) {
+            if (!photoLightbox || !photoLightboxImage || !url) {
+                return;
+            }
+
+            photoLightboxImage.src = url;
+            photoLightbox.classList.remove('hidden');
+            photoLightbox.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closePhotoLightbox() {
+            if (!photoLightbox || !photoLightboxImage) {
+                return;
+            }
+
+            photoLightbox.classList.add('hidden');
+            photoLightbox.setAttribute('aria-hidden', 'true');
+            photoLightboxImage.src = '';
+            document.body.style.overflow = '';
+        }
+
+        function bindPhotoViewer() {
+            photoSlots.forEach((slotState) => {
+                if (!slotState.viewLink) {
+                    return;
+                }
+
+                slotState.viewLink.addEventListener('click', (event) => {
+                    const href = slotState.viewLink.getAttribute('href') || '';
+                    if (!href || href === '#') {
+                        event.preventDefault();
+                        return;
+                    }
+
+                    event.preventDefault();
+                    openPhotoLightbox(href);
+                });
+            });
+
+            if (photoLightboxClose) {
+                photoLightboxClose.addEventListener('click', closePhotoLightbox);
+            }
+
+            if (photoLightbox) {
+                photoLightbox.addEventListener('click', (event) => {
+                    if (event.target === photoLightbox) {
+                        closePhotoLightbox();
+                    }
+                });
+            }
+
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape' && photoLightbox && !photoLightbox.classList.contains('hidden')) {
+                    closePhotoLightbox();
+                }
+            });
         }
 
         function syncState() {
@@ -462,6 +749,8 @@
             });
         }
 
+        bindPhotoPreview();
+        bindPhotoViewer();
         syncLostModelOptions();
         syncState();
     })();

@@ -27,6 +27,7 @@ class AuthController extends Controller
             'role' => ['required', Rule::in(array_values(User::ROLE_SLUGS))],
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
+            'remember' => ['nullable', 'boolean'],
         ]);
 
         $role = $this->resolveRoleFromSlug($validated['role']);
@@ -37,10 +38,12 @@ class AuthController extends Controller
             'role' => $role,
         ];
 
-        if (!Auth::attempt($attemptData, (bool) $request->boolean('remember'))) {
+        $remember = (bool) ($validated['remember'] ?? false);
+
+        if (!Auth::attempt($attemptData, $remember)) {
             return back()
                 ->withErrors(['email' => 'Invalid credentials for this user type.'])
-                ->withInput($request->only('role', 'email'));
+                ->withInput($request->only('role', 'email', 'remember'));
         }
 
         $request->session()->regenerate();
@@ -75,6 +78,7 @@ class AuthController extends Controller
         $credentials = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
+            'remember' => ['nullable', 'boolean'],
         ]);
 
         $attemptData = [
@@ -83,10 +87,12 @@ class AuthController extends Controller
             'role' => $role,
         ];
 
-        if (!Auth::attempt($attemptData, (bool) $request->boolean('remember'))) {
+        $remember = (bool) ($credentials['remember'] ?? false);
+
+        if (!Auth::attempt($attemptData, $remember)) {
             return back()
                 ->withErrors(['email' => 'Invalid credentials for this role.'])
-                ->withInput($request->only('email'));
+                ->withInput($request->only('email', 'remember'));
         }
 
         $request->session()->regenerate();

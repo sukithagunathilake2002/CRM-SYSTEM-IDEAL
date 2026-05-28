@@ -8,6 +8,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -159,6 +160,8 @@ class FollowUpController extends Controller
             'followup_result' => ['nullable', Rule::in(['active', 'lost', 'closed']), 'required_if:followup_status,done'],
             'followup_picture_1' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'followup_picture_2' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'followup_remove_picture_1' => ['nullable', 'boolean'],
+            'followup_remove_picture_2' => ['nullable', 'boolean'],
             'followup_customer_comment' => ['nullable', 'string', 'max:1000'],
             'followup_conversion_year' => ['nullable', 'integer', 'between:2000,2100'],
             'followup_conversion_month' => ['nullable', 'integer', 'between:1,12'],
@@ -382,13 +385,8 @@ class FollowUpController extends Controller
                 $this->clearLostFollowupFields($enquiry);
             }
 
-            if ($request->hasFile('followup_picture_1')) {
-                $enquiry->followup_picture_1 = $request->file('followup_picture_1')->store('followups', 'public');
-            }
-
-            if ($request->hasFile('followup_picture_2')) {
-                $enquiry->followup_picture_2 = $request->file('followup_picture_2')->store('followups', 'public');
-            }
+            $this->syncFollowupImage($enquiry, $request, 'followup_picture_1', 'followup_remove_picture_1');
+            $this->syncFollowupImage($enquiry, $request, 'followup_picture_2', 'followup_remove_picture_2');
         } else {
             $enquiry->followup_visit_date = null;
             $enquiry->followup_met_whom = null;
@@ -469,5 +467,25 @@ class FollowUpController extends Controller
         $enquiry->followup_lost_codealer_name = null;
         $enquiry->followup_lost_reject_reasons = null;
         $enquiry->followup_lost_reject_other_text = null;
+    }
+
+    private function syncFollowupImage(Enquiry $enquiry, Request $request, string $field, string $removeFlag): void
+    {
+        $currentPath = (string) ($enquiry->{$field} ?? '');
+        $shouldRemove = $request->boolean($removeFlag);
+
+        if ($shouldRemove && $currentPath !== '') {
+            Storage::disk('public')->delete($currentPath);
+            $enquiry->{$field} = null;
+            $currentPath = '';
+        }
+
+        if ($request->hasFile($field)) {
+            if ($currentPath !== '') {
+                Storage::disk('public')->delete($currentPath);
+            }
+
+            $enquiry->{$field} = $request->file($field)->store('followups', 'public');
+        }
     }
 }

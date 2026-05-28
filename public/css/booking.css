@@ -1,6 +1,6 @@
 body {
     margin: 0;
-    font-family: "Segoe UI", Arial, sans-serif;
+    font-family: "Rubik", "Segoe UI", Arial, sans-serif;
     background: #d5d7e1;
     color: #111;
 }
@@ -38,7 +38,7 @@ body {
 }
 
 .brand-logo {
-    width: 86px;
+    width: 136px;
     height: auto;
 }
 

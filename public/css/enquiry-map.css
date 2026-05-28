@@ -8,7 +8,7 @@
 
 body {
     margin: 0;
-    font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+    font-family: "Rubik", "Segoe UI", Tahoma, Arial, sans-serif;
     background: var(--map-bg);
     color: var(--text-main);
 }
@@ -28,7 +28,7 @@ body {
 }
 
 .brand-logo {
-    width: 102px;
+    width: 148px;
     height: auto;
     display: block;
 }

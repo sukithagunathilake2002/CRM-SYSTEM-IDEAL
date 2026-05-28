@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap");
+
 :root {
     --page-bg: #eceef3;
     --surface: #f3f4f7;
@@ -199,7 +201,7 @@ body {
     margin: 0;
     min-height: 100vh;
     background: radial-gradient(circle at 18% 12%, #f6f7fb, var(--page-bg));
-    font-family: "Poppins", "Segoe UI", Tahoma, Arial, sans-serif;
+    font-family: "Rubik", "Segoe UI", Tahoma, Arial, sans-serif;
     color: var(--text);
 }
 
@@ -268,7 +270,7 @@ html.theme-dark .global-unified-topbar {
 .global-unified-topbar .brand-logo,
 .global-unified-topbar .emi-brand-logo,
 .global-unified-topbar .crm-brand-logo {
-    width: 74px !important;
+    width: 118px !important;
     height: auto !important;
     display: block;
 }
@@ -690,7 +692,7 @@ html.theme-dark .prospect-page .summary-modal-close {
 }
 
 .crm-left-brand-logo {
-    width: 92px;
+    width: 138px;
     height: auto;
 }
 
@@ -866,7 +868,7 @@ html.theme-dark .prospect-page .summary-modal-close {
 }
 
 .crm-brand-logo {
-    width: 108px;
+    width: 164px;
     height: auto;
 }
 

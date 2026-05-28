@@ -17,7 +17,7 @@
     </script>
     <link rel="stylesheet" href="{{ asset('css/portal.css') }}">
 </head>
-<body>
+<body class="@yield('bodyClass')">
     <div class="portal-shell">
         <header class="portal-topbar">
             <a href="{{ route('dashboard.main') }}" class="portal-brand">IDEAL MOTORS CRM</a>
@@ -46,11 +46,15 @@
         </header>
 
         <main class="portal-main">
-            @if(session('success'))
+            @php
+                $isLoginRoute = request()->routeIs('login') || request()->routeIs('auth.login.form');
+            @endphp
+
+            @if(session('success') && !$isLoginRoute)
                 <div class="portal-flash success">{{ session('success') }}</div>
             @endif
 
-            @if($errors->any())
+            @if($errors->any() && !$isLoginRoute)
                 <div class="portal-flash error">
                     <ul>
                         @foreach($errors->all() as $error)
@@ -136,7 +140,23 @@
                 requestAnimationFrame(tick);
             });
         })();
+
+        (() => {
+            const notices = Array.from(document.querySelectorAll('.auto-dismiss[data-auto-dismiss]'));
+            if (!notices.length) {
+                return;
+            }
+
+            notices.forEach((notice) => {
+                const delay = Number.parseInt(notice.getAttribute('data-auto-dismiss') || '10000', 10);
+                const timeout = Number.isFinite(delay) ? Math.max(delay, 0) : 10000;
+
+                window.setTimeout(() => {
+                    notice.classList.add('is-hidden');
+                    window.setTimeout(() => notice.remove(), 350);
+                }, timeout);
+            });
+        })();
     </script>
 </body>
 </html>
-

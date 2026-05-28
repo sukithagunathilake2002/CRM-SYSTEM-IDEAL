@@ -13,7 +13,7 @@
 body {
     margin: 0;
     background: var(--app-bg);
-    font-family: "Poppins", "Segoe UI", Tahoma, Arial, sans-serif;
+    font-family: "Rubik", "Segoe UI", Tahoma, Arial, sans-serif;
     color: var(--text-main);
 }
 
@@ -33,7 +33,7 @@ body {
 }
 
 .brand-logo {
-    width: 102px;
+    width: 148px;
     height: auto;
     display: block;
 }
