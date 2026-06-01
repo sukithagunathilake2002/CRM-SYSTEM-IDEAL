@@ -35,11 +35,6 @@
                     <input type="password" name="password" placeholder="Password" required>
                 </label>
 
-                <label class="login-ui-remember">
-                    <input type="checkbox" name="remember" value="1" @checked(old('remember'))>
-                    Remember me
-                </label>
-
                 <button type="submit" class="login-ui-submit">Login</button>
             </form>
 
