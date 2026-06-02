@@ -410,7 +410,7 @@
                     }
 
                     let maxAllowed = desiredScale;
-                    const safeGap = 0.7;
+                    const safeGap = 0.35;
 
                     pathMetrics.forEach((other) => {
                         if (other.path === current.path) {
@@ -443,17 +443,17 @@
                     const { box, cx, cy } = metric;
                     const area = box.width * box.height;
 
-                    let selectScale = 2.18;
+                    let selectScale = 2.38;
                     if (area > 30000) {
-                        selectScale = 1.82;
+                        selectScale = 2.0;
                     } else if (area > 18000) {
-                        selectScale = 1.94;
-                    } else if (area > 10000) {
-                        selectScale = 2.04;
-                    } else if (area > 4500) {
                         selectScale = 2.12;
-                    } else {
+                    } else if (area > 10000) {
                         selectScale = 2.24;
+                    } else if (area > 4500) {
+                        selectScale = 2.34;
+                    } else {
+                        selectScale = 2.46;
                     }
                     selectScale = clampScaleWithoutOverlap(path, selectScale);
                     path.style.setProperty('--district-select-scale', String(selectScale));
@@ -463,15 +463,15 @@
                     const centerDistance = Math.hypot(centerDx, centerDy);
                     const normX = centerDistance > 0 ? centerDx / centerDistance : 0;
                     const normY = centerDistance > 0 ? centerDy / centerDistance : -1;
-                    let popDistance = 24;
+                    let popDistance = 28;
                     if (area > 30000) {
-                        popDistance = 8;
+                        popDistance = 10;
                     } else if (area > 18000) {
-                        popDistance = 12;
+                        popDistance = 15;
                     } else if (area > 10000) {
-                        popDistance = 16;
-                    } else if (area > 4500) {
                         popDistance = 20;
+                    } else if (area > 4500) {
+                        popDistance = 24;
                     }
                     if (selectScale < 1.12) {
                         popDistance = Math.min(popDistance, 2);

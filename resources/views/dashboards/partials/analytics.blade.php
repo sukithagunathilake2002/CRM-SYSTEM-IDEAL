@@ -147,31 +147,32 @@
     </div>
 </section>
 
-<section class="card analytics-card">
+<section class="card analytics-card analysis-charts-card">
     <h2>Analysis Charts</h2>
+    <p class="analysis-charts-subtitle">Overview of leads and follow-up performance</p>
     <div class="analytics-chart-grid">
         <div class="analytics-chart-card">
-            <h3>Lead Result</h3>
+            <h3><span class="chart-title-dot chart-dot-lead-result"></span>Lead Result</h3>
             <canvas id="leadResultChart" aria-label="Lead result bar chart"></canvas>
         </div>
         <div class="analytics-chart-card">
-            <h3>Lead Temperature</h3>
+            <h3><span class="chart-title-dot chart-dot-temp"></span>Lead Temperature</h3>
             <canvas id="leadTemperatureChart" aria-label="Lead temperature pie chart"></canvas>
         </div>
         <div class="analytics-chart-card">
-            <h3>Followup Type Split</h3>
+            <h3><span class="chart-title-dot chart-dot-follow-split"></span>Followup Type Split</h3>
             <canvas id="followupTotalsChart" aria-label="Followup type pie chart"></canvas>
         </div>
         <div class="analytics-chart-card">
-            <h3>Followup Done vs Pending</h3>
+            <h3><span class="chart-title-dot chart-dot-follow-status"></span>Followup Done vs Pending</h3>
             <canvas id="followupStatusByTypeChart" aria-label="Followup status by type chart"></canvas>
         </div>
         <div class="analytics-chart-card">
-            <h3>Leads By User</h3>
+            <h3><span class="chart-title-dot chart-dot-user"></span>Leads By User</h3>
             <canvas id="leadsByUserChart" aria-label="Leads by user chart"></canvas>
         </div>
         <div class="analytics-chart-card">
-            <h3>Leads By District</h3>
+            <h3><span class="chart-title-dot chart-dot-district"></span>Leads By District</h3>
             <canvas id="leadsByDistrictChart" aria-label="Leads by district chart"></canvas>
         </div>
     </div>
@@ -447,19 +448,24 @@
         const leadsByDistrict = @json($analytics['charts']['district_totals']);
 
         const colors = {
-            red: '#ef4444',
-            amber: '#f59e0b',
-            green: '#22c55e',
-            blue: '#3b82f6',
-            cyan: '#06b6d4',
-            slate: '#64748b',
+            red: '#eca8a0',
+            amber: '#ebc9a9',
+            green: '#a8ceb9',
+            blue: '#abb8eb',
+            cyan: '#9ec9d8',
+            slate: '#b8acd8',
+            pink: '#e7a9c8',
+            cool: '#9ec7ea',
         };
 
         const commonLegend = {
+            position: 'right',
             labels: {
-                color: '#1f2937',
+                color: '#64748b',
                 boxWidth: 12,
-                font: { size: 11 }
+                usePointStyle: true,
+                pointStyle: 'rectRounded',
+                font: { size: 10 }
             }
         };
 
@@ -497,8 +503,8 @@
                 datasets: [{
                     label: 'Leads',
                     data: leadResults.values,
-                    backgroundColor: [colors.blue, colors.red, colors.green],
-                    borderRadius: 8,
+                    backgroundColor: ['#c5b4d9', '#ebb3d1', '#a9d0bd'],
+                    borderRadius: 3,
                 }]
             },
             options: {
@@ -506,7 +512,10 @@
                 maintainAspectRatio: false,
                 animation: barAnimation(),
                 plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+                scales: {
+                    x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { display: false } },
+                    y: { beginAtZero: true, ticks: { precision: 0, color: '#64748b', font: { size: 10 } }, grid: { color: '#e5e7eb' } }
+                },
                 animations: { y: { from: 0 } }
             }
         });
@@ -517,14 +526,16 @@
                 labels: leadTemperature.labels,
                 datasets: [{
                     data: leadTemperature.values,
-                    backgroundColor: ['#dc2626', '#f59e0b', '#0ea5e9'],
+                    backgroundColor: ['#ebb3c6', '#ebc8a4', '#a8c7e8'],
+                    borderWidth: 0,
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 animation: pieAnimation,
-                plugins: { legend: commonLegend }
+                plugins: { legend: commonLegend },
+                cutout: '36%',
             }
         });
 
@@ -534,14 +545,16 @@
                 labels: followupTotals.labels,
                 datasets: [{
                     data: followupTotals.values,
-                    backgroundColor: [colors.cyan, colors.amber, colors.slate],
+                    backgroundColor: [colors.amber, colors.green, colors.slate],
+                    borderWidth: 0,
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 animation: pieAnimation,
-                plugins: { legend: commonLegend }
+                plugins: { legend: commonLegend },
+                cutout: '0%',
             }
         });
 
@@ -553,14 +566,14 @@
                     {
                         label: 'Done',
                         data: followupStatusByType.done,
-                        backgroundColor: colors.green,
-                        borderRadius: 6,
+                        backgroundColor: '#a8ceb9',
+                        borderRadius: 2,
                     },
                     {
                         label: 'Pending',
                         data: followupStatusByType.pending,
-                        backgroundColor: colors.amber,
-                        borderRadius: 6,
+                        backgroundColor: '#ecb3ab',
+                        borderRadius: 2,
                     }
                 ]
             },
@@ -570,8 +583,8 @@
                 animation: barAnimation(85),
                 plugins: { legend: commonLegend },
                 scales: {
-                    x: { stacked: true },
-                    y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } }
+                    x: { stacked: false, ticks: { color: '#64748b', font: { size: 10 } }, grid: { display: false } },
+                    y: { stacked: false, beginAtZero: true, ticks: { precision: 0, color: '#64748b', font: { size: 10 } }, grid: { color: '#e5e7eb' } }
                 },
                 animations: { y: { from: 0 } }
             }
@@ -584,8 +597,8 @@
                 datasets: [{
                     label: 'Total Leads',
                     data: leadsByUser.values,
-                    backgroundColor: colors.blue,
-                    borderRadius: 8,
+                    backgroundColor: '#abb8eb',
+                    borderRadius: 3,
                 }]
             },
             options: {
@@ -594,7 +607,10 @@
                 maintainAspectRatio: false,
                 animation: barAnimation(),
                 plugins: { legend: { display: false } },
-                scales: { x: { beginAtZero: true, ticks: { precision: 0 } } },
+                scales: {
+                    x: { beginAtZero: true, ticks: { precision: 0, color: '#64748b', font: { size: 10 } }, grid: { color: '#e5e7eb' } },
+                    y: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { display: false } }
+                },
                 animations: { x: { from: 0 } }
             }
         });
@@ -606,8 +622,8 @@
                 datasets: [{
                     label: 'Total Leads',
                     data: leadsByDistrict.values,
-                    backgroundColor: '#1d4ed8',
-                    borderRadius: 8,
+                    backgroundColor: '#ecb1aa',
+                    borderRadius: 3,
                 }]
             },
             options: {
@@ -616,7 +632,10 @@
                 maintainAspectRatio: false,
                 animation: barAnimation(),
                 plugins: { legend: { display: false } },
-                scales: { x: { beginAtZero: true, ticks: { precision: 0 } } },
+                scales: {
+                    x: { beginAtZero: true, ticks: { precision: 0, color: '#64748b', font: { size: 10 } }, grid: { color: '#e5e7eb' } },
+                    y: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { display: false } }
+                },
                 animations: { x: { from: 0 } }
             }
         });
