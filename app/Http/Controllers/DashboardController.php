@@ -173,10 +173,11 @@ class DashboardController extends Controller
 
         $analytics = $this->buildAnalytics($user, $request);
         
-        // Get dashboard EPR data for quick view
         $dashboardEpds = $this->getDashboardEpData($user);
+        
+        $districtEpData = $this->getDistrictEpData($user);
 
-        return view('dashboards.super-admin', compact('counts', 'headHierarchy', 'dependentCounts', 'manageableUsers', 'analytics', 'dashboardEpds'));
+        return view('dashboards.super-admin', compact('counts', 'headHierarchy', 'dependentCounts', 'manageableUsers', 'analytics', 'dashboardEpds', 'districtEpData'));
     }
 
     public function headOfSales(Request $request): View
@@ -274,10 +275,11 @@ class DashboardController extends Controller
 
         $analytics = $this->buildAnalytics($user, $request);
         
-        // Get dashboard EPR data for quick view
         $dashboardEpds = $this->getDashboardEpData($user);
+        
+        $districtEpData = $this->getDistrictEpData($user);
 
-        return view('dashboards.head-of-sales', compact('regionalManagers', 'hierarchy', 'hierarchyCounts', 'analytics', 'dashboardEpds'));
+        return view('dashboards.head-of-sales', compact('regionalManagers', 'hierarchy', 'hierarchyCounts', 'analytics', 'dashboardEpds', 'districtEpData'));
     }
 
     public function regionalManager(Request $request): View
@@ -291,10 +293,11 @@ class DashboardController extends Controller
             ->get();
         $analytics = $this->buildAnalytics($user, $request);
         
-        // Get dashboard EPR data for quick view
         $dashboardEpds = $this->getDashboardEpData($user);
+        
+        $districtEpData = $this->getDistrictEpData($user);
 
-        return view('dashboards.regional-manager', compact('areaManagers', 'analytics', 'dashboardEpds'));
+        return view('dashboards.regional-manager', compact('areaManagers', 'analytics', 'dashboardEpds', 'districtEpData'));
     }
 
     public function areaManager(Request $request): View
@@ -307,10 +310,11 @@ class DashboardController extends Controller
             ->get();
         $analytics = $this->buildAnalytics($user, $request);
         
-        // Get dashboard EPR data for quick view
         $dashboardEpds = $this->getDashboardEpData($user);
+        
+        $districtEpData = $this->getDistrictEpData($user);
 
-        return view('dashboards.area-manager', compact('salesConsultants', 'analytics', 'dashboardEpds'));
+        return view('dashboards.area-manager', compact('salesConsultants', 'analytics', 'dashboardEpds', 'districtEpData'));
     }
 
     public function salesConsultant(Request $request): View
@@ -318,10 +322,120 @@ class DashboardController extends Controller
         $user = $request->user()->load('manager.manager.manager');
         $analytics = $this->buildAnalytics($user, $request);
         
-        // Get dashboard EPR data for quick view
         $dashboardEpds = $this->getDashboardEpData($user);
+        
+        $districtEpData = $this->getDistrictEpData($user);
 
-        return view('dashboards.sales-consultant', compact('user', 'analytics', 'dashboardEpds'));
+        return view('dashboards.sales-consultant', compact('user', 'analytics', 'dashboardEpds', 'districtEpData'));
+    }
+
+    /**
+     * API endpoint to get EPRs for a specific district
+     */
+    /**
+ * API endpoint to get EPRs for a specific district
+ */
+public function getDistrictEprs(Request $request, string $district): \Illuminate\Http\JsonResponse
+{
+    $viewer = $request->user();
+    $accessibleUserIds = $this->resolveAccessibleUserIds($viewer);
+    
+    $normalizedDistrict = User::normalizeDistrictName($district);
+    if ($normalizedDistrict === null) {
+        return response()->json(['error' => 'Invalid district'], 400);
+    }
+    
+    $enquiries = Enquiry::with(['customer', 'vehicle', 'user'])
+        ->whereIn('user_id', $accessibleUserIds)
+        ->whereHas('customer', function ($query) use ($normalizedDistrict) {
+            $query->whereRaw('LOWER(TRIM(COALESCE(district, \'\'))) = ?', [strtolower($normalizedDistrict)]);
+        })
+        ->whereRaw("LOWER(COALESCE(followup_status, '')) <> ?", ['done'])
+        ->orderBy('follow_date', 'asc')
+        ->get();
+    
+    $mappedEnquiries = $enquiries->map(function ($enquiry) {
+        $customer = $enquiry->customer;
+        $vehicle = $enquiry->vehicle;
+        $mobiles = is_array($customer?->mobile_numbers) ? $customer->mobile_numbers : [];
+        $primaryPhone = count($mobiles) ? (string) $mobiles[0] : 'N/A';
+        
+        // Ensure latitude and longitude are returned as proper numbers
+        $latitude = $enquiry->latitude;
+        $longitude = $enquiry->longitude;
+        
+        // Debug log to check values
+        \Log::info('EPR Data', [
+            'id' => $enquiry->id,
+            'latitude' => $latitude,
+            'longitude' => $longitude,
+        ]);
+        
+        return [
+            'id' => $enquiry->id,
+            'customer_name' => trim(($customer?->title ? $customer->title . '. ' : '') . ($customer?->name ?? 'Unknown')),
+            'primary_phone' => $primaryPhone,
+            'vehicle_name' => trim(($vehicle?->model ?? '') . ' ' . ($vehicle?->variant ?? '')),
+            'follow_type' => $enquiry->follow_type,
+            'follow_date' => $enquiry->follow_date,
+            'follow_time' => $enquiry->follow_time,
+            'address' => $customer?->address1 ?: ($customer?->location ?: 'Address not available'),
+            'latitude' => $latitude !== null ? (float) $latitude : null,
+            'longitude' => $longitude !== null ? (float) $longitude : null,
+            'has_location' => $latitude !== null && $longitude !== null && $latitude != 0 && $longitude != 0,
+        ];
+    });
+    
+    $count = $mappedEnquiries->count();
+    $hasLocationData = $mappedEnquiries->filter(fn($e) => $e['has_location'])->count();
+    
+    return response()->json([
+        'success' => true,
+        'district' => $normalizedDistrict,
+        'count' => $count,
+        'has_location_data' => $hasLocationData,
+        'eprs' => $mappedEnquiries,
+    ]);
+}
+
+    /**
+     * Get district EPR data for the map display
+     */
+    private function getDistrictEpData(User $viewer): array
+    {
+        $accessibleUserIds = $this->resolveAccessibleUserIds($viewer);
+        
+        $districtCounts = [];
+        
+        foreach (User::DISTRICT_OPTIONS as $district) {
+            $count = Enquiry::with(['customer'])
+                ->whereIn('user_id', $accessibleUserIds)
+                ->whereHas('customer', function ($query) use ($district) {
+                    $query->whereRaw('LOWER(TRIM(COALESCE(district, \'\'))) = ?', [strtolower($district)]);
+                })
+                ->whereRaw("LOWER(COALESCE(followup_status, '')) <> ?", ['done'])
+                ->count();
+            
+            $districtCounts[$district] = $count;
+        }
+        
+        $maxCount = max($districtCounts) ?: 1;
+        
+        $mapData = [];
+        foreach ($districtCounts as $district => $count) {
+            $mapData[] = [
+                'district' => $district,
+                'count' => $count,
+                'intensity' => $count > 0 ? min(1, $count / $maxCount) : 0,
+            ];
+        }
+        
+        return [
+            'district_counts' => $districtCounts,
+            'max_count' => $maxCount,
+            'map_data' => $mapData,
+            'total_active_eprs' => array_sum($districtCounts),
+        ];
     }
 
     /**
@@ -331,12 +445,10 @@ class DashboardController extends Controller
     {
         $accessibleUserIds = $this->resolveAccessibleUserIds($viewer);
         
-        // Base query for enquiries - only pending followups
         $baseQuery = Enquiry::with(['customer', 'vehicle'])
             ->whereIn('user_id', $accessibleUserIds)
             ->whereRaw("LOWER(COALESCE(followup_status, '')) <> ?", ['done']);
         
-        // Filter by followup type - Call EPRs
         $callEpds = (clone $baseQuery)
             ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%call%'])
             ->orderBy('follow_date', 'asc')
@@ -360,7 +472,6 @@ class DashboardController extends Controller
                 ];
             });
         
-        // Showroom visit EPRs
         $showroomEpds = (clone $baseQuery)
             ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%showroom%'])
             ->orderBy('follow_date', 'asc')
@@ -384,7 +495,6 @@ class DashboardController extends Controller
                 ];
             });
         
-        // Home visit EPRs
         $homeEpds = (clone $baseQuery)
             ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%home%'])
             ->orderBy('follow_date', 'asc')
@@ -811,10 +921,8 @@ class DashboardController extends Controller
             ]);
 
         if ($viewer->role === User::ROLE_SALES_CONSULTANT) {
-            // Sales consultants should only see their own leads on dashboard analytics.
             $enquiriesQuery->where('user_id', (int) $viewer->id);
         } elseif ($viewer->role !== User::ROLE_SUPER_ADMIN) {
-            // Non-super users can only view leads owned by users in their accessible hierarchy.
             $enquiriesQuery->whereIn('user_id', $accessibleUserIds);
         }
 
@@ -853,7 +961,6 @@ class DashboardController extends Controller
             ? $filterableUsers->firstWhere('id', $selectedUserId)
             : null;
 
-        // Keep filter combinations consistent: owner role must match selected user.
         if ($selectedOwnerRole === 'unassigned') {
             $selectedUserId = null;
             $selectedFilterUser = null;
@@ -1339,6 +1446,26 @@ class DashboardController extends Controller
         return $resolvedIds;
     }
 
+    private function filterUsersForViewerHierarchy(User $viewer, Collection $users): Collection
+    {
+        $nonSuperUsers = $users
+            ->filter(fn(User $user): bool => $user->role !== User::ROLE_SUPER_ADMIN)
+            ->values();
+
+        return match ($viewer->role) {
+            User::ROLE_AREA_MANAGER => $nonSuperUsers
+                ->filter(fn(User $user): bool => $user->role === User::ROLE_SALES_CONSULTANT)
+                ->values(),
+            User::ROLE_REGIONAL_MANAGER => $nonSuperUsers
+                ->filter(fn(User $user): bool => in_array($user->role, [User::ROLE_AREA_MANAGER, User::ROLE_SALES_CONSULTANT], true))
+                ->values(),
+            User::ROLE_SALES_CONSULTANT => $nonSuperUsers
+                ->filter(fn(User $user): bool => (int) $user->id === (int) $viewer->id)
+                ->values(),
+            default => $nonSuperUsers,
+        };
+    }
+
     private function normalizeLeadResult($value): ?string
     {
         $normalized = strtolower(trim((string) $value));
@@ -1386,26 +1513,6 @@ class DashboardController extends Controller
             'pending' => 0,
             'done' => 0,
         ];
-    }
-
-    private function filterUsersForViewerHierarchy(User $viewer, Collection $users): Collection
-    {
-        $nonSuperUsers = $users
-            ->filter(fn(User $user): bool => $user->role !== User::ROLE_SUPER_ADMIN)
-            ->values();
-
-        return match ($viewer->role) {
-            User::ROLE_AREA_MANAGER => $nonSuperUsers
-                ->filter(fn(User $user): bool => $user->role === User::ROLE_SALES_CONSULTANT)
-                ->values(),
-            User::ROLE_REGIONAL_MANAGER => $nonSuperUsers
-                ->filter(fn(User $user): bool => in_array($user->role, [User::ROLE_AREA_MANAGER, User::ROLE_SALES_CONSULTANT], true))
-                ->values(),
-            User::ROLE_SALES_CONSULTANT => $nonSuperUsers
-                ->filter(fn(User $user): bool => (int) $user->id === (int) $viewer->id)
-                ->values(),
-            default => $nonSuperUsers,
-        };
     }
 
     private function parseFilterDate(string $value, bool $startOfDay): ?Carbon
