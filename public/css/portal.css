@@ -1270,12 +1270,22 @@ html.theme-dark .analytics-kpi:nth-child(6) {
     gap: 12px;
 }
 
+.analysis-charts-card {
+    background: #f3f4f6;
+}
+
+.analysis-charts-subtitle {
+    margin: -4px 0 10px;
+    color: #6b7280;
+    font-size: 11px;
+}
+
 .analytics-chart-card {
-    border: 1px solid #dde2ec;
-    border-radius: 12px;
-    padding: 12px;
-    background: #ffffff;
-    min-height: 280px;
+    border: 1px solid #cfd4dc;
+    border-radius: 6px;
+    padding: 10px;
+    background: #f8fafc;
+    min-height: 210px;
     animation: portalFadeUp 380ms ease-out both;
     transition: transform 180ms ease, box-shadow 180ms ease;
 }
@@ -1292,8 +1302,42 @@ html.theme-dark .analytics-chart-card {
 
 .analytics-chart-card h3 {
     margin: 0 0 10px;
-    font-size: 14px;
-    color: #1e293b;
+    font-size: 11px;
+    color: #1f2937;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.chart-title-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    display: inline-block;
+}
+
+.chart-dot-lead-result {
+    background: #c5b4d9;
+}
+
+.chart-dot-temp {
+    background: #ebb3c6;
+}
+
+.chart-dot-follow-split {
+    background: #a8ceb9;
+}
+
+.chart-dot-follow-status {
+    background: #abb8eb;
+}
+
+.chart-dot-user {
+    background: #94a3b8;
+}
+
+.chart-dot-district {
+    background: #ecb1aa;
 }
 
 html.theme-dark .analytics-chart-card h3 {
@@ -1302,7 +1346,7 @@ html.theme-dark .analytics-chart-card h3 {
 
 .analytics-chart-card canvas {
     width: 100% !important;
-    height: 220px !important;
+    height: 160px !important;
 }
 
 .hierarchy-badges {
@@ -1419,16 +1463,16 @@ html.theme-dark .analytics-table tbody tr:nth-child(odd) {
 
 .district-map-path.is-selected {
     transform: translate(var(--district-pop-x, 0), var(--district-pop-y, 0)) scale(var(--district-select-scale, 1.06));
-    fill: #dc2626 !important;
-    stroke: #991b1b;
+    fill: #0b7022 !important;
+    stroke: #0b7022;
     stroke-width: 2.4;
-    filter: drop-shadow(0 0 18px rgba(220, 38, 38, 0.58));
+    filter: drop-shadow(0 0 18px rgba(38, 220, 87, 0.58));
 }
 
 .district-map-path.is-selected:hover {
     transform: translate(var(--district-pop-x, 0), var(--district-pop-y, 0)) scale(var(--district-select-scale, 1.06));
-    fill: #dc2626 !important;
-    stroke: #991b1b;
+    fill: #0b7022 !important;
+    stroke: #0b7022;
 }
 
 .district-map-label-layer {
