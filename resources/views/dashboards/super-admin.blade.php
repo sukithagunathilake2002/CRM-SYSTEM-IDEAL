@@ -1,8 +1,147 @@
 @extends('layouts.portal')
 
 @section('content')
-<section class="card">
-    <h1>Super Admin Dashboard</h1>
+<style>
+/* Adjust portal-main for balanced spacing */
+.portal-main {
+    max-width: 1400px !important;
+    margin: 0 auto !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+}
+
+/* Additional dashboard styling using existing color palette */
+.dashboard-header-card {
+    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+    border: none;
+    color: white;
+    border-radius: 16px;
+}
+
+.dashboard-header-card h1,
+.dashboard-header-card p {
+    color: white;
+}
+
+.dashboard-header-card .stat {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.dashboard-header-card .stat strong,
+.dashboard-header-card .stat span {
+    color: white;
+}
+
+.dashboard-header-card .btn-link {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.dashboard-header-card .btn-link:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.dashboard-header-card .btn-link.alt {
+    background: white;
+    color: #1e3a8a;
+}
+
+.stats-card-enhanced {
+    background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
+    border: none;
+    border-radius: 16px;
+}
+
+.stats-card-enhanced .stat {
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.users-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f3f4f6 100%);
+    border-radius: 16px;
+}
+
+.hierarchy-card {
+    background: linear-gradient(135deg, #fefce8 0%, #fef3c7 100%);
+    border-radius: 16px;
+}
+
+.district-card {
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    border-radius: 16px;
+}
+
+.analytics-card-enhanced {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border-radius: 16px;
+}
+
+.card-title-icon {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.card-title-icon svg {
+    width: 24px;
+    height: 24px;
+    stroke: currentColor;
+    stroke-width: 1.5;
+}
+
+/* Card styling */
+section.card {
+    border-radius: 16px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* Dark mode adjustments */
+html.theme-dark .dashboard-header-card {
+    background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 100%);
+}
+
+html.theme-dark .stats-card-enhanced {
+    background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+}
+
+html.theme-dark .stats-card-enhanced .stat {
+    background: #374151;
+    border-color: #4b5563;
+}
+
+html.theme-dark .stats-card-enhanced .stat strong,
+html.theme-dark .stats-card-enhanced .stat span {
+    color: #f3f4f6;
+}
+
+html.theme-dark .users-card {
+    background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+}
+
+html.theme-dark .hierarchy-card {
+    background: linear-gradient(135deg, #422006 0%, #292524 100%);
+}
+
+html.theme-dark .district-card {
+    background: linear-gradient(135deg, #064e3b 0%, #042f2e 100%);
+}
+
+html.theme-dark .analytics-card-enhanced {
+    background: linear-gradient(135deg, #172554 0%, #111827 100%);
+}
+</style>
+
+<section class="card dashboard-header-card">
+    <div class="card-title-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M3 12h2l3-9 3 9h2M5 21v-6M19 13V7M15 13V9M21 21H3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <h1>Super Admin Dashboard</h1>
+    </div>
     <p>Manage full organization hierarchy and access all CRM modules.</p>
 
     <div class="stats-grid">
@@ -22,8 +161,13 @@
     </div>
 </section>
 
-<section class="card">
-    <h2>Head Of Sales Hierarchy Summary</h2>
+<section class="card stats-card-enhanced">
+    <div class="card-title-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M3 7a4 4 0 0 0 4 4h4a4 4 0 0 0 4-4M19 7a4 4 0 0 0-4-4h-4a4 4 0 0 0-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <h2>Head Of Sales Hierarchy Summary</h2>
+    </div>
     <div class="stats-grid">
         <div class="stat"><strong>{{ $dependentCounts['dependent_users'] }}</strong><span>Total Dependent Users</span></div>
         <div class="stat"><strong>{{ $dependentCounts['regional_managers'] }}</strong><span>Regional Managers</span></div>
@@ -32,8 +176,13 @@
     </div>
 </section>
 
-<section class="card">
-    <h2>Manage All Users</h2>
+<section class="card users-card">
+    <div class="card-title-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <h2>Manage All Users</h2>
+    </div>
     <p>Edit user details, role assignment, reporting manager, and password.</p>
     <div class="quick-links manage-users-actions">
         <a class="btn-link" href="{{ route('dashboard.super_admin.consultant_transfer.form') }}">Transfer Consultant Data</a>
@@ -76,8 +225,13 @@
     </div>
 </section>
 
-<section class="card">
-    <h2>Head Of Sales Team Hierarchy</h2>
+<section class="card hierarchy-card">
+    <div class="card-title-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M12 3v18M3 12h18M12 3L3 12M12 3l9 9M12 21l-9-9M12 21l9-9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <h2>Head Of Sales Team Hierarchy</h2>
+    </div>
     <ul class="list hierarchy-list">
         @forelse($headHierarchy as $head)
         <li>
@@ -132,8 +286,14 @@
     </ul>
 </section>
 
-<section id="districtOverviewCard" class="card">
-    <h2>Sri Lanka District Lead Overview</h2>
+<section id="districtOverviewCard" class="card district-card">
+    <div class="card-title-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="12" cy="10" r="3" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        <h2>Sri Lanka District Lead Overview</h2>
+    </div>
     <p>Click on any district to zoom in and view EPR count. Click again to reset.</p>
     <div class="district-overview-grid">
         <div class="district-map-card">
