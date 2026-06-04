@@ -181,171 +181,6 @@
 
 @include('dashboards.partials.analytics', ['analytics' => $analytics])
 
-<style>
-.district-map-card {
-    overflow: visible !important;
-}
-
-.district-lead-map {
-    overflow: visible !important;
-    min-height: 500px;
-    position: relative;
-}
-
-.district-map-svg {
-    width: 100%;
-    height: auto;
-    overflow: visible !important;
-}
-
-.district-group {
-    cursor: pointer;
-    transform-origin: center;
-    transform-box: fill-box;
-    transition: transform 0.5s cubic-bezier(0.34, 1.2, 0.64, 1), filter 0.3s ease-out;
-}
-
-/* Hover effect - pastel green */
-.district-group:hover .district-map-path {
-    fill: #a8e6cf !important;
-    stroke: #a8e6cf !important;
-    transition: fill 0.2s ease, stroke 0.2s ease;
-}
-
-.district-group.district-zoomed {
-    transform: scale(1.6);
-    filter: drop-shadow(0 20px 40px rgba(0,0,0,0.5));
-}
-
-.district-group.district-zoom-in {
-    animation: zoomInBounce 0.5s cubic-bezier(0.34, 1.2, 0.64, 1) forwards;
-}
-
-.district-group.district-zoom-out {
-    animation: zoomOutBounce 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
-}
-
-@keyframes zoomInBounce {
-    0% {
-        transform: scale(1);
-        filter: drop-shadow(0 0 0 rgba(0,0,0,0));
-    }
-    40% {
-        transform: scale(1.75);
-        filter: drop-shadow(0 10px 20px rgba(0,0,0,0.3));
-    }
-    70% {
-        transform: scale(1.55);
-        filter: drop-shadow(0 15px 30px rgba(0,0,0,0.4));
-    }
-    100% {
-        transform: scale(1.6);
-        filter: drop-shadow(0 20px 40px rgba(0,0,0,0.5));
-    }
-}
-
-@keyframes zoomOutBounce {
-    0% {
-        transform: scale(1.6);
-        filter: drop-shadow(0 20px 40px rgba(0,0,0,0.5));
-    }
-    50% {
-        transform: scale(0.92);
-        filter: drop-shadow(0 5px 10px rgba(0,0,0,0.1));
-    }
-    100% {
-        transform: scale(1);
-        filter: drop-shadow(0 0 0 rgba(0,0,0,0));
-    }
-}
-
-.district-group.district-pulse {
-    animation: pulseGlow 0.4s ease-in-out;
-}
-
-@keyframes pulseGlow {
-    0% { filter: drop-shadow(0 20px 40px rgba(0,0,0,0.5)); }
-    50% { filter: drop-shadow(0 0 20px rgba(168, 230, 207, 0.8)); }
-    100% { filter: drop-shadow(0 20px 40px rgba(0,0,0,0.5)); }
-}
-
-.district-map-path {
-    transform-origin: center;
-    transform-box: fill-box;
-    transition: fill 0.2s ease, stroke 0.2s ease;
-}
-
-.district-number-marker {
-    pointer-events: none;
-    transform-origin: center;
-}
-
-.district-number-marker circle {
-    transition: all 0.2s ease;
-}
-
-/* Hide stroke on number marker during hover of parent group */
-.district-group:hover .district-number-marker circle {
-    stroke: #a8e6cf;
-}
-
-.district-no-data-msg {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(0,0,0,0.85);
-    color: white;
-    padding: 12px 24px;
-    border-radius: 8px;
-    z-index: 1000;
-    font-size: 14px;
-    white-space: nowrap;
-    animation: fadeOutMsg 2.5s ease forwards;
-}
-
-@keyframes fadeOutMsg {
-    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
-    15% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
-    30% { transform: translate(-50%, -50%) scale(1); }
-    80% { opacity: 1; }
-    100% { opacity: 0; visibility: hidden; transform: translate(-50%, -50%) scale(0.95); }
-}
-
-.district-summary-row {
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.district-summary-row:hover {
-    background: rgba(168, 230, 207, 0.3);
-    transform: translateX(5px);
-}
-
-.district-lead-info-card {
-    transition: all 0.3s cubic-bezier(0.34, 1.2, 0.64, 1);
-}
-
-.district-lead-info-card.animate {
-    transform: scale(1.03);
-    background: linear-gradient(135deg, #f0f4ff 0%, #e8eeff 100%);
-}
-
-.district-map-scale-bar {
-    height: 8px;
-    border-radius: 4px;
-    background: linear-gradient(90deg, #93c5fd, #1d4ed8);
-}
-
-.district-map-scale-labels {
-    display: flex;
-    justify-content: space-between;
-    font-size: 11px;
-    color: #64748b;
-    margin-top: 5px;
-}
-</style>
-
 <script>
 (function() {
     var mount = document.getElementById('districtLeadMap');
@@ -458,7 +293,6 @@
         if (isProcessing) return;
         isProcessing = true;
         
-        // If clicking the same district that is zoomed - zoom out
         if (isZoomed && currentDistrictGroup === groupElement) {
             zoomOutDistrict(function() {
                 resetToNormal();
@@ -467,14 +301,12 @@
             return;
         }
         
-        // If another district is zoomed - reset it first, then zoom new one
         if (isZoomed && currentDistrictGroup !== groupElement) {
             zoomOutDistrict(function() {
                 restoreOrder();
                 currentDistrictGroup = null;
                 isZoomed = false;
                 
-                // Now zoom in the new district
                 bringToFront(groupElement);
                 zoomInDistrict(groupElement, function() {
                     currentDistrictGroup = groupElement;
@@ -483,7 +315,6 @@
                     
                     updateDistrictInfo(districtName, eprCount);
                     
-                    // Add pulse effect
                     groupElement.classList.add('district-pulse');
                     setTimeout(function() {
                         groupElement.classList.remove('district-pulse');
@@ -495,7 +326,6 @@
             return;
         }
         
-        // No district zoomed - zoom in new district
         bringToFront(groupElement);
         zoomInDistrict(groupElement, function() {
             currentDistrictGroup = groupElement;
@@ -513,7 +343,6 @@
         });
     }
     
-    // Function to calculate center of a path
     function getPathCenter(path) {
         var bbox = path.getBBox();
         return {
@@ -522,7 +351,6 @@
         };
     }
     
-    // District data processing
     var districtCounts = {};
     var analyticsDistricts = @json($analytics['by_district'] ?? []);
     
@@ -533,7 +361,6 @@
         }
     });
     
-    // Add click handlers for table rows
     for (var i = 0; i < tableRows.length; i++) {
         var row = tableRows[i];
         var district = row.getAttribute('data-district');
@@ -554,7 +381,6 @@
     }
     if (maxCount === 0) maxCount = 1;
     
-    // Keep original blue color scheme for districts
     function getFillColor(count) {
         if (count <= 0) return '#eef2ff';
         var ratio = count / maxCount;
@@ -565,7 +391,6 @@
         return '#93c5fd';
     }
     
-    // Darker, high-contrast colors for number marker circles
     function getMarkerColor(count) {
         if (count <= 0) return '#9ca3af';
         var ratio = count / maxCount;
@@ -591,14 +416,12 @@
             var groups = [];
             var locations = mapData.locations || [];
             
-            // Create groups for ALL districts (including those with 0 EPRs)
             locations.forEach(function(location) {
                 var name = String(location.name || '');
                 var key = normalize(name);
                 var count = districtCounts[key] || 0;
                 var fillColor = getFillColor(count);
                 
-                // Create group for this district
                 var group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
                 group.classList.add('district-group');
                 group.setAttribute('data-district', name);
@@ -606,7 +429,6 @@
                 group.style.transformOrigin = 'center';
                 group.style.cursor = 'pointer';
                 
-                // Add the path with blue border
                 var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 path.setAttribute('d', String(location.path || ''));
                 path.setAttribute('fill', fillColor);
@@ -618,7 +440,6 @@
                 groups.push({ group: group, name: name, count: count, path: path });
             });
             
-            // Add groups to wrapper first to calculate centers
             groups.forEach(function(item) {
                 wrapper.appendChild(item.group);
             });
@@ -629,7 +450,6 @@
             svgElement = svg;
             svgWrapper = wrapper;
             
-            // After DOM is rendered, calculate centers and add markers (only for districts with EPRs)
             setTimeout(function() {
                 groups.forEach(function(item) {
                     var group = item.group;
@@ -637,23 +457,19 @@
                     var count = item.count;
                     var path = item.path;
                     
-                    // Add click handler to EVERY group (including zero EPR districts)
                     group.addEventListener('click', (function(n, g, c) {
                         return function() { onDistrictClick(n, g, c); };
                     })(name, group, count));
                     
-                    // Only add number marker if count > 0
                     if (count > 0) {
                         var center = getPathCenter(path);
                         var markerColor = getMarkerColor(count);
                         
-                        // Create number marker group with high-contrast circle
                         var markerGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
                         markerGroup.classList.add('district-number-marker');
                         markerGroup.setAttribute('transform', 'translate(' + center.x + ',' + center.y + ')');
                         markerGroup.style.pointerEvents = 'none';
                         
-                        // Background circle - high contrast color
                         var circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
                         circle.setAttribute('cx', '0');
                         circle.setAttribute('cy', '0');
@@ -663,7 +479,6 @@
                         circle.setAttribute('stroke-width', '2.5');
                         markerGroup.appendChild(circle);
                         
-                        // Number text
                         var text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
                         text.setAttribute('x', '0');
                         text.setAttribute('y', '6');
@@ -674,7 +489,6 @@
                         text.textContent = String(count);
                         markerGroup.appendChild(text);
                         
-                        // Add marker to the same group so it zooms with the path
                         group.appendChild(markerGroup);
                     }
                 });
