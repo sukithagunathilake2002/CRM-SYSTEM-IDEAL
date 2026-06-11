@@ -48,9 +48,6 @@ class Enquiry extends Model
         'followup_lost_reject_other_text',
         'exchange',
         'finance',
-        'latitude',
-        'longitude',
-        'location_captured_at',
         'status'
     ];
 
@@ -63,9 +60,6 @@ class Enquiry extends Model
         'followup_test_drive_when' => 'date',
         'followup_next_date' => 'date',
         'followup_lost_reject_reasons' => 'array',
-        'latitude' => 'float',
-        'longitude' => 'float',
-        'location_captured_at' => 'datetime',
     ];
 
     // Enable timestamps

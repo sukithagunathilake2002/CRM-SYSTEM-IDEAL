@@ -100,7 +100,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/epr/showroom', [EnquiryController::class, 'listShowroomEpds'])->name('enquiries.list.showroom');
     Route::get('/epr/home', [EnquiryController::class, 'listHomeEpds'])->name('enquiries.list.home');
     
-    Route::get('/epr-map', [EnquiryController::class, 'map'])->name('enquiries.map');
     Route::get('/followup/{enquiry}', [FollowUpController::class, 'show'])->name('followup.show');
     Route::post('/followup/{enquiry}/status', [FollowUpController::class, 'updateStatus'])->name('followup.update_status');
 

@@ -253,9 +253,6 @@ $viewerId = (int) ($user?->id ?? 0);
                             <span>{{ $todayLeads }} Today Leads</span>
                         </div>
                     </div>
-                    <a href="{{ route('enquiries.map', ['date' => $todaySriLanka]) }}" class="crm-day-map-link" aria-label="Open day map">
-                        <img src="{{ asset('icons/mapdsh.png') }}" alt="Day Map">
-                    </a>
                 </article>
                         </div>
 

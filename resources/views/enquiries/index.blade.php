@@ -21,7 +21,6 @@
         <div class="toolbar-actions">
             <button type="button" class="tool-btn" id="eprFilterBtn">Filter</button>
             <button type="button" class="tool-btn" id="eprSortBtn" data-sort="newest">Sort: New</button>
-            <a href="{{ route('enquiries.map', ['date' => now()->toDateString()]) }}" class="tool-btn map-link">Map</a>
         </div>
     </section>
 

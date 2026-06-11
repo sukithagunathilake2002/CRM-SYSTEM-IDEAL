@@ -143,10 +143,6 @@
                 </select>
                 <input type="text" name="location" class="input-pill" placeholder="Location" value="{{ old('location') }}">
             </div>
-            <input type="hidden" name="latitude" id="enquiryLatitude">
-            <input type="hidden" name="longitude" id="enquiryLongitude">
-            <input type="hidden" name="location_captured_at" id="locationCapturedAt">
-            <p id="geoStatus" class="geo-status">Trying to capture current location...</p>
 
             <button type="button" class="add-address-btn" onclick="toggleAddress()">
                 <span class="add-address-plus" aria-hidden="true">+</span>
@@ -371,42 +367,6 @@
         document.getElementById('follow_type').value = btn.dataset.value || btn.innerText;
     }
 
-    function captureCurrentLocation() {
-        const statusEl = document.getElementById('geoStatus');
-        const latitudeEl = document.getElementById('enquiryLatitude');
-        const longitudeEl = document.getElementById('enquiryLongitude');
-        const capturedAtEl = document.getElementById('locationCapturedAt');
-
-        if (!navigator.geolocation) {
-            if (statusEl) {
-                statusEl.textContent = 'Current location is not supported on this device.';
-                statusEl.classList.add('error');
-            }
-            return;
-        }
-
-        navigator.geolocation.getCurrentPosition(function (position) {
-            if (latitudeEl) latitudeEl.value = position.coords.latitude.toFixed(7);
-            if (longitudeEl) longitudeEl.value = position.coords.longitude.toFixed(7);
-            if (capturedAtEl) capturedAtEl.value = new Date().toISOString();
-
-            if (statusEl) {
-                statusEl.textContent = 'Current location captured successfully.';
-                statusEl.classList.remove('error');
-                statusEl.classList.add('success');
-            }
-        }, function () {
-            if (statusEl) {
-                statusEl.textContent = 'Location permission denied. Enquiry will save without GPS.';
-                statusEl.classList.add('error');
-            }
-        }, {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 300000
-        });
-    }
-
     (function initializeSegmentedSelections() {
         const selectedSource = String(document.getElementById('lead_source')?.value || '');
         const selectedFollow = String(document.getElementById('follow_type')?.value || '');
@@ -451,6 +411,5 @@
         }
     });
 
-    captureCurrentLocation();
 </script>
 @endsection

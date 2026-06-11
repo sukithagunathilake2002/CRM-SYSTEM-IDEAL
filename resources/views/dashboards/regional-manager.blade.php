@@ -8,7 +8,6 @@
     <div class="quick-links">
         <a class="btn-link" href="{{ route('auth.register.form', 'area-manager') }}">Register Area Manager</a>
         <a class="btn-link alt" href="{{ url('/epr') }}">Open EPR</a>
-        <a class="btn-link alt" href="{{ route('enquiries.map', ['date' => now()->toDateString()]) }}">Open Day Map</a>
     </div>
 </section>
 

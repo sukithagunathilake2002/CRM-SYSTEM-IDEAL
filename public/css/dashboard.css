@@ -141,11 +141,6 @@ html.theme-dark .crm-current-date-pill svg {
     stroke: #eef4ff;
 }
 
-html.theme-dark .crm-day-map-link {
-    background: #0f1a31;
-    border-color: #3d5b92;
-}
-
 html.theme-dark .crm-overview-head,
 html.theme-dark .crm-lower-item {
     border-color: #314a7e;
@@ -1221,25 +1216,6 @@ html.theme-dark .prospect-page .summary-modal-close {
     background: #6cff4c;
     border: 2px solid #118131;
     box-sizing: border-box;
-}
-
-.crm-day-map-link {
-    width: 84px;
-    height: 84px;
-    border-radius: 18px;
-    background: #f4f6fb;
-    border: 1px solid #c9d1e0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    text-decoration: none;
-    flex: 0 0 84px;
-}
-
-.crm-day-map-link img {
-    width: 58px;
-    height: 58px;
-    object-fit: contain;
 }
 
 .crm-overview-head {
