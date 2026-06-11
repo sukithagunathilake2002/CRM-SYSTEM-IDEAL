@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 800" width="100%" height="100%">
+    <defs>
+        <style>
+            .district { fill: #e2e8f0; stroke: #475569; stroke-width: 1.5; cursor: pointer; transition: all 0.3s ease; }
+            .district:hover { fill: #f87171; stroke: #dc2626; stroke-width: 2; }
+            .district.selected { fill: #ef1f2d; stroke: #991b1b; stroke-width: 2.5; filter: drop-shadow(0 0 8px rgba(239,31,45,0.5)); }
+            .district-label { font-size: 8px; font-family: Arial, sans-serif; text-anchor: middle; fill: #1e293b; pointer-events: none; font-weight: 600; }
+            .district-label.selected { fill: white; }
+        </style>
+    </defs>
+    
+    <!-- Western Province -->
+    <path id="colombo" class="district" data-district="Colombo" d="M 120,620 L 140,615 L 155,625 L 160,640 L 150,655 L 130,660 L 115,645 L 120,620 Z" />
+    <path id="gampaha" class="district" data-district="Gampaha" d="M 115,580 L 135,575 L 150,585 L 155,600 L 140,610 L 120,615 L 105,600 L 115,580 Z" />
+    <path id="kalutara" class="district" data-district="Kalutara" d="M 125,660 L 145,655 L 160,670 L 155,690 L 135,695 L 120,680 L 125,660 Z" />
+    
+    <!-- Central Province -->
+    <path id="kandy" class="district" data-district="Kandy" d="M 220,450 L 245,445 L 255,460 L 250,480 L 230,485 L 215,470 L 220,450 Z" />
+    <path id="matale" class="district" data-district="Matale" d="M 210,420 L 235,415 L 245,430 L 240,448 L 220,450 L 205,440 L 210,420 Z" />
+    <path id="nuwaraeliya" class="district" data-district="Nuwara Eliya" d="M 230,485 L 255,480 L 265,500 L 258,520 L 240,515 L 225,500 L 230,485 Z" />
+    
+    <!-- Southern Province -->
+    <path id="galle" class="district" data-district="Galle" d="M 130,720 L 150,715 L 165,730 L 160,750 L 140,755 L 125,740 L 130,720 Z" />
+    <path id="matara" class="district" data-district="Matara" d="M 165,730 L 185,725 L 195,740 L 190,760 L 170,765 L 160,750 L 165,730 Z" />
+    <path id="hambantota" class="district" data-district="Hambantota" d="M 195,740 L 215,735 L 225,750 L 220,770 L 200,775 L 190,760 L 195,740 Z" />
+    
+    <!-- Northern Province -->
+    <path id="jaffna" class="district" data-district="Jaffna" d="M 120,80 L 150,75 L 165,95 L 155,115 L 130,120 L 110,105 L 120,80 Z" />
+    <path id="kilinochchi" class="district" data-district="Kilinochchi" d="M 150,115 L 175,110 L 190,130 L 180,150 L 160,155 L 155,115 Z" />
+    <path id="mannar" class="district" data-district="Mannar" d="M 80,140 L 105,135 L 115,155 L 100,170 L 75,165 L 80,140 Z" />
+    <path id="mullaitivu" class="district" data-district="Mullaitivu" d="M 195,100 L 220,95 L 235,115 L 225,135 L 200,140 L 190,120 L 195,100 Z" />
+    <path id="vavuniya" class="district" data-district="Vavuniya" d="M 160,155 L 185,150 L 200,170 L 190,190 L 165,195 L 155,175 L 160,155 Z" />
+    
+    <!-- Eastern Province -->
+    <path id="trincomalee" class="district" data-district="Trincomalee" d="M 240,200 L 265,195 L 280,215 L 270,235 L 245,240 L 235,220 L 240,200 Z" />
+    <path id="batticaloa" class="district" data-district="Batticaloa" d="M 245,280 L 270,275 L 285,295 L 275,315 L 250,320 L 240,300 L 245,280 Z" />
+    <path id="ampara" class="district" data-district="Ampara" d="M 250,360 L 275,355 L 290,375 L 280,395 L 255,400 L 245,380 L 250,360 Z" />
+    
+    <!-- North Western Province -->
+    <path id="kurunegala" class="district" data-district="Kurunegala" d="M 170,290 L 195,285 L 210,305 L 205,325 L 180,330 L 165,310 L 170,290 Z" />
+    <path id="puttalam" class="district" data-district="Puttalam" d="M 130,220 L 155,215 L 170,235 L 165,255 L 140,260 L 120,245 L 130,220 Z" />
+    
+    <!-- North Central Province -->
+    <path id="anuradhapura" class="district" data-district="Anuradhapura" d="M 175,205 L 200,200 L 215,220 L 210,240 L 185,245 L 170,225 L 175,205 Z" />
+    <path id="polonnaruwa" class="district" data-district="Polonnaruwa" d="M 215,240 L 240,235 L 255,255 L 245,275 L 220,280 L 210,260 L 215,240 Z" />
+    
+    <!-- Uva Province -->
+    <path id="badulla" class="district" data-district="Badulla" d="M 250,420 L 275,415 L 290,435 L 280,455 L 255,460 L 245,440 L 250,420 Z" />
+    <path id="monaragala" class="district" data-district="Monaragala" d="M 260,460 L 285,455 L 300,475 L 290,495 L 265,500 L 255,480 L 260,460 Z" />
+    
+    <!-- Sabaragamuwa Province -->
+    <path id="ratnapura" class="district" data-district="Ratnapura" d="M 180,500 L 205,495 L 220,515 L 210,535 L 185,540 L 170,520 L 180,500 Z" />
+    <path id="kegalle" class="district" data-district="Kegalle" d="M 185,460 L 210,455 L 220,475 L 210,495 L 185,500 L 175,480 L 185,460 Z" />
+    
+    <!-- Labels -->
+    <text x="135" y="635" class="district-label">Colombo</text>
+    <text x="135" y="595" class="district-label">Gampaha</text>
+    <text x="145" y="678" class="district-label">Kalutara</text>
+    <text x="230" y="465" class="district-label">Kandy</text>
+    <text x="225" y="435" class="district-label">Matale</text>
+    <text x="245" y="505" class="district-label">Nuwara Eliya</text>
+    <text x="148" y="740" class="district-label">Galle</text>
+    <text x="178" y="748" class="district-label">Matara</text>
+    <text x="208" y="758" class="district-label">Hambantota</text>
+    <text x="135" y="98" class="district-label">Jaffna</text>
+    <text x="168" y="135" class="district-label">Kilinochchi</text>
+    <text x="95" y="155" class="district-label">Mannar</text>
+    <text x="210" y="120" class="district-label">Mullaitivu</text>
+    <text x="178" y="175" class="district-label">Vavuniya</text>
+    <text x="255" y="220" class="district-label">Trincomalee</text>
+    <text x="260" y="300" class="district-label">Batticaloa</text>
+    <text x="265" y="380" class="district-label">Ampara</text>
+    <text x="185" y="310" class="district-label">Kurunegala</text>
+    <text x="145" y="238" class="district-label">Puttalam</text>
+    <text x="192" y="225" class="district-label">Anuradhapura</text>
+    <text x="232" y="260" class="district-label">Polonnaruwa</text>
+    <text x="265" y="440" class="district-label">Badulla</text>
+    <text x="278" y="478" class="district-label">Monaragala</text>
+    <text x="195" y="520" class="district-label">Ratnapura</text>
+    <text x="198" y="478" class="district-label">Kegalle</text>
+</svg>

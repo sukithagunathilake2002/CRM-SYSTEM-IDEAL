@@ -64,6 +64,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard/analytics-report', [DashboardController::class, 'downloadAnalyticsReport'])
         ->name('dashboard.analytics.report');
 
+    // District EPR API routes
+    Route::get('/dashboard/district/{district}/eprs', [DashboardController::class, 'getDistrictEprs'])
+        ->name('dashboard.district.eprs');
+
     Route::get('/dashboard/super-admin/consultant-transfer', [DashboardController::class, 'showConsultantTransferForm'])
         ->middleware('role:' . User::ROLE_SUPER_ADMIN)
         ->name('dashboard.super_admin.consultant_transfer.form');
