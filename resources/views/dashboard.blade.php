@@ -74,8 +74,6 @@ $viewerId = (int) ($user?->id ?? 0);
 
     $sriNow = now('Asia/Colombo');
     $todaySriLanka = $sriNow->toDateString();
-    $todayStartUtc = $sriNow->copy()->startOfDay()->timezone('UTC');
-    $todayEndUtc = $sriNow->copy()->endOfDay()->timezone('UTC');
 
     $activeBookings = \App\Models\Booking::query()
         ->whereHas('enquiry', function ($query) use ($visibleUserIds) {
@@ -84,10 +82,23 @@ $viewerId = (int) ($user?->id ?? 0);
         })
         ->count();
 
-    $todayLeads = \App\Models\Enquiry::query()
+    $activeInquiries = \App\Models\Enquiry::query()
         ->whereIn('user_id', $visibleUserIds)
-        ->whereBetween('created_at', [$todayStartUtc, $todayEndUtc])
+        ->whereRaw("LOWER(COALESCE(status, 'open')) NOT IN ('closed', 'cancelled', 'canceled', 'lost')")
         ->count();
+
+    $leadStatusCounts = collect(['hot', 'warm', 'cold'])
+        ->mapWithKeys(function (string $status) use ($visibleUserIds): array {
+            $count = \App\Models\Enquiry::query()
+                ->whereIn('user_id', $visibleUserIds)
+                ->whereHas('prospectSheet', function ($query) use ($status): void {
+                    $query->whereRaw("LOWER(COALESCE(lead_status, '')) = ?", [$status]);
+                })
+                ->count();
+
+            return [$status => $count];
+        })
+        ->all();
 
     $todayFollowups = \App\Models\Enquiry::query()
         ->with(['customer:id,title,name'])
@@ -246,11 +257,11 @@ $viewerId = (int) ($user?->id ?? 0);
                                 <div class="crm-stats-list">
                                     <div class="crm-stat-pill">
                                         <span class="crm-stat-dot"></span>
-                                        <span>{{ $activeBookings }} Active Booking</span>
+                                        <span class="crm-stat-label">Active Bookings – <strong>{{ str_pad((string) $activeBookings, 2, '0', STR_PAD_LEFT) }}</strong></span>
                                     </div>
                         <div class="crm-stat-pill">
                             <span class="crm-stat-dot"></span>
-                            <span>{{ $todayLeads }} Today Leads</span>
+                            <span class="crm-stat-label">Active Inquiries – <strong>{{ str_pad((string) $activeInquiries, 2, '0', STR_PAD_LEFT) }}</strong></span>
                         </div>
                     </div>
                 </article>
@@ -274,6 +285,7 @@ $viewerId = (int) ($user?->id ?? 0);
                                 <span class="crm-action-badge">
                                     <img src="{{ asset('icons/Call.png') }}" alt="Call">
                                 </span>
+                                <strong class="crm-action-count">{{ number_format((int) ($dashboardEpds['call_count'] ?? 0)) }}</strong>
                                 <h3>Call</h3>
                             </a>
 
@@ -281,6 +293,7 @@ $viewerId = (int) ($user?->id ?? 0);
                                 <span class="crm-action-badge">
                                     <img src="{{ asset('icons/showroom.png') }}" alt="Showroom Visit">
                                 </span>
+                                <strong class="crm-action-count">{{ number_format((int) ($dashboardEpds['showroom_count'] ?? 0)) }}</strong>
                                 <h3>Showroom Visits</h3>
                             </a>
 
@@ -288,6 +301,7 @@ $viewerId = (int) ($user?->id ?? 0);
                                 <span class="crm-action-badge">
                                     <img src="{{ asset('icons/home123.png') }}" alt="Home Visit">
                                 </span>
+                                <strong class="crm-action-count">{{ number_format((int) ($dashboardEpds['home_count'] ?? 0)) }}</strong>
                                 <h3>Home Visits</h3>
                             </a>
 
@@ -295,13 +309,14 @@ $viewerId = (int) ($user?->id ?? 0);
                                 <span class="crm-action-badge">
                                     <img src="{{ asset('icons/epr.png') }}" alt="EPR">
                                 </span>
+                                <strong class="crm-action-count">{{ number_format((int) ($dashboardEpds['total_count'] ?? 0)) }}</strong>
                                 <h3>EPR Records</h3>
                             </a>
                         </div>
 
                         <div class="crm-cta-row">
                             <a href="{{ route('emi.calculator') }}" class="crm-cta">EMI Calculator</a>
-                            <a href="{{ url('/new-enquiry') }}" class="crm-cta">Add new EPR</a>
+                            <a href="{{ url('/new-enquiry') }}" class="crm-cta">Add New Lead</a>
                         </div>
 
             <div class="crm-quick-head">Quick Actions</div>
@@ -309,14 +324,17 @@ $viewerId = (int) ($user?->id ?? 0);
                 <a href="{{ route('enquiries.list', ['lead_status' => 'hot']) }}" class="crm-quick-chip hot">
                     <img src="{{ asset('icons/hotadsh.png') }}" alt="Hot Leads">
                     <span>Hot Leads</span>
+                    <strong>{{ number_format((int) ($leadStatusCounts['hot'] ?? 0)) }}</strong>
                 </a>
                 <a href="{{ route('enquiries.list', ['lead_status' => 'warm']) }}" class="crm-quick-chip warm">
                     <img src="{{ asset('icons/warmdsh.png') }}" alt="Warm Leads">
                     <span>Warm Leads</span>
+                    <strong>{{ number_format((int) ($leadStatusCounts['warm'] ?? 0)) }}</strong>
                 </a>
                 <a href="{{ route('enquiries.list', ['lead_status' => 'cold']) }}" class="crm-quick-chip cold">
                     <img src="{{ asset('icons/colddsh.png') }}" alt="Cold Leads">
                     <span>Cold Leads</span>
+                    <strong>{{ number_format((int) ($leadStatusCounts['cold'] ?? 0)) }}</strong>
                 </a>
             </div>
 

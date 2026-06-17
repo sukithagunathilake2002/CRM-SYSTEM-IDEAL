@@ -37,7 +37,7 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->n
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth')->group(function () {
-    Route::view('/crm-dashboard', 'dashboard')->name('dashboard.main');
+    Route::get('/crm-dashboard', [DashboardController::class, 'main'])->name('dashboard.main');
 
     Route::get('/dashboard', [DashboardController::class, 'home'])->name('dashboard.home');
 

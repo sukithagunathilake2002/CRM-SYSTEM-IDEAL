@@ -85,6 +85,7 @@ html.theme-dark .card-info,
 html.theme-dark .crm-title,
 html.theme-dark .crm-greeting,
 html.theme-dark .crm-action-card h3,
+html.theme-dark .crm-action-count,
 html.theme-dark .crm-action-card p,
 html.theme-dark .crm-subline,
 html.theme-dark .crm-overview-head h3,
@@ -1209,6 +1210,18 @@ html.theme-dark .prospect-page .summary-modal-close {
     box-shadow: 6px 8px 10px rgba(0, 0, 0, 0.25);
 }
 
+.crm-stat-label {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+}
+
+.crm-stat-label strong {
+    font-size: 18px;
+    line-height: 1;
+    font-weight: 800;
+}
+
 .crm-stat-dot {
     width: 14px;
     height: 14px;
@@ -1323,6 +1336,14 @@ html.theme-dark .prospect-page .summary-modal-close {
     line-height: 1.2;
 }
 
+.crm-action-count {
+    display: block;
+    color: #0f172a;
+    font-size: 24px;
+    line-height: 1;
+    font-weight: 800;
+}
+
 .crm-cta-row {
     margin-top: 16px;
     display: flex;
@@ -1386,6 +1407,13 @@ html.theme-dark .prospect-page .summary-modal-close {
 
 .crm-quick-chip span {
     line-height: 1;
+}
+
+.crm-quick-chip strong {
+    margin-left: 4px;
+    font-size: 22px;
+    line-height: 1;
+    font-weight: 800;
 }
 
 .crm-quick-chip.hot {

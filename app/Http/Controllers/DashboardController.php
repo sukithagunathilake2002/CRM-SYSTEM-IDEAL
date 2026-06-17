@@ -30,6 +30,14 @@ class DashboardController extends Controller
         return redirect()->route($routeName);
     }
 
+    public function main(Request $request): View
+    {
+        $user = $request->user();
+        $dashboardEpds = $this->getDashboardEpData($user);
+
+        return view('dashboard', compact('dashboardEpds'));
+    }
+
     public function superAdmin(Request $request): View
     {
         $user = $request->user();
@@ -172,12 +180,13 @@ class DashboardController extends Controller
             ->get(['id', 'name', 'email', 'phone', 'role', 'manager_id']);
 
         $analytics = $this->buildAnalytics($user, $request);
+        $followupEscalations = $this->buildFollowupEscalations($user);
         
         $dashboardEpds = $this->getDashboardEpData($user);
         
         $districtEpData = $this->getDistrictEpData($user);
 
-        return view('dashboards.super-admin', compact('counts', 'headHierarchy', 'dependentCounts', 'manageableUsers', 'analytics', 'dashboardEpds', 'districtEpData'));
+        return view('dashboards.super-admin', compact('counts', 'headHierarchy', 'dependentCounts', 'manageableUsers', 'analytics', 'dashboardEpds', 'districtEpData', 'followupEscalations'));
     }
 
     public function headOfSales(Request $request): View
@@ -274,12 +283,13 @@ class DashboardController extends Controller
             + $hierarchyCounts['sales_consultants'];
 
         $analytics = $this->buildAnalytics($user, $request);
+        $followupEscalations = $this->buildFollowupEscalations($user);
         
         $dashboardEpds = $this->getDashboardEpData($user);
         
         $districtEpData = $this->getDistrictEpData($user);
 
-        return view('dashboards.head-of-sales', compact('regionalManagers', 'hierarchy', 'hierarchyCounts', 'analytics', 'dashboardEpds', 'districtEpData'));
+        return view('dashboards.head-of-sales', compact('regionalManagers', 'hierarchy', 'hierarchyCounts', 'analytics', 'dashboardEpds', 'districtEpData', 'followupEscalations'));
     }
 
     public function regionalManager(Request $request): View
@@ -292,12 +302,13 @@ class DashboardController extends Controller
             ->orderBy('name')
             ->get();
         $analytics = $this->buildAnalytics($user, $request);
+        $followupEscalations = $this->buildFollowupEscalations($user);
         
         $dashboardEpds = $this->getDashboardEpData($user);
         
         $districtEpData = $this->getDistrictEpData($user);
 
-        return view('dashboards.regional-manager', compact('areaManagers', 'analytics', 'dashboardEpds', 'districtEpData'));
+        return view('dashboards.regional-manager', compact('areaManagers', 'analytics', 'dashboardEpds', 'districtEpData', 'followupEscalations'));
     }
 
     public function areaManager(Request $request): View
@@ -309,24 +320,26 @@ class DashboardController extends Controller
             ->orderBy('name')
             ->get();
         $analytics = $this->buildAnalytics($user, $request);
+        $followupEscalations = $this->buildFollowupEscalations($user);
         
         $dashboardEpds = $this->getDashboardEpData($user);
         
         $districtEpData = $this->getDistrictEpData($user);
 
-        return view('dashboards.area-manager', compact('salesConsultants', 'analytics', 'dashboardEpds', 'districtEpData'));
+        return view('dashboards.area-manager', compact('salesConsultants', 'analytics', 'dashboardEpds', 'districtEpData', 'followupEscalations'));
     }
 
     public function salesConsultant(Request $request): View
     {
         $user = $request->user()->load('manager.manager.manager');
         $analytics = $this->buildAnalytics($user, $request);
+        $followupEscalations = $this->buildFollowupEscalations($user);
         
         $dashboardEpds = $this->getDashboardEpData($user);
         
         $districtEpData = $this->getDistrictEpData($user);
 
-        return view('dashboards.sales-consultant', compact('user', 'analytics', 'dashboardEpds', 'districtEpData'));
+        return view('dashboards.sales-consultant', compact('user', 'analytics', 'dashboardEpds', 'districtEpData', 'followupEscalations'));
     }
 
     /**
@@ -448,6 +461,20 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
         $baseQuery = Enquiry::with(['customer', 'vehicle'])
             ->whereIn('user_id', $accessibleUserIds)
             ->whereRaw("LOWER(COALESCE(followup_status, '')) <> ?", ['done']);
+
+        $callCount = (clone $baseQuery)
+            ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%call%'])
+            ->count();
+
+        $showroomCount = (clone $baseQuery)
+            ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%showroom%'])
+            ->count();
+
+        $homeCount = (clone $baseQuery)
+            ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%home%'])
+            ->count();
+
+        $totalCount = (clone $baseQuery)->count();
         
         $callEpds = (clone $baseQuery)
             ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%call%'])
@@ -522,10 +549,189 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
             'call_epds' => $callEpds,
             'showroom_epds' => $showroomEpds,
             'home_epds' => $homeEpds,
-            'call_count' => $callEpds->count(),
-            'showroom_count' => $showroomEpds->count(),
-            'home_count' => $homeEpds->count(),
+            'call_count' => $callCount,
+            'showroom_count' => $showroomCount,
+            'home_count' => $homeCount,
+            'total_count' => $totalCount,
         ];
+    }
+
+    private function buildFollowupEscalations(User $viewer): array
+    {
+        $accessibleUserIds = $this->resolveAccessibleUserIds($viewer);
+        $today = Carbon::now('Asia/Colombo')->startOfDay();
+
+        $enquiries = Enquiry::query()
+            ->with(['user.manager.manager'])
+            ->select(['id', 'user_id', 'follow_type', 'follow_date', 'follow_time', 'followup_status'])
+            ->whereIn('user_id', $accessibleUserIds)
+            ->whereNotNull('follow_date')
+            ->whereDate('follow_date', '<=', $today->toDateString())
+            ->whereRaw("LOWER(COALESCE(followup_status, '')) <> ?", ['done'])
+            ->orderBy('follow_date')
+            ->get();
+
+        $buckets = [
+            'user' => [
+                'title' => 'Notify User',
+                'description' => 'Followups due today or pending for 1 day.',
+                'rows' => [],
+            ],
+            'area_manager' => [
+                'title' => 'Notify Area Manager',
+                'description' => 'Followups pending for 2 to 5 days.',
+                'rows' => [],
+            ],
+            'regional_manager' => [
+                'title' => 'Notify Regional Manager',
+                'description' => 'Followups pending for more than 5 days.',
+                'rows' => [],
+            ],
+        ];
+
+        foreach ($enquiries as $enquiry) {
+            if (!$enquiry->user instanceof User) {
+                continue;
+            }
+
+            try {
+                $followDate = Carbon::parse((string) $enquiry->follow_date, 'Asia/Colombo')->startOfDay();
+            } catch (\Throwable $exception) {
+                continue;
+            }
+
+            $pendingDays = $followDate->diffInDays($today, false);
+            if ($pendingDays < 0) {
+                continue;
+            }
+
+            $owner = $enquiry->user;
+            $lead = [
+                'id' => (int) $enquiry->id,
+                'follow_date' => $followDate,
+                'pending_days' => (int) $pendingDays,
+            ];
+
+            if ($pendingDays <= 1) {
+                $this->addFollowupEscalationRow($buckets['user']['rows'], $owner, $owner, $lead);
+            } elseif ($pendingDays <= 5) {
+                $areaManager = $this->findHierarchyRecipient($owner, User::ROLE_AREA_MANAGER);
+                if ($areaManager instanceof User) {
+                    $this->addFollowupEscalationRow($buckets['area_manager']['rows'], $owner, $areaManager, $lead);
+                }
+            } else {
+                $regionalManager = $this->findHierarchyRecipient($owner, User::ROLE_REGIONAL_MANAGER);
+                if ($regionalManager instanceof User) {
+                    $this->addFollowupEscalationRow($buckets['regional_manager']['rows'], $owner, $regionalManager, $lead);
+                }
+            }
+        }
+
+        foreach ($buckets as $bucketKey => $bucket) {
+            $rows = array_values($bucket['rows']);
+            usort($rows, function (array $left, array $right): int {
+                if ($left['max_pending_days'] === $right['max_pending_days']) {
+                    return strcmp($left['owner_name'], $right['owner_name']);
+                }
+
+                return $right['max_pending_days'] <=> $left['max_pending_days'];
+            });
+
+            $buckets[$bucketKey]['rows'] = array_map(function (array $row) use ($bucket): array {
+                $row['oldest_follow_date_label'] = $row['oldest_follow_date'] instanceof Carbon
+                    ? $row['oldest_follow_date']->format('d M Y')
+                    : '-';
+                $row['mailto_url'] = $this->buildFollowupNotifyMailto($row, $bucket['title']);
+                $row['epr_url'] = route('enquiries.list');
+
+                unset($row['oldest_follow_date']);
+
+                return $row;
+            }, $rows);
+        }
+
+        return [
+            'generated_at' => $today->format('d M Y'),
+            'buckets' => $buckets,
+            'total' => array_sum(array_map(
+                fn(array $bucket): int => array_sum(array_map(
+                    fn(array $row): int => (int) $row['count'],
+                    $bucket['rows']
+                )),
+                $buckets
+            )),
+        ];
+    }
+
+    private function addFollowupEscalationRow(array &$rows, User $owner, User $recipient, array $lead): void
+    {
+        $key = (int) $recipient->id . ':' . (int) $owner->id;
+
+        if (!isset($rows[$key])) {
+            $rows[$key] = [
+                'owner_id' => (int) $owner->id,
+                'owner_name' => $owner->name,
+                'owner_role' => $owner->role_label,
+                'recipient_id' => (int) $recipient->id,
+                'recipient_name' => $recipient->name,
+                'recipient_role' => $recipient->role_label,
+                'recipient_email' => (string) ($recipient->email ?? ''),
+                'count' => 0,
+                'max_pending_days' => 0,
+                'oldest_follow_date' => null,
+            ];
+        }
+
+        $rows[$key]['count']++;
+        $rows[$key]['max_pending_days'] = max((int) $rows[$key]['max_pending_days'], (int) $lead['pending_days']);
+
+        if (!$rows[$key]['oldest_follow_date'] instanceof Carbon
+            || $lead['follow_date']->lessThan($rows[$key]['oldest_follow_date'])) {
+            $rows[$key]['oldest_follow_date'] = $lead['follow_date']->copy();
+        }
+    }
+
+    private function findHierarchyRecipient(User $owner, string $role): ?User
+    {
+        $owner->loadMissing('manager.manager.manager');
+
+        $cursor = $owner;
+        $safety = 0;
+        while ($cursor instanceof User && $safety < 5) {
+            if ($cursor->role === $role) {
+                return $cursor;
+            }
+
+            $cursor = $cursor->manager;
+            $safety++;
+        }
+
+        return null;
+    }
+
+    private function buildFollowupNotifyMailto(array $row, string $bucketTitle): ?string
+    {
+        $email = trim((string) ($row['recipient_email'] ?? ''));
+        if ($email === '') {
+            return null;
+        }
+
+        $count = (int) ($row['count'] ?? 0);
+        $subject = 'CRM pending followup alert';
+        $body = sprintf(
+            "%s\n\n%s has %d pending lead followup%s. Oldest followup date: %s. Maximum pending days: %d.\n\nPlease review the EPR records and update the followup status.",
+            $bucketTitle,
+            (string) ($row['owner_name'] ?? 'Selected user'),
+            $count,
+            $count === 1 ? '' : 's',
+            (string) ($row['oldest_follow_date_label'] ?? '-'),
+            (int) ($row['max_pending_days'] ?? 0)
+        );
+
+        return 'mailto:' . rawurlencode($email) . '?' . http_build_query([
+            'subject' => $subject,
+            'body' => $body,
+        ], '', '&', PHP_QUERY_RFC3986);
     }
 
     public function downloadAnalyticsReport(Request $request)

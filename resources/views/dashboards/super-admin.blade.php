@@ -338,6 +338,8 @@ html.theme-dark .analytics-card-enhanced {
     </div>
 </section>
 
+@include('dashboards.partials.followup-escalations', ['followupEscalations' => $followupEscalations])
+
 @include('dashboards.partials.analytics', ['analytics' => $analytics])
 
 <script>
