@@ -146,14 +146,12 @@ html.theme-dark .analytics-card-enhanced {
 
     <div class="stats-grid">
         <div class="stat"><strong>{{ $counts['head_of_sales'] }}</strong><span>Heads Of Sales</span></div>
-        <div class="stat"><strong>{{ $counts['regional_manager'] }}</strong><span>Regional Managers</span></div>
         <div class="stat"><strong>{{ $counts['area_manager'] }}</strong><span>Area Managers</span></div>
         <div class="stat"><strong>{{ $counts['sales_consultant'] }}</strong><span>Sales Consultants</span></div>
     </div>
 
     <div class="quick-links">
         <a class="btn-link" href="{{ route('auth.register.form', 'head-of-sales') }}">Register Head Of Sales</a>
-        <a class="btn-link" href="{{ route('auth.register.form', 'regional-manager') }}">Register Regional Manager</a>
         <a class="btn-link" href="{{ route('auth.register.form', 'area-manager') }}">Register Area Manager</a>
         <a class="btn-link" href="{{ route('auth.register.form', 'sales-consultant') }}">Register Sales Consultant</a>
         <a class="btn-link alt" href="{{ url('/epr') }}">Open EPR</a>
@@ -169,7 +167,6 @@ html.theme-dark .analytics-card-enhanced {
     </div>
     <div class="stats-grid">
         <div class="stat"><strong>{{ $dependentCounts['dependent_users'] }}</strong><span>Total Dependent Users</span></div>
-        <div class="stat"><strong>{{ $dependentCounts['regional_managers'] }}</strong><span>Regional Managers</span></div>
         <div class="stat"><strong>{{ $dependentCounts['area_managers'] }}</strong><span>Area Managers</span></div>
         <div class="stat"><strong>{{ $dependentCounts['sales_consultants'] }}</strong><span>Sales Consultants</span></div>
     </div>
@@ -193,6 +190,7 @@ html.theme-dark .analytics-card-enhanced {
                 <tr>
                     <th>Name</th>
                     <th>Email</th>
+                    <th>Employee Number</th>
                     <th>Role</th>
                     <th>Manager</th>
                     <th>Action</th>
@@ -203,6 +201,7 @@ html.theme-dark .analytics-card-enhanced {
                 <tr>
                     <td>{{ $managedUser->name }}</td>
                     <td>{{ $managedUser->email }}</td>
+                    <td>{{ $managedUser->employee_number ?: '-' }}</td>
                     <td>{{ $managedUser->role_label }}</td>
                     <td>{{ $managedUser->manager?->name ?? '-' }}</td>
                     <td>
@@ -216,7 +215,7 @@ html.theme-dark .analytics-card-enhanced {
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="5">No users found.</td>
+                    <td colspan="6">No users found.</td>
                 </tr>
                 @endforelse
             </tbody>
@@ -238,45 +237,32 @@ html.theme-dark .analytics-card-enhanced {
             <span>{{ $head['email'] }}</span>
             <span>
                 Dependent Users: {{ $head['dependent_users_count'] }} |
-                Regional Managers: {{ $head['regional_managers_count'] }} |
                 Area Managers: {{ $head['area_managers_count'] }} |
                 Sales Consultants: {{ $head['sales_consultants_count'] }}
             </span>
 
-            @if(!empty($head['regional_managers']))
+            @if(!empty($head['area_managers']))
             <div class="hierarchy-children">
-                @foreach($head['regional_managers'] as $regionalManager)
+                @foreach($head['area_managers'] as $areaManager)
                 <div class="hierarchy-child">
-                    <strong>{{ $regionalManager['name'] }} (Regional Manager)</strong>
-                    <span>{{ $regionalManager['email'] }}</span>
-                    <span>Area Managers: {{ $regionalManager['area_managers_count'] }} | Sales Consultants: {{ $regionalManager['sales_consultants_count'] }}</span>
+                    <strong>{{ $areaManager['name'] }} (Area Manager)</strong>
+                    <span>{{ $areaManager['email'] }}</span>
+                    <span>Sales Consultants: {{ $areaManager['sales_consultants_count'] }}</span>
 
-                    @if(!empty($regionalManager['area_managers']))
-                    <div class="hierarchy-children">
-                        @foreach($regionalManager['area_managers'] as $areaManager)
-                        <div class="hierarchy-child">
-                            <strong>{{ $areaManager['name'] }} (Area Manager)</strong>
-                            <span>{{ $areaManager['email'] }}</span>
-                            <span>Sales Consultants: {{ $areaManager['sales_consultants_count'] }}</span>
-
-                            @if(!empty($areaManager['sales_consultants']))
-                            <div class="hierarchy-leaf-wrap">
-                                @foreach($areaManager['sales_consultants'] as $salesConsultant)
-                                <span class="hierarchy-pill">{{ $salesConsultant['name'] }}</span>
-                                @endforeach
-                            </div>
-                            @endif
-                        </div>
+                    @if(!empty($areaManager['sales_consultants']))
+                    <div class="hierarchy-leaf-wrap">
+                        @foreach($areaManager['sales_consultants'] as $salesConsultant)
+                        <span class="hierarchy-pill">{{ $salesConsultant['name'] }}</span>
                         @endforeach
                     </div>
                     @else
-                    <span>No Area Managers assigned under this Regional Manager yet.</span>
+                    <span>No Sales Consultants assigned under this Area Manager yet.</span>
                     @endif
                 </div>
                 @endforeach
             </div>
             @else
-            <span>No Regional Managers assigned under this Head Of Sales yet.</span>
+            <span>No Area Managers assigned under this Head Of Sales yet.</span>
             @endif
         </li>
         @empty
@@ -293,7 +279,7 @@ html.theme-dark .analytics-card-enhanced {
         </svg>
         <h2>Sri Lanka District Lead Overview</h2>
     </div>
-    <p>Click on any district to zoom in and view EPR count. Click again to reset.</p>
+    <p>Click on any district to zoom in and view lead count. Click again to reset.</p>
     <div class="district-overview-grid">
         <div class="district-map-card">
             <div id="districtLeadMap" class="district-lead-map"></div>
@@ -310,14 +296,14 @@ html.theme-dark .analytics-card-enhanced {
             <div id="districtLeadInfoCard" class="district-lead-info-card">
                 <span class="district-lead-info-label">Selected District</span>
                 <h3 id="districtLeadInfoName" class="district-lead-info-name">Click a district</h3>
-                <p class="district-lead-info-value"><span id="districtLeadInfoCount">0</span> Active EPRs</p>
+                <p class="district-lead-info-value"><span id="districtLeadInfoCount">0</span> Active Leads</p>
             </div>
             <div class="analytics-table-wrap">
                 <table class="analytics-table district-summary-table">
                     <thead>
                         <tr>
                             <th>District</th>
-                            <th>EPRs</th>
+                            <th>Leads</th>
                         </tr>
                     </thead>
                     <tbody>

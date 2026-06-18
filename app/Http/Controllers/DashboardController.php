@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Enquiry;
+use App\Models\LeadTransferRequest;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -20,7 +21,6 @@ class DashboardController extends Controller
         $routeByRole = [
             User::ROLE_SUPER_ADMIN => 'dashboard.super_admin',
             User::ROLE_HEAD_OF_SALES => 'dashboard.head_of_sales',
-            User::ROLE_REGIONAL_MANAGER => 'dashboard.regional_manager',
             User::ROLE_AREA_MANAGER => 'dashboard.area_manager',
             User::ROLE_SALES_CONSULTANT => 'dashboard.sales_consultant',
         ];
@@ -53,164 +53,13 @@ class DashboardController extends Controller
             ->values()
             ->all();
 
-        $regionalManagers = collect();
         $areaManagers = collect();
         $salesConsultants = collect();
 
         if (!empty($headIds)) {
-            $regionalManagers = User::query()
-                ->where('role', User::ROLE_REGIONAL_MANAGER)
-                ->whereIn('manager_id', $headIds)
-                ->orderBy('name')
-                ->get();
-
-            $regionalManagerIds = $regionalManagers
-                ->pluck('id')
-                ->map(fn($id) => (int) $id)
-                ->values()
-                ->all();
-
-            if (!empty($regionalManagerIds)) {
-                $areaManagers = User::query()
-                    ->where('role', User::ROLE_AREA_MANAGER)
-                    ->whereIn('manager_id', $regionalManagerIds)
-                    ->orderBy('name')
-                    ->get();
-
-                $areaManagerIds = $areaManagers
-                    ->pluck('id')
-                    ->map(fn($id) => (int) $id)
-                    ->values()
-                    ->all();
-
-                if (!empty($areaManagerIds)) {
-                    $salesConsultants = User::query()
-                        ->where('role', User::ROLE_SALES_CONSULTANT)
-                        ->whereIn('manager_id', $areaManagerIds)
-                        ->orderBy('name')
-                        ->get();
-                }
-            }
-        }
-
-        $regionalManagersByHead = $regionalManagers->groupBy(fn(User $regionalManager): int => (int) $regionalManager->manager_id);
-        $areaManagersByRegional = $areaManagers->groupBy(fn(User $areaManager): int => (int) $areaManager->manager_id);
-        $salesConsultantsByArea = $salesConsultants->groupBy(fn(User $salesConsultant): int => (int) $salesConsultant->manager_id);
-
-        $headHierarchy = $heads->map(function (User $head) use ($regionalManagersByHead, $areaManagersByRegional, $salesConsultantsByArea): array {
-            $regionalRows = ($regionalManagersByHead->get((int) $head->id) ?? collect())
-                ->map(function (User $regionalManager) use ($areaManagersByRegional, $salesConsultantsByArea): array {
-                    $areaRows = ($areaManagersByRegional->get((int) $regionalManager->id) ?? collect())
-                        ->map(function (User $areaManager) use ($salesConsultantsByArea): array {
-                            $consultants = ($salesConsultantsByArea->get((int) $areaManager->id) ?? collect())
-                                ->map(fn(User $salesConsultant): array => [
-                                    'id' => (int) $salesConsultant->id,
-                                    'name' => $salesConsultant->name,
-                                    'email' => $salesConsultant->email,
-                                    'phone' => $salesConsultant->phone,
-                                ])
-                                ->values()
-                                ->all();
-
-                            return [
-                                'id' => (int) $areaManager->id,
-                                'name' => $areaManager->name,
-                                'email' => $areaManager->email,
-                                'phone' => $areaManager->phone,
-                                'sales_consultants_count' => count($consultants),
-                                'sales_consultants' => $consultants,
-                            ];
-                        })
-                        ->values()
-                        ->all();
-
-                    return [
-                        'id' => (int) $regionalManager->id,
-                        'name' => $regionalManager->name,
-                        'email' => $regionalManager->email,
-                        'phone' => $regionalManager->phone,
-                        'area_managers_count' => count($areaRows),
-                        'sales_consultants_count' => array_sum(array_map(
-                            fn(array $areaRow): int => (int) $areaRow['sales_consultants_count'],
-                            $areaRows
-                        )),
-                        'area_managers' => $areaRows,
-                    ];
-                })
-                ->values()
-                ->all();
-
-            $regionalManagersCount = count($regionalRows);
-            $areaManagersCount = array_sum(array_map(
-                fn(array $regionalRow): int => (int) $regionalRow['area_managers_count'],
-                $regionalRows
-            ));
-            $salesConsultantsCount = array_sum(array_map(
-                fn(array $regionalRow): int => (int) $regionalRow['sales_consultants_count'],
-                $regionalRows
-            ));
-
-            return [
-                'id' => (int) $head->id,
-                'name' => $head->name,
-                'email' => $head->email,
-                'phone' => $head->phone,
-                'regional_managers_count' => $regionalManagersCount,
-                'area_managers_count' => $areaManagersCount,
-                'sales_consultants_count' => $salesConsultantsCount,
-                'dependent_users_count' => $regionalManagersCount + $areaManagersCount + $salesConsultantsCount,
-                'regional_managers' => $regionalRows,
-            ];
-        })
-            ->values()
-            ->all();
-
-        $dependentCounts = [
-            'regional_managers' => $regionalManagers->count(),
-            'area_managers' => $areaManagers->count(),
-            'sales_consultants' => $salesConsultants->count(),
-        ];
-        $dependentCounts['dependent_users'] = $dependentCounts['regional_managers']
-            + $dependentCounts['area_managers']
-            + $dependentCounts['sales_consultants'];
-        $manageableUsers = User::query()
-            ->with('manager:id,name')
-            ->orderBy('role')
-            ->orderBy('name')
-            ->get(['id', 'name', 'email', 'phone', 'role', 'manager_id']);
-
-        $analytics = $this->buildAnalytics($user, $request);
-        $followupEscalations = $this->buildFollowupEscalations($user);
-        
-        $dashboardEpds = $this->getDashboardEpData($user);
-        
-        $districtEpData = $this->getDistrictEpData($user);
-
-        return view('dashboards.super-admin', compact('counts', 'headHierarchy', 'dependentCounts', 'manageableUsers', 'analytics', 'dashboardEpds', 'districtEpData', 'followupEscalations'));
-    }
-
-    public function headOfSales(Request $request): View
-    {
-        $user = $request->user();
-        $regionalManagers = User::query()
-            ->where('role', User::ROLE_REGIONAL_MANAGER)
-            ->where('manager_id', $user->id)
-            ->orderBy('name')
-            ->get();
-
-        $regionalManagerIds = $regionalManagers
-            ->pluck('id')
-            ->map(fn($id) => (int) $id)
-            ->values()
-            ->all();
-
-        $areaManagers = collect();
-        $salesConsultants = collect();
-
-        if (!empty($regionalManagerIds)) {
             $areaManagers = User::query()
                 ->where('role', User::ROLE_AREA_MANAGER)
-                ->whereIn('manager_id', $regionalManagerIds)
+                ->whereIn('manager_id', $headIds)
                 ->orderBy('name')
                 ->get();
 
@@ -229,11 +78,11 @@ class DashboardController extends Controller
             }
         }
 
-        $areaManagersByRegional = $areaManagers->groupBy(fn(User $areaManager): int => (int) $areaManager->manager_id);
+        $areaManagersByHead = $areaManagers->groupBy(fn(User $areaManager): int => (int) $areaManager->manager_id);
         $salesConsultantsByArea = $salesConsultants->groupBy(fn(User $salesConsultant): int => (int) $salesConsultant->manager_id);
 
-        $hierarchy = $regionalManagers->map(function (User $regionalManager) use ($areaManagersByRegional, $salesConsultantsByArea): array {
-            $areaRows = ($areaManagersByRegional->get((int) $regionalManager->id) ?? collect())
+        $headHierarchy = $heads->map(function (User $head) use ($areaManagersByHead, $salesConsultantsByArea): array {
+            $areaRows = ($areaManagersByHead->get((int) $head->id) ?? collect())
                 ->map(function (User $areaManager) use ($salesConsultantsByArea): array {
                     $consultants = ($salesConsultantsByArea->get((int) $areaManager->id) ?? collect())
                         ->map(fn(User $salesConsultant): array => [
@@ -257,29 +106,103 @@ class DashboardController extends Controller
                 ->values()
                 ->all();
 
+            $areaManagersCount = count($areaRows);
+            $salesConsultantsCount = array_sum(array_map(
+                fn(array $areaRow): int => (int) $areaRow['sales_consultants_count'],
+                $areaRows
+            ));
+
             return [
-                'id' => (int) $regionalManager->id,
-                'name' => $regionalManager->name,
-                'email' => $regionalManager->email,
-                'phone' => $regionalManager->phone,
-                'area_managers_count' => count($areaRows),
-                'sales_consultants_count' => array_sum(array_map(
-                    fn(array $areaRow): int => (int) $areaRow['sales_consultants_count'],
-                    $areaRows
-                )),
+                'id' => (int) $head->id,
+                'name' => $head->name,
+                'email' => $head->email,
+                'phone' => $head->phone,
+                'area_managers_count' => $areaManagersCount,
+                'sales_consultants_count' => $salesConsultantsCount,
+                'dependent_users_count' => $areaManagersCount + $salesConsultantsCount,
                 'area_managers' => $areaRows,
             ];
         })
             ->values()
             ->all();
 
-        $hierarchyCounts = [
-            'regional_managers' => $regionalManagers->count(),
+        $dependentCounts = [
             'area_managers' => $areaManagers->count(),
             'sales_consultants' => $salesConsultants->count(),
         ];
-        $hierarchyCounts['dependent_users'] = $hierarchyCounts['regional_managers']
-            + $hierarchyCounts['area_managers']
+        $dependentCounts['dependent_users'] = $dependentCounts['area_managers']
+            + $dependentCounts['sales_consultants'];
+        $manageableUsers = User::query()
+            ->with('manager:id,name')
+            ->orderBy('role')
+            ->orderBy('name')
+            ->get(['id', 'name', 'email', 'employee_number', 'phone', 'role', 'manager_id']);
+
+        $analytics = $this->buildAnalytics($user, $request);
+        $followupEscalations = $this->buildFollowupEscalations($user);
+        
+        $dashboardEpds = $this->getDashboardEpData($user);
+        
+        $districtEpData = $this->getDistrictEpData($user);
+
+        return view('dashboards.super-admin', compact('counts', 'headHierarchy', 'dependentCounts', 'manageableUsers', 'analytics', 'dashboardEpds', 'districtEpData', 'followupEscalations'));
+    }
+
+    public function headOfSales(Request $request): View
+    {
+        $user = $request->user();
+        $areaManagers = User::query()
+            ->where('role', User::ROLE_AREA_MANAGER)
+            ->where('manager_id', $user->id)
+            ->orderBy('name')
+            ->get();
+
+        $areaManagerIds = $areaManagers
+            ->pluck('id')
+            ->map(fn($id) => (int) $id)
+            ->values()
+            ->all();
+
+        $salesConsultants = collect();
+
+        if (!empty($areaManagerIds)) {
+            $salesConsultants = User::query()
+                ->where('role', User::ROLE_SALES_CONSULTANT)
+                ->whereIn('manager_id', $areaManagerIds)
+                ->orderBy('name')
+                ->get();
+        }
+
+        $salesConsultantsByArea = $salesConsultants->groupBy(fn(User $salesConsultant): int => (int) $salesConsultant->manager_id);
+
+        $hierarchy = $areaManagers->map(function (User $areaManager) use ($salesConsultantsByArea): array {
+            $consultants = ($salesConsultantsByArea->get((int) $areaManager->id) ?? collect())
+                ->map(fn(User $salesConsultant): array => [
+                    'id' => (int) $salesConsultant->id,
+                    'name' => $salesConsultant->name,
+                    'email' => $salesConsultant->email,
+                    'phone' => $salesConsultant->phone,
+                ])
+                ->values()
+                ->all();
+
+            return [
+                'id' => (int) $areaManager->id,
+                'name' => $areaManager->name,
+                'email' => $areaManager->email,
+                'phone' => $areaManager->phone,
+                'sales_consultants_count' => count($consultants),
+                'sales_consultants' => $consultants,
+            ];
+        })
+            ->values()
+            ->all();
+
+        $hierarchyCounts = [
+            'area_managers' => $areaManagers->count(),
+            'sales_consultants' => $salesConsultants->count(),
+        ];
+        $hierarchyCounts['dependent_users'] = $hierarchyCounts['area_managers']
             + $hierarchyCounts['sales_consultants'];
 
         $analytics = $this->buildAnalytics($user, $request);
@@ -289,26 +212,7 @@ class DashboardController extends Controller
         
         $districtEpData = $this->getDistrictEpData($user);
 
-        return view('dashboards.head-of-sales', compact('regionalManagers', 'hierarchy', 'hierarchyCounts', 'analytics', 'dashboardEpds', 'districtEpData', 'followupEscalations'));
-    }
-
-    public function regionalManager(Request $request): View
-    {
-        $user = $request->user();
-        $areaManagers = User::query()
-            ->where('role', User::ROLE_AREA_MANAGER)
-            ->where('manager_id', $user->id)
-            ->withCount('subordinates')
-            ->orderBy('name')
-            ->get();
-        $analytics = $this->buildAnalytics($user, $request);
-        $followupEscalations = $this->buildFollowupEscalations($user);
-        
-        $dashboardEpds = $this->getDashboardEpData($user);
-        
-        $districtEpData = $this->getDistrictEpData($user);
-
-        return view('dashboards.regional-manager', compact('areaManagers', 'analytics', 'dashboardEpds', 'districtEpData', 'followupEscalations'));
+        return view('dashboards.head-of-sales', compact('hierarchy', 'hierarchyCounts', 'analytics', 'dashboardEpds', 'districtEpData', 'followupEscalations'));
     }
 
     public function areaManager(Request $request): View
@@ -319,6 +223,10 @@ class DashboardController extends Controller
             ->where('manager_id', $user->id)
             ->orderBy('name')
             ->get();
+        $pendingTransferRequestCount = LeadTransferRequest::query()
+            ->where('area_manager_id', $user->id)
+            ->where('status', LeadTransferRequest::STATUS_PENDING)
+            ->count();
         $analytics = $this->buildAnalytics($user, $request);
         $followupEscalations = $this->buildFollowupEscalations($user);
         
@@ -326,12 +234,16 @@ class DashboardController extends Controller
         
         $districtEpData = $this->getDistrictEpData($user);
 
-        return view('dashboards.area-manager', compact('salesConsultants', 'analytics', 'dashboardEpds', 'districtEpData', 'followupEscalations'));
+        return view('dashboards.area-manager', compact('salesConsultants', 'pendingTransferRequestCount', 'analytics', 'dashboardEpds', 'districtEpData', 'followupEscalations'));
     }
 
     public function salesConsultant(Request $request): View
     {
-        $user = $request->user()->load('manager.manager.manager');
+        $user = $request->user()->load('manager.manager');
+        $pendingTransferRequestCount = LeadTransferRequest::query()
+            ->where('requested_by', $user->id)
+            ->where('status', LeadTransferRequest::STATUS_PENDING)
+            ->count();
         $analytics = $this->buildAnalytics($user, $request);
         $followupEscalations = $this->buildFollowupEscalations($user);
         
@@ -339,7 +251,7 @@ class DashboardController extends Controller
         
         $districtEpData = $this->getDistrictEpData($user);
 
-        return view('dashboards.sales-consultant', compact('user', 'analytics', 'dashboardEpds', 'districtEpData', 'followupEscalations'));
+        return view('dashboards.sales-consultant', compact('user', 'pendingTransferRequestCount', 'analytics', 'dashboardEpds', 'districtEpData', 'followupEscalations'));
     }
 
     /**
@@ -360,6 +272,7 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
     
     $enquiries = Enquiry::with(['customer', 'vehicle', 'user'])
         ->whereIn('user_id', $accessibleUserIds)
+        ->pendingRegistration()
         ->whereHas('customer', function ($query) use ($normalizedDistrict) {
             $query->whereRaw('LOWER(TRIM(COALESCE(district, \'\'))) = ?', [strtolower($normalizedDistrict)]);
         })
@@ -423,6 +336,7 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
         foreach (User::DISTRICT_OPTIONS as $district) {
             $count = Enquiry::with(['customer'])
                 ->whereIn('user_id', $accessibleUserIds)
+                ->pendingRegistration()
                 ->whereHas('customer', function ($query) use ($district) {
                     $query->whereRaw('LOWER(TRIM(COALESCE(district, \'\'))) = ?', [strtolower($district)]);
                 })
@@ -457,26 +371,31 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
     private function getDashboardEpData(User $viewer): array
     {
         $accessibleUserIds = $this->resolveAccessibleUserIds($viewer);
+        $today = Carbon::now('Asia/Colombo')->toDateString();
         
         $baseQuery = Enquiry::with(['customer', 'vehicle'])
             ->whereIn('user_id', $accessibleUserIds)
+            ->pendingRegistration()
             ->whereRaw("LOWER(COALESCE(followup_status, '')) <> ?", ['done']);
 
-        $callCount = (clone $baseQuery)
+        $dueFollowupQuery = (clone $baseQuery)
+            ->whereDate('follow_date', '<=', $today);
+
+        $callCount = (clone $dueFollowupQuery)
             ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%call%'])
             ->count();
 
-        $showroomCount = (clone $baseQuery)
+        $showroomCount = (clone $dueFollowupQuery)
             ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%showroom%'])
             ->count();
 
-        $homeCount = (clone $baseQuery)
+        $homeCount = (clone $dueFollowupQuery)
             ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%home%'])
             ->count();
 
         $totalCount = (clone $baseQuery)->count();
         
-        $callEpds = (clone $baseQuery)
+        $callEpds = (clone $dueFollowupQuery)
             ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%call%'])
             ->orderBy('follow_date', 'asc')
             ->limit(10)
@@ -499,7 +418,7 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
                 ];
             });
         
-        $showroomEpds = (clone $baseQuery)
+        $showroomEpds = (clone $dueFollowupQuery)
             ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%showroom%'])
             ->orderBy('follow_date', 'asc')
             ->limit(10)
@@ -522,7 +441,7 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
                 ];
             });
         
-        $homeEpds = (clone $baseQuery)
+        $homeEpds = (clone $dueFollowupQuery)
             ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%home%'])
             ->orderBy('follow_date', 'asc')
             ->limit(10)
@@ -579,12 +498,7 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
             ],
             'area_manager' => [
                 'title' => 'Notify Area Manager',
-                'description' => 'Followups pending for 2 to 5 days.',
-                'rows' => [],
-            ],
-            'regional_manager' => [
-                'title' => 'Notify Regional Manager',
-                'description' => 'Followups pending for more than 5 days.',
+                'description' => 'Followups pending for more than 1 day.',
                 'rows' => [],
             ],
         ];
@@ -614,15 +528,10 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
 
             if ($pendingDays <= 1) {
                 $this->addFollowupEscalationRow($buckets['user']['rows'], $owner, $owner, $lead);
-            } elseif ($pendingDays <= 5) {
+            } else {
                 $areaManager = $this->findHierarchyRecipient($owner, User::ROLE_AREA_MANAGER);
                 if ($areaManager instanceof User) {
                     $this->addFollowupEscalationRow($buckets['area_manager']['rows'], $owner, $areaManager, $lead);
-                }
-            } else {
-                $regionalManager = $this->findHierarchyRecipient($owner, User::ROLE_REGIONAL_MANAGER);
-                if ($regionalManager instanceof User) {
-                    $this->addFollowupEscalationRow($buckets['regional_manager']['rows'], $owner, $regionalManager, $lead);
                 }
             }
         }
@@ -965,7 +874,6 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
             'managedUser' => $managedUser,
             'roles' => User::ROLE_HIERARCHY,
             'roleLabels' => User::ROLE_LABELS,
-            'districtOptions' => User::DISTRICT_OPTIONS,
             'managerOptions' => $managerOptions,
             'parentRoleByRole' => collect(User::ROLE_HIERARCHY)
                 ->mapWithKeys(fn(string $role): array => [$role => User::parentRoleFor($role)])
@@ -980,12 +888,11 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
         $validated = $request->validate([
             'name' => ['nullable', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255', Rule::unique('users', 'email')->ignore($managedUser->id)],
+            'employee_number' => ['nullable', 'string', 'max:50', Rule::unique('users', 'employee_number')->ignore($managedUser->id)],
             'phone' => ['nullable', 'string', 'max:30'],
             'role' => ['required', Rule::in(User::ROLE_HIERARCHY)],
             'manager_id' => ['nullable', 'integer', Rule::exists('users', 'id')],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
-            'permitted_districts' => ['nullable', 'array'],
-            'permitted_districts.*' => ['string', Rule::in(User::DISTRICT_OPTIONS)],
         ]);
 
         $resolvedName = trim((string) ($validated['name'] ?? ''));
@@ -1035,46 +942,12 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
         $payload = [
             'name' => $resolvedName,
             'email' => $resolvedEmail,
+            'employee_number' => $validated['employee_number'] ?? null,
             'phone' => $validated['phone'] ?? null,
             'role' => $role,
             'manager_id' => $managerId,
             'permitted_districts' => null,
         ];
-
-        $supportsDistrictPermissions = in_array($role, [
-            User::ROLE_REGIONAL_MANAGER,
-            User::ROLE_AREA_MANAGER,
-            User::ROLE_SALES_CONSULTANT,
-        ], true);
-
-        if ($supportsDistrictPermissions) {
-            $managerPermittedDistricts = $manager instanceof User
-                ? $manager->resolvePermittedDistricts()
-                : User::DISTRICT_OPTIONS;
-
-            $selectedDistricts = collect($validated['permitted_districts'] ?? [])
-                ->map(fn($district): ?string => User::normalizeDistrictName((string) $district))
-                ->filter()
-                ->unique()
-                ->sort()
-                ->values()
-                ->all();
-
-            if (!empty($selectedDistricts)) {
-                $allowedLookup = array_fill_keys($managerPermittedDistricts, true);
-                $hasInvalid = collect($selectedDistricts)->contains(
-                    fn(string $district): bool => !isset($allowedLookup[$district])
-                );
-
-                if ($hasInvalid) {
-                    return back()
-                        ->withErrors(['permitted_districts' => 'Selected districts must be within manager access.'])
-                        ->withInput();
-                }
-            }
-
-            $payload['permitted_districts'] = !empty($selectedDistricts) ? $selectedDistricts : null;
-        }
 
         if (!empty($validated['password'])) {
             $payload['password'] = $validated['password'];
@@ -1091,7 +964,6 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
     {
         return [
             'head_of_sales' => User::query()->where('role', User::ROLE_HEAD_OF_SALES)->count(),
-            'regional_manager' => User::query()->where('role', User::ROLE_REGIONAL_MANAGER)->count(),
             'area_manager' => User::query()->where('role', User::ROLE_AREA_MANAGER)->count(),
             'sales_consultant' => User::query()->where('role', User::ROLE_SALES_CONSULTANT)->count(),
         ];
@@ -1143,7 +1015,6 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
             : 'hierarchy';
         $forceHierarchyScope = in_array($viewer->role, [
             User::ROLE_HEAD_OF_SALES,
-            User::ROLE_REGIONAL_MANAGER,
             User::ROLE_AREA_MANAGER,
         ], true);
         if ($forceHierarchyScope) {
@@ -1462,7 +1333,7 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
             return $row['users'] > 0 || $row['leads'] > 0;
         }));
 
-        $viewer->loadMissing('manager.manager.manager');
+        $viewer->loadMissing('manager.manager');
         $currentHierarchy = [];
         $cursor = $viewer;
         $safety = 0;
@@ -1661,9 +1532,6 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
         return match ($viewer->role) {
             User::ROLE_AREA_MANAGER => $nonSuperUsers
                 ->filter(fn(User $user): bool => $user->role === User::ROLE_SALES_CONSULTANT)
-                ->values(),
-            User::ROLE_REGIONAL_MANAGER => $nonSuperUsers
-                ->filter(fn(User $user): bool => in_array($user->role, [User::ROLE_AREA_MANAGER, User::ROLE_SALES_CONSULTANT], true))
                 ->values(),
             User::ROLE_SALES_CONSULTANT => $nonSuperUsers
                 ->filter(fn(User $user): bool => (int) $user->id === (int) $viewer->id)

@@ -6,6 +6,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmiController;
 use App\Http\Controllers\EnquiryController;
 use App\Http\Controllers\FollowUpController;
+use App\Http\Controllers\LeadTransferRequestController;
 use App\Http\Controllers\ProspectSheetController;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
@@ -49,10 +50,6 @@ Route::middleware('auth')->group(function () {
         ->middleware('role:' . User::ROLE_HEAD_OF_SALES)
         ->name('dashboard.head_of_sales');
 
-    Route::get('/dashboard/regional-manager', [DashboardController::class, 'regionalManager'])
-        ->middleware('role:' . User::ROLE_REGIONAL_MANAGER)
-        ->name('dashboard.regional_manager');
-
     Route::get('/dashboard/area-manager', [DashboardController::class, 'areaManager'])
         ->middleware('role:' . User::ROLE_AREA_MANAGER)
         ->name('dashboard.area_manager');
@@ -83,6 +80,26 @@ Route::middleware('auth')->group(function () {
     Route::put('/dashboard/super-admin/users/{managedUser}', [DashboardController::class, 'updateUser'])
         ->middleware('role:' . User::ROLE_SUPER_ADMIN)
         ->name('dashboard.super_admin.users.update');
+
+    Route::get('/lead-transfer/request', [LeadTransferRequestController::class, 'create'])
+        ->middleware('role:' . User::ROLE_SALES_CONSULTANT)
+        ->name('lead_transfer.request.create');
+
+    Route::post('/lead-transfer/request', [LeadTransferRequestController::class, 'store'])
+        ->middleware('role:' . User::ROLE_SALES_CONSULTANT)
+        ->name('lead_transfer.request.store');
+
+    Route::get('/lead-transfer/approvals', [LeadTransferRequestController::class, 'approvals'])
+        ->middleware('role:' . User::ROLE_AREA_MANAGER)
+        ->name('lead_transfer.approvals');
+
+    Route::post('/lead-transfer/{transferRequest}/approve', [LeadTransferRequestController::class, 'approve'])
+        ->middleware('role:' . User::ROLE_AREA_MANAGER)
+        ->name('lead_transfer.approve');
+
+    Route::post('/lead-transfer/{transferRequest}/reject', [LeadTransferRequestController::class, 'reject'])
+        ->middleware('role:' . User::ROLE_AREA_MANAGER)
+        ->name('lead_transfer.reject');
 });
 
 /*

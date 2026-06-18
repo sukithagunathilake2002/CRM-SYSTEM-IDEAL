@@ -33,6 +33,18 @@
         $hasAddressValues = trim((string) old('state')) !== ''
             || trim((string) old('address1')) !== ''
             || trim((string) old('address2')) !== '';
+        $sourceInfoMap = is_array($sourceInfoMap ?? null) ? $sourceInfoMap : [
+            'Walk-In' => ['Showroom Visit', 'Road Show', 'Display', 'Existing Customer', 'Other'],
+            'Tele-In' => ['Call Center', 'Hotline', 'Inbound Call', 'Missed Call', 'Other'],
+            'Activity' => ['Event', 'Mall Display', 'Corporate Visit', 'Canvasing', 'Other'],
+            'Digital' => ['Facebook', 'Instagram', 'Google', 'Website', 'YouTube', 'TikTok', 'Other'],
+            'Referral' => ['Customer Referral', 'Employee Referral', 'Dealer Referral', 'Friends/Family', 'Other'],
+            'Press' => ['Newspaper', 'Magazine', 'Radio', 'TV', 'Other'],
+        ];
+        $selectedSourceInformation = old('source_of_information', '');
+        $selectedFollowTime = old('follow_time')
+            ? substr((string) old('follow_time'), 0, 5)
+            : \Carbon\Carbon::now('Asia/Colombo')->format('H:i');
     @endphp
 
     <header class="topbar">
@@ -90,6 +102,21 @@
                 <button type="button" class="segment-btn source-btn" data-value="Digital" onclick="selectSource(this)">Digital</button>
                 <button type="button" class="segment-btn source-btn" data-value="Referral" onclick="selectSource(this)">Referral</button>
                 <button type="button" class="segment-btn source-btn" data-value="Press" onclick="selectSource(this)">Press</button>
+            </div>
+
+            <div class="field-row">
+                <div class="stack-field full-width">
+                    <label class="stack-label" for="sourceOfInformationSelect">Source Of Information</label>
+                    <select
+                        id="sourceOfInformationSelect"
+                        name="source_of_information"
+                        class="input-pill"
+                        data-selected-source-info="{{ $selectedSourceInformation }}"
+                        required
+                    >
+                        <option value="">Select Source of Information</option>
+                    </select>
+                </div>
             </div>
 
             <div class="field-row split name-contact-row">
@@ -172,7 +199,7 @@
                 </div>
                 <div class="stack-field">
                     <label class="stack-label" for="followTimeInput">Follow up Time</label>
-                    <input id="followTimeInput" type="time" name="follow_time" class="input-pill" placeholder="Followup Time" value="{{ old('follow_time') ? substr((string) old('follow_time'), 0, 5) : '' }}" required>
+                    <input id="followTimeInput" type="time" name="follow_time" class="input-pill" placeholder="Followup Time" value="{{ $selectedFollowTime }}" required>
                 </div>
                 <div class="stack-field">
                     <label class="stack-label" for="inquiryDateInput">Date of Inquiry</label>
@@ -213,6 +240,7 @@
     const oldModel = @json(old('model'));
     const oldEngine = @json(old('engine'));
     const oldVariant = @json(old('variant'));
+    const sourceInfoMap = @json($sourceInfoMap);
 
     function resetSelect(selectEl, placeholder) {
         selectEl.innerHTML = `<option value="">${placeholder}</option>`;
@@ -359,12 +387,39 @@
         document.querySelectorAll('.source-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         document.getElementById('lead_source').value = btn.dataset.value || btn.innerText;
+        updateSourceInformationOptions();
     }
 
     function selectFollow(btn) {
         document.querySelectorAll('.follow-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         document.getElementById('follow_type').value = btn.dataset.value || btn.innerText;
+    }
+
+    function updateSourceInformationOptions() {
+        const sourceSelect = document.getElementById('sourceOfInformationSelect');
+        const leadSourceInput = document.getElementById('lead_source');
+        if (!sourceSelect || !leadSourceInput) {
+            return;
+        }
+
+        const selectedLeadSource = String(leadSourceInput.value || '');
+        const selectedFromServer = sourceSelect.dataset.selectedSourceInfo || sourceSelect.value;
+        const options = Array.isArray(sourceInfoMap[selectedLeadSource]) ? sourceInfoMap[selectedLeadSource] : [];
+
+        sourceSelect.innerHTML = '<option value="">Select Source of Information</option>';
+        options.forEach((sourceOption) => {
+            const option = document.createElement('option');
+            option.value = sourceOption;
+            option.textContent = sourceOption;
+            if (sourceOption === selectedFromServer) {
+                option.selected = true;
+            }
+            sourceSelect.appendChild(option);
+        });
+
+        sourceSelect.disabled = options.length === 0;
+        sourceSelect.dataset.selectedSourceInfo = '';
     }
 
     (function initializeSegmentedSelections() {
@@ -382,6 +437,7 @@
             const fallback = document.querySelector('.source-btn');
             if (fallback) selectSource(fallback);
         }
+        updateSourceInformationOptions();
 
         if (followBtn) {
             selectFollow(followBtn);

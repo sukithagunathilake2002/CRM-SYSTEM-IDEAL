@@ -22,8 +22,9 @@ class EnquiryController extends Controller
         $districtOptions = $viewer instanceof User
             ? $viewer->resolvePermittedDistricts()
             : User::DISTRICT_OPTIONS;
+        $sourceInfoMap = $this->sourceInformationOptions();
 
-        return view('new-enquiry', compact('models', 'districtOptions'));
+        return view('new-enquiry', compact('models', 'districtOptions', 'sourceInfoMap'));
     }
 
     /**
@@ -65,6 +66,10 @@ class EnquiryController extends Controller
             ->keys()
             ->values()
             ->all();
+        $sourceInfoMap = $this->sourceInformationOptions();
+        $leadSourceOptions = array_keys($sourceInfoMap);
+        $selectedLeadSource = (string) $request->input('lead_source', '');
+        $sourceInformationOptions = $sourceInfoMap[$selectedLeadSource] ?? [];
 
         $request->validate([
             'model' => ['required', 'string'],
@@ -80,7 +85,8 @@ class EnquiryController extends Controller
             'state' => ['nullable', 'string', 'max:100'],
             'address1' => ['nullable', 'string', 'max:255'],
             'address2' => ['nullable', 'string', 'max:255'],
-            'lead_source' => ['required', Rule::in(['Walk-In', 'Tele-In', 'Activity', 'Digital', 'Referral', 'Press'])],
+            'lead_source' => ['required', Rule::in($leadSourceOptions)],
+            'source_of_information' => ['required', 'string', 'max:255', Rule::in($sourceInformationOptions)],
             'follow_type' => ['required', Rule::in(['Home Visit', 'Showroom Visit', 'Call'])],
             'follow_date' => ['required', 'date'],
             'follow_time' => ['required', 'date_format:H:i'],
@@ -156,6 +162,7 @@ class EnquiryController extends Controller
                 'customer_id' => $customer->id,
                 'vehicle_id' => $vehicle->id,
                 'lead_source' => $request->lead_source,
+                'source_of_information' => $request->source_of_information,
                 'follow_type' => $request->follow_type,
                 'follow_date' => $request->follow_date,
                 'follow_time' => $request->follow_time,
@@ -174,7 +181,8 @@ class EnquiryController extends Controller
 public function list(Request $request)
 {
     $viewer = $request->user();
-    $enquiriesQuery = Enquiry::with(['customer', 'vehicle', 'user']);
+    $enquiriesQuery = Enquiry::with(['customer', 'vehicle', 'user', 'prospectSheet']);
+    $registrationView = $request->query('registration') === 'pending' ? 'pending' : 'registered';
     $selectedLeadStatus = strtolower(trim((string) $request->query('lead_status', '')));
     if (!in_array($selectedLeadStatus, ['hot', 'warm', 'cold'], true)) {
         $selectedLeadStatus = null;
@@ -183,6 +191,12 @@ public function list(Request $request)
     if ($viewer && $viewer->role !== User::ROLE_SUPER_ADMIN) {
         $accessibleUserIds = $this->resolveAccessibleUserIds($viewer);
         $enquiriesQuery->whereIn('user_id', $accessibleUserIds);
+    }
+
+    if ($registrationView === 'pending') {
+        $enquiriesQuery->pendingRegistration();
+    } else {
+        $enquiriesQuery->registeredLead();
     }
 
     if ($selectedLeadStatus !== null) {
@@ -201,7 +215,10 @@ public function list(Request $request)
 public function listCallEpds(Request $request)
 {
     $viewer = $request->user();
-    $enquiriesQuery = Enquiry::with(['customer', 'vehicle', 'user'])
+    $today = now('Asia/Colombo')->toDateString();
+    $enquiriesQuery = Enquiry::with(['customer', 'vehicle', 'user', 'prospectSheet'])
+        ->pendingRegistration()
+        ->whereDate('follow_date', '<=', $today)
         ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%call%']);
 
     if ($viewer && $viewer->role !== User::ROLE_SUPER_ADMIN) {
@@ -219,7 +236,10 @@ public function listCallEpds(Request $request)
 public function listShowroomEpds(Request $request)
 {
     $viewer = $request->user();
-    $enquiriesQuery = Enquiry::with(['customer', 'vehicle', 'user'])
+    $today = now('Asia/Colombo')->toDateString();
+    $enquiriesQuery = Enquiry::with(['customer', 'vehicle', 'user', 'prospectSheet'])
+        ->pendingRegistration()
+        ->whereDate('follow_date', '<=', $today)
         ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%showroom%']);
 
     if ($viewer && $viewer->role !== User::ROLE_SUPER_ADMIN) {
@@ -237,7 +257,10 @@ public function listShowroomEpds(Request $request)
 public function listHomeEpds(Request $request)
 {
     $viewer = $request->user();
-    $enquiriesQuery = Enquiry::with(['customer', 'vehicle', 'user'])
+    $today = now('Asia/Colombo')->toDateString();
+    $enquiriesQuery = Enquiry::with(['customer', 'vehicle', 'user', 'prospectSheet'])
+        ->pendingRegistration()
+        ->whereDate('follow_date', '<=', $today)
         ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%home%']);
 
     if ($viewer && $viewer->role !== User::ROLE_SUPER_ADMIN) {
@@ -279,5 +302,17 @@ public function listHomeEpds(Request $request)
         }
 
         return $resolvedIds;
+    }
+
+    private function sourceInformationOptions(): array
+    {
+        return [
+            'Walk-In' => ['Showroom Visit', 'Road Show', 'Display', 'Existing Customer', 'Other'],
+            'Tele-In' => ['Call Center', 'Hotline', 'Inbound Call', 'Missed Call', 'Other'],
+            'Activity' => ['Event', 'Mall Display', 'Corporate Visit', 'Canvasing', 'Other'],
+            'Digital' => ['Facebook', 'Instagram', 'Google', 'Website', 'YouTube', 'TikTok', 'Other'],
+            'Referral' => ['Customer Referral', 'Employee Referral', 'Dealer Referral', 'Friends/Family', 'Other'],
+            'Press' => ['Newspaper', 'Magazine', 'Radio', 'TV', 'Other'],
+        ];
     }
 }

@@ -16,6 +16,7 @@ class Enquiry extends Model
         'customer_id',
         'vehicle_id',
         'lead_source',
+        'source_of_information',
         'follow_type',
         'follow_date',
         'follow_time',
@@ -64,6 +65,22 @@ class Enquiry extends Model
 
     // Enable timestamps
     public $timestamps = true;
+
+    public function scopeRegisteredLead($query)
+    {
+        return $query->whereHas('prospectSheet', function ($query): void {
+            $query->where('current_step', '>=', 5)
+                ->whereRaw("LOWER(COALESCE(lead_status, '')) IN ('hot', 'warm', 'cold')");
+        });
+    }
+
+    public function scopePendingRegistration($query)
+    {
+        return $query->whereDoesntHave('prospectSheet', function ($query): void {
+            $query->where('current_step', '>=', 5)
+                ->whereRaw("LOWER(COALESCE(lead_status, '')) IN ('hot', 'warm', 'cold')");
+        });
+    }
 
     // Each enquiry belongs to one customer
     public function customer()

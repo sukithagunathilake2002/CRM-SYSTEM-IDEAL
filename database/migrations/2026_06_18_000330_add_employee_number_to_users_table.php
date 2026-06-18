@@ -1,0 +1,31 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        if (!Schema::hasTable('users') || Schema::hasColumn('users', 'employee_number')) {
+            return;
+        }
+
+        Schema::table('users', function (Blueprint $table): void {
+            $table->string('employee_number', 50)->nullable()->unique()->after('email');
+        });
+    }
+
+    public function down(): void
+    {
+        if (!Schema::hasTable('users') || !Schema::hasColumn('users', 'employee_number')) {
+            return;
+        }
+
+        Schema::table('users', function (Blueprint $table): void {
+            $table->dropUnique(['employee_number']);
+            $table->dropColumn('employee_number');
+        });
+    }
+};

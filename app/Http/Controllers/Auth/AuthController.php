@@ -105,24 +105,12 @@ class AuthController extends Controller
         $role = $this->resolveRoleFromSlug($roleSlug);
         $parentRole = User::parentRoleFor($role);
         $managerOptions = collect();
-        $managerPermittedDistrictMap = [];
-        $supportsDistrictPermissions = in_array($role, [
-            User::ROLE_REGIONAL_MANAGER,
-            User::ROLE_AREA_MANAGER,
-            User::ROLE_SALES_CONSULTANT,
-        ], true);
 
         if ($parentRole) {
             $managerOptions = User::query()
                 ->where('role', $parentRole)
                 ->orderBy('name')
-                ->get(['id', 'name', 'email', 'role', 'manager_id', 'permitted_districts']);
-
-            if ($supportsDistrictPermissions) {
-                $managerPermittedDistrictMap = $managerOptions
-                    ->mapWithKeys(fn(User $manager): array => [(string) $manager->id => $manager->resolvePermittedDistricts()])
-                    ->all();
-            }
+                ->get(['id', 'name', 'email', 'role', 'manager_id']);
         }
 
         return view('auth.register', [
@@ -132,10 +120,6 @@ class AuthController extends Controller
             'parentRole' => $parentRole,
             'parentRoleLabel' => $parentRole ? User::ROLE_LABELS[$parentRole] : null,
             'managerOptions' => $managerOptions,
-            'supportsDistrictPermissions' => $supportsDistrictPermissions,
-            'districtOptions' => User::DISTRICT_OPTIONS,
-            'provinceDistrictMap' => User::PROVINCE_DISTRICT_MAP,
-            'managerPermittedDistrictMap' => $managerPermittedDistrictMap,
         ]);
     }
 
@@ -147,24 +131,15 @@ class AuthController extends Controller
         $rules = [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
+            'employee_number' => ['required', 'string', 'max:50', Rule::unique('users', 'employee_number')],
             'phone' => ['nullable', 'string', 'max:30'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ];
-        $supportsDistrictPermissions = in_array($role, [
-            User::ROLE_REGIONAL_MANAGER,
-            User::ROLE_AREA_MANAGER,
-            User::ROLE_SALES_CONSULTANT,
-        ], true);
 
         if ($parentRole) {
             $rules['manager_id'] = ['required', 'integer', Rule::exists('users', 'id')];
         } else {
             $rules['manager_id'] = ['nullable', 'integer'];
-        }
-
-        if ($supportsDistrictPermissions) {
-            $rules['permitted_districts'] = ['nullable', 'array'];
-            $rules['permitted_districts.*'] = ['string', Rule::in(User::DISTRICT_OPTIONS)];
         }
 
         $validated = $request->validate($rules);
@@ -183,48 +158,15 @@ class AuthController extends Controller
             $managerId = null;
         }
 
-        $managerPermittedDistricts = User::DISTRICT_OPTIONS;
-        if ($managerId !== null) {
-            $manager = User::query()->find((int) $managerId);
-            if ($manager instanceof User) {
-                $managerPermittedDistricts = $manager->resolvePermittedDistricts();
-            }
-        }
-
-        $permittedDistricts = null;
-        if ($supportsDistrictPermissions) {
-            $selectedDistricts = collect($validated['permitted_districts'] ?? [])
-                ->map(fn($district): ?string => User::normalizeDistrictName((string) $district))
-                ->filter()
-                ->unique()
-                ->sort()
-                ->values()
-                ->all();
-
-            if (!empty($selectedDistricts)) {
-                $allowedLookup = array_fill_keys($managerPermittedDistricts, true);
-                $hasInvalid = collect($selectedDistricts)->contains(
-                    fn(string $district): bool => !isset($allowedLookup[$district])
-                );
-
-                if ($hasInvalid) {
-                    return back()
-                        ->withErrors(['permitted_districts' => 'Selected districts must be within manager access.'])
-                        ->withInput();
-                }
-            }
-
-            $permittedDistricts = !empty($selectedDistricts) ? $selectedDistricts : null;
-        }
-
         $user = User::query()->create([
             'name' => $validated['name'],
             'email' => $validated['email'],
+            'employee_number' => $validated['employee_number'],
             'phone' => $validated['phone'] ?? null,
             'role' => $role,
             'manager_id' => $managerId,
             'password' => $validated['password'],
-            'permitted_districts' => $permittedDistricts,
+            'permitted_districts' => null,
         ]);
 
         Auth::login($user);

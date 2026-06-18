@@ -8,6 +8,9 @@
     <div class="quick-links">
         <a class="btn-link alt" href="{{ route('enquiries.list') }}">Open EPR</a>
         <a class="btn-link alt" href="{{ url('/new-enquiry') }}">Create New Enquiry</a>
+        <a class="btn-link" href="{{ route('lead_transfer.request.create') }}">
+            Transfer Requests{{ ($pendingTransferRequestCount ?? 0) > 0 ? ' (' . $pendingTransferRequestCount . ')' : '' }}
+        </a>
     </div>
 </section>
 
@@ -19,12 +22,8 @@
             <span>{{ optional($user->manager)->name ?? 'Not assigned' }}</span>
         </li>
         <li>
-            <strong>Regional Manager</strong>
-            <span>{{ optional(optional($user->manager)->manager)->name ?? 'Not assigned' }}</span>
-        </li>
-        <li>
             <strong>Head Of Sales</strong>
-            <span>{{ optional(optional(optional($user->manager)->manager)->manager)->name ?? 'Not assigned' }}</span>
+            <span>{{ optional(optional($user->manager)->manager)->name ?? 'Not assigned' }}</span>
         </li>
     </ul>
 </section>

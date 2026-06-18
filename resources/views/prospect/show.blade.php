@@ -23,7 +23,7 @@
     $selectedInterestedColor = old('interested_vehicle_color', $prospect->interested_vehicle_color);
     $vehicleColorOptions = ['White', 'Black', 'Silver', 'Grey', 'Red', 'Blue', 'Green', 'Brown', 'Orange', 'Other'];
     $selectedLeadSource = old('lead_source', $enquiry->lead_source);
-    $selectedSourceOfInformation = old('source_of_information', $prospect->source_of_information);
+    $selectedSourceOfInformation = old('source_of_information', $prospect->source_of_information ?? $enquiry->source_of_information);
     $selectedInterestedExchange = old('interested_in_exchange', $prospect->interested_in_exchange);
     $hasExistingExchangeImages =
         !empty($prospect->blue_book_image) ||
@@ -774,7 +774,6 @@
     })();
 </script>
 @endsection
-
 
 
 

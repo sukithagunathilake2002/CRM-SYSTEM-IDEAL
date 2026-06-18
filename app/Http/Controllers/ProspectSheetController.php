@@ -138,6 +138,13 @@ class ProspectSheetController extends Controller
             'exit_after_save' => ['nullable', 'in:0,1'],
         ]);
 
+        $currentStep = (int) ($validated['active_step'] ?? 1);
+        if ($currentStep >= 5 && empty($validated['lead_status'])) {
+            return back()
+                ->withErrors(['lead_status' => 'Please select Hot, Warm, or Cold before submitting the prospect sheet.'])
+                ->withInput();
+        }
+
         $customer = $enquiry->customer;
 
         $mobileNumbers = collect(explode(',', (string) $validated['mobile_numbers']))
@@ -171,6 +178,11 @@ class ProspectSheetController extends Controller
 
         if (array_key_exists('lead_source', $validated) && !empty($validated['lead_source'])) {
             $enquiry->lead_source = $validated['lead_source'];
+            $enquiry->save();
+        }
+
+        if (array_key_exists('source_of_information', $validated)) {
+            $enquiry->source_of_information = $validated['source_of_information'] ?: null;
             $enquiry->save();
         }
 
@@ -468,15 +480,18 @@ class ProspectSheetController extends Controller
                 'reschedule_followup' => $rescheduleFollowup,
                 'lead_status' => $pick('lead_status', $existingProspect->lead_status),
                 'customer_remark' => $pick('customer_remark', $existingProspect->customer_remark),
-                'current_step' => $validated['active_step'] ?? 1,
+                'current_step' => $currentStep,
             ]
         );
 
         if (($validated['exit_after_save'] ?? '0') === '1') {
-            return redirect('/epr')->with('success', 'Prospect sheet saved.');
+            $routeParameters = $currentStep >= 5 ? [] : ['registration' => 'pending'];
+
+            return redirect()
+                ->route('enquiries.list', $routeParameters)
+                ->with('success', 'Prospect sheet saved.');
         }
 
-        $currentStep = (int) ($validated['active_step'] ?? 1);
         $nextStep = $currentStep + 1;
 
         // Step 2 shortcut: if customer is a first-time buyer, skip Exchange Details (step 3)
@@ -489,8 +504,8 @@ class ProspectSheetController extends Controller
 
         if ($currentStep >= 5) {
             return redirect()
-                ->route('prospect.show', ['enquiry' => $enquiry->id, 'step' => 5])
-                ->with('success', 'Prospect sheet submitted successfully.');
+                ->route('enquiries.list')
+                ->with('success', 'Prospect sheet submitted and lead categorized as ' . ucfirst((string) $validated['lead_status']) . '.');
         }
 
         return redirect()
@@ -498,9 +513,6 @@ class ProspectSheetController extends Controller
             ->with('success', 'Step saved successfully.');
     }
 }
-
-
-
 
 
 

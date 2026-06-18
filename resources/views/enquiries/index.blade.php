@@ -133,6 +133,8 @@
                 $ownerRole = strtolower((string) ($ownerUser?->role ?? 'unassigned'));
                 $ownerRoleLabel = trim((string) ($ownerUser?->role_label ?? 'Unassigned'));
                 $ownerIdValue = $ownerUser?->id ? (string) $ownerUser->id : '';
+                $leadStatus = strtolower(trim((string) ($e->prospectSheet?->lead_status ?? '')));
+                $leadStatusLabel = in_array($leadStatus, ['hot', 'warm', 'cold'], true) ? ucfirst($leadStatus) : '';
                 $whatsAppPhone = preg_replace('/\D+/', '', $primaryPhone);
                 if (substr($whatsAppPhone, 0, 1) === '0') {
                     $whatsAppPhone = '94' . substr($whatsAppPhone, 1);
@@ -155,6 +157,7 @@
                 data-owner-name-label="{{ $ownerName }}"
                 data-owner-role="{{ $ownerRole }}"
                 data-owner-role-label="{{ $ownerRoleLabel }}"
+                data-lead-status="{{ $leadStatus }}"
                 data-date="{{ optional($e->created_at)->timestamp ?? 0 }}"
             >
                 <div class="epr-card-top">
@@ -164,6 +167,9 @@
                         @endif
                         @if($e->finance)
                             <span class="flag-pill money" title="Finance">$</span>
+                        @endif
+                        @if($leadStatusLabel !== '')
+                            <span class="flag-pill {{ $leadStatus }}" title="Lead Status">{{ $leadStatusLabel }}</span>
                         @endif
                     </div>
 
@@ -212,6 +218,9 @@
                                 <a href="{{ route('followup.show', $e->id) }}" class="chip-btn">Followup</a>
                                 <a href="{{ route('prospect.show', $e->id) }}" class="chip-btn">Prospect Sheet</a>
                                 <a href="{{ route('booking.show', $e->id) }}" class="chip-btn">Booking</a>
+                                @if(auth()->user()?->role === \App\Models\User::ROLE_SALES_CONSULTANT && (int) $e->user_id === (int) auth()->id())
+                                    <a href="{{ route('lead_transfer.request.create', ['enquiry_id' => $e->id]) }}" class="chip-btn">Transfer</a>
+                                @endif
                             </div>
                         </div>
                     </div>
