@@ -160,8 +160,8 @@
                     </div>
                 </div>
 
+                {{-- Done Form --}}
                 <div id="doneQuestionWrap" class="done-question-wrap {{ $selectedFollowupStatus === 'done' ? '' : 'hidden' }}">
-                    {{-- Visit Date, Met Whom, and Image Upload - Only for Home Visit EPRs --}}
                     @if($showPhysicalVisitFields)
                         <div class="done-question-row">
                             <div class="done-field">
@@ -241,6 +241,7 @@
                     </div>
                 </div>
 
+                {{-- Active Form --}}
                 <div id="activeQuestionWrap" class="active-question-wrap {{ $selectedFollowupStatus === 'done' && $selectedResult === 'active' ? '' : 'hidden' }}">
                     <div class="row">
                         <input type="text" name="followup_customer_comment" value="{{ $selectedCustomerComment }}" class="pill-input" placeholder="Enter Customer Comments here......">
@@ -337,6 +338,7 @@
                     </div>
                 </div>
 
+                {{-- Lost Form --}}
                 <div id="lostQuestionWrap" class="lost-question-wrap {{ $selectedFollowupStatus === 'done' && $selectedResult === 'lost' ? '' : 'hidden' }}">
                     <label>Lost To</label>
                     <div class="simple-segment two">
@@ -394,8 +396,43 @@
                     </div>
                 </div>
 
-                {{-- Action buttons - only shown when Done is clicked --}}
-                <div id="formActions" class="followup-form-actions {{ $selectedFollowupStatus === 'done' ? '' : 'hidden' }}">
+                {{-- Not Done Form --}}
+                <div id="notDoneQuestionWrap" class="not-done-question-wrap {{ $selectedFollowupStatus === 'not_done' ? '' : 'hidden' }}">
+                    <div class="not-done-form">
+                        <label class="not-done-label">Reason for Not Done</label>
+                        <div class="not-done-segment">
+                            <label class="reason-option" data-reason="I was busy">
+                                <input type="radio" name="followup_not_done_reason" value="I was busy" @checked($selectedNotDoneReason === 'I was busy')>
+                                <span class="reason-card">
+                                    <span class="reason-icon">⏰</span>
+                                    <span class="reason-text">I was busy</span>
+                                </span>
+                            </label>
+                            <label class="reason-option" data-reason="Vehicle was not available">
+                                <input type="radio" name="followup_not_done_reason" value="Vehicle was not available" @checked($selectedNotDoneReason === 'Vehicle was not available')>
+                                <span class="reason-card">
+                                    <span class="reason-icon">🚗</span>
+                                    <span class="reason-text">Vehicle was not available</span>
+                                </span>
+                            </label>
+                            <label class="reason-option" data-reason="Other">
+                                <input type="radio" name="followup_not_done_reason" value="Other" @checked($selectedNotDoneReason === 'Other')>
+                                <span class="reason-card">
+                                    <span class="reason-icon">📝</span>
+                                    <span class="reason-text">Other</span>
+                                </span>
+                            </label>
+                        </div>
+                        
+                        <div id="notDoneOtherTextWrap" class="not-done-other-wrap {{ $selectedNotDoneReason === 'Other' ? '' : 'hidden' }}">
+                            <label class="not-done-label">Please specify:</label>
+                            <input type="text" name="followup_not_done_reason_other" id="followup_not_done_reason_other" class="pill-input" placeholder="Enter other reason" value="{{ $selectedNotDoneReason === 'Other' && $selectedNotDoneReason !== 'I was busy' && $selectedNotDoneReason !== 'Vehicle was not available' ? $selectedNotDoneReason : '' }}">
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Action buttons --}}
+                <div id="formActions" class="followup-form-actions {{ $selectedFollowupStatus !== 'pending' ? '' : 'hidden' }}">
                     <a href="{{ url('/epr') }}" class="status-btn cancel-btn">Cancel</a>
                     <button type="submit" class="status-btn save-btn">Save</button>
                 </div>
@@ -410,12 +447,147 @@
 </div>
 
 <script type="application/json" id="followupCompetitionMapJson">@json($competitionMap)</script>
+
+<style>
+/* Not Done Form Styles */
+.not-done-question-wrap {
+    padding: 14px 16px 16px;
+    background: #ffffff;
+    border-top: 1px solid #e6e8ef;
+}
+
+.not-done-label {
+    display: block;
+    margin-bottom: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.not-done-segment {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.reason-option {
+    flex: 1;
+    min-width: 140px;
+    cursor: pointer;
+}
+
+.reason-option input {
+    display: none;
+}
+
+.reason-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 12px;
+    border: 2px solid #e2e8f0;
+    border-radius: 16px;
+    background: #f8fafc;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.reason-card:hover {
+    border-color: #cbd5e1;
+    background: #f1f5f9;
+    transform: translateY(-2px);
+}
+
+.reason-option input:checked + .reason-card {
+    border-color: #dc2626;
+    background: #fef2f2;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
+}
+
+.reason-icon {
+    font-size: 32px;
+}
+
+.reason-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    text-align: center;
+}
+
+.reason-option input:checked + .reason-card .reason-text {
+    color: #dc2626;
+}
+
+.not-done-other-wrap {
+    margin-top: 12px;
+}
+
+.not-done-other-wrap input {
+    width: 100%;
+    max-width: 400px;
+}
+
+/* Dark mode styles */
+html.theme-dark .not-done-question-wrap {
+    background: #0f172a;
+    border-top-color: #334155;
+}
+
+html.theme-dark .not-done-label {
+    color: #e2e8f0;
+}
+
+html.theme-dark .reason-card {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+html.theme-dark .reason-card:hover {
+    background: #334155;
+    border-color: #475569;
+}
+
+html.theme-dark .reason-text {
+    color: #cbd5e1;
+}
+
+html.theme-dark .reason-option input:checked + .reason-card {
+    border-color: #ef4444;
+    background: #2a1a1a;
+}
+
+html.theme-dark .reason-option input:checked + .reason-card .reason-text {
+    color: #f87171;
+}
+
+@media (max-width: 760px) {
+    .not-done-segment {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .reason-card {
+        flex-direction: row;
+        justify-content: center;
+        padding: 12px;
+    }
+    
+    .reason-icon {
+        font-size: 24px;
+    }
+}
+</style>
+
 <script>
     (function () {
         const statusInput = document.getElementById('followupStatusInput');
         const doneWrap = document.getElementById('doneQuestionWrap');
         const activeWrap = document.getElementById('activeQuestionWrap');
         const lostWrap = document.getElementById('lostQuestionWrap');
+        const notDoneWrap = document.getElementById('notDoneQuestionWrap');
         const formActions = document.getElementById('formActions');
         const toggleButtons = Array.from(document.querySelectorAll('.status-toggle-btn'));
         const resultRadios = Array.from(document.querySelectorAll('input[name="followup_result"]'));
@@ -430,6 +602,12 @@
         const lostBrandSelect = document.getElementById('followup_lost_competition_brand');
         const lostModelSelect = document.getElementById('followup_lost_competition_model');
         const mapScript = document.getElementById('followupCompetitionMapJson');
+        
+        // Not Done elements
+        const notDoneReasonRadios = Array.from(document.querySelectorAll('input[name="followup_not_done_reason"]'));
+        const notDoneOtherTextWrap = document.getElementById('notDoneOtherTextWrap');
+        const notDoneOtherInput = document.getElementById('followup_not_done_reason_other');
+        
         const photoSlots = [1, 2].map((slot) => ({
             slot,
             tile: document.querySelector('[data-photo-tile="' + slot + '"]'),
@@ -648,6 +826,20 @@
             });
         }
 
+        function updateNotDoneOtherField() {
+            const selectedNotDoneReason = picked('followup_not_done_reason');
+            const showOtherField = selectedNotDoneReason === 'Other';
+            
+            if (notDoneOtherTextWrap) {
+                notDoneOtherTextWrap.classList.toggle('hidden', !showOtherField);
+            }
+            
+            // If Other is not selected, clear the other text input
+            if (!showOtherField && notDoneOtherInput) {
+                notDoneOtherInput.value = '';
+            }
+        }
+        
         function syncState() {
             const selectedStatus = statusInput ? statusInput.value : '';
             const selectedResult = picked('followup_result');
@@ -667,10 +859,14 @@
             if (lostWrap) {
                 lostWrap.classList.toggle('hidden', !(selectedStatus === 'done' && selectedResult === 'lost'));
             }
+            
+            if (notDoneWrap) {
+                notDoneWrap.classList.toggle('hidden', selectedStatus !== 'not_done');
+            }
 
-            // Show/hide form action buttons based on Done selection
+            // Show/hide form action buttons when status is done OR not_done (not pending)
             if (formActions) {
-                formActions.classList.toggle('hidden', selectedStatus !== 'done');
+                formActions.classList.toggle('hidden', selectedStatus === 'pending');
             }
 
             if (testDriveNoWrap) {
@@ -709,6 +905,28 @@
             toggleButtons.forEach((btn) => {
                 btn.classList.toggle('active', btn.dataset.status === selectedStatus);
             });
+            
+            // Update Not Done other field visibility
+            if (selectedStatus === 'not_done') {
+                updateNotDoneOtherField();
+            }
+        }
+        
+        // Handle form submission to include other text when "Other" is selected
+        function prepareFormSubmission() {
+            const selectedStatus = statusInput ? statusInput.value : '';
+            const selectedNotDoneReason = picked('followup_not_done_reason');
+            
+            if (selectedStatus === 'not_done' && selectedNotDoneReason === 'Other' && notDoneOtherInput) {
+                const otherValue = notDoneOtherInput.value.trim();
+                if (otherValue) {
+                    // Find the radio with value "Other" and set its value to the custom text
+                    const otherRadio = document.querySelector('input[name="followup_not_done_reason"][value="Other"]');
+                    if (otherRadio) {
+                        otherRadio.value = otherValue;
+                    }
+                }
+            }
         }
 
         toggleButtons.forEach((btn) => {
@@ -739,6 +957,11 @@
         document.querySelectorAll('input[name="followup_lost_reject_reasons[]"]').forEach((input) => {
             input.addEventListener('change', syncState);
         });
+        
+        // Not Done reason radio change handler
+        notDoneReasonRadios.forEach((radio) => {
+            radio.addEventListener('change', updateNotDoneOtherField);
+        });
 
         if (lostBrandSelect) {
             lostBrandSelect.addEventListener('change', function () {
@@ -746,6 +969,14 @@
                     lostModelSelect.dataset.selectedModel = '';
                 }
                 syncLostModelOptions();
+            });
+        }
+        
+        // Add form submit handler to prepare data
+        const followupForm = document.getElementById('followupForm');
+        if (followupForm) {
+            followupForm.addEventListener('submit', function(e) {
+                prepareFormSubmission();
             });
         }
 
