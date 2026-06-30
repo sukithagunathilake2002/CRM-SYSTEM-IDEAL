@@ -22,7 +22,7 @@ class DashboardController extends Controller
             User::ROLE_SUPER_ADMIN => 'dashboard.super_admin',
             User::ROLE_HEAD_OF_SALES => 'dashboard.head_of_sales',
             User::ROLE_AREA_MANAGER => 'dashboard.area_manager',
-            User::ROLE_SALES_CONSULTANT => 'dashboard.sales_consultant',
+            User::ROLE_SALES_CONSULTANT => 'dashboard.main',
         ];
 
         $routeName = $routeByRole[$user->role] ?? 'dashboard.sales_consultant';
@@ -30,9 +30,18 @@ class DashboardController extends Controller
         return redirect()->route($routeName);
     }
 
-    public function main(Request $request): View
+    public function main(Request $request): View|RedirectResponse
     {
         $user = $request->user();
+
+        if ($user?->role === User::ROLE_SUPER_ADMIN) {
+            return redirect()->route('dashboard.super_admin');
+        }
+
+        if ($user?->role === User::ROLE_HEAD_OF_SALES) {
+            return redirect()->route('dashboard.head_of_sales');
+        }
+
         $dashboardEpds = $this->getDashboardEpData($user);
 
         return view('dashboard', compact('dashboardEpds'));
@@ -126,12 +135,6 @@ class DashboardController extends Controller
             ->values()
             ->all();
 
-        $dependentCounts = [
-            'area_managers' => $areaManagers->count(),
-            'sales_consultants' => $salesConsultants->count(),
-        ];
-        $dependentCounts['dependent_users'] = $dependentCounts['area_managers']
-            + $dependentCounts['sales_consultants'];
         $manageableUsers = User::query()
             ->with('manager:id,name')
             ->orderBy('role')
@@ -145,7 +148,7 @@ class DashboardController extends Controller
         
         $districtEpData = $this->getDistrictEpData($user);
 
-        return view('dashboards.super-admin', compact('counts', 'headHierarchy', 'dependentCounts', 'manageableUsers', 'analytics', 'dashboardEpds', 'districtEpData', 'followupEscalations'));
+        return view('dashboards.super-admin', compact('counts', 'headHierarchy', 'manageableUsers', 'analytics', 'dashboardEpds', 'districtEpData', 'followupEscalations'));
     }
 
     public function headOfSales(Request $request): View
@@ -228,30 +231,27 @@ class DashboardController extends Controller
             ->where('status', LeadTransferRequest::STATUS_PENDING)
             ->count();
         $analytics = $this->buildAnalytics($user, $request);
-        $followupEscalations = $this->buildFollowupEscalations($user);
         
         $dashboardEpds = $this->getDashboardEpData($user);
         
         $districtEpData = $this->getDistrictEpData($user);
 
-        return view('dashboards.area-manager', compact('salesConsultants', 'pendingTransferRequestCount', 'analytics', 'dashboardEpds', 'districtEpData', 'followupEscalations'));
+        return view('dashboards.area-manager', compact('salesConsultants', 'pendingTransferRequestCount', 'analytics', 'dashboardEpds', 'districtEpData'));
     }
 
     public function salesConsultant(Request $request): View
     {
-        $user = $request->user()->load('manager.manager');
+        $user = $request->user();
         $pendingTransferRequestCount = LeadTransferRequest::query()
             ->where('requested_by', $user->id)
             ->where('status', LeadTransferRequest::STATUS_PENDING)
             ->count();
-        $analytics = $this->buildAnalytics($user, $request);
-        $followupEscalations = $this->buildFollowupEscalations($user);
         
         $dashboardEpds = $this->getDashboardEpData($user);
         
         $districtEpData = $this->getDistrictEpData($user);
 
-        return view('dashboards.sales-consultant', compact('user', 'pendingTransferRequestCount', 'analytics', 'dashboardEpds', 'districtEpData', 'followupEscalations'));
+        return view('dashboards.sales-consultant', compact('user', 'pendingTransferRequestCount', 'dashboardEpds', 'districtEpData'));
     }
 
     /**
@@ -479,6 +479,33 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
     {
         $accessibleUserIds = $this->resolveAccessibleUserIds($viewer);
         $today = Carbon::now('Asia/Colombo')->startOfDay();
+        $delayBuckets = [
+            'today' => [
+                'label' => 'Today',
+                'description' => 'Followups due today.',
+                'count' => 0,
+            ],
+            'one_day_delay' => [
+                'label' => '1 Day Delay',
+                'description' => 'Followups pending for 1 day.',
+                'count' => 0,
+            ],
+            'two_day_delay' => [
+                'label' => '2 Day Delay',
+                'description' => 'Followups pending for 2 days.',
+                'count' => 0,
+            ],
+            'three_day_delay' => [
+                'label' => '3 Day Delay',
+                'description' => 'Followups pending for 3 days.',
+                'count' => 0,
+            ],
+            'over_three_day_delay' => [
+                'label' => '>3 Days Delay',
+                'description' => 'Followups pending for more than 3 days.',
+                'count' => 0,
+            ],
+        ];
 
         $enquiries = Enquiry::query()
             ->with(['user.manager.manager'])
@@ -490,6 +517,31 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
             ->orderBy('follow_date')
             ->get();
 
+        $areaManagerRows = [];
+        $salesConsultantRows = [];
+        $typePendingRows = [
+            'call' => [
+                'name' => 'Call',
+                'role' => 'Followup Type',
+                'count' => 0,
+                'max_pending_days' => 0,
+                'oldest_follow_date' => null,
+            ],
+            'home_visit' => [
+                'name' => 'Home Visit',
+                'role' => 'Followup Type',
+                'count' => 0,
+                'max_pending_days' => 0,
+                'oldest_follow_date' => null,
+            ],
+            'showroom_visit' => [
+                'name' => 'Showroom Visit',
+                'role' => 'Followup Type',
+                'count' => 0,
+                'max_pending_days' => 0,
+                'oldest_follow_date' => null,
+            ],
+        ];
         $buckets = [
             'user' => [
                 'title' => 'Notify User',
@@ -514,22 +566,71 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
                 continue;
             }
 
-            $pendingDays = $followDate->diffInDays($today, false);
+            $pendingDays = (int) $followDate->diffInDays($today, false);
             if ($pendingDays < 0) {
                 continue;
             }
 
             $owner = $enquiry->user;
+            $areaManager = $this->findHierarchyRecipient($owner, User::ROLE_AREA_MANAGER);
             $lead = [
                 'id' => (int) $enquiry->id,
                 'follow_date' => $followDate,
                 'pending_days' => (int) $pendingDays,
             ];
 
+            $delayBucketKey = match (true) {
+                $pendingDays === 0 => 'today',
+                $pendingDays === 1 => 'one_day_delay',
+                $pendingDays === 2 => 'two_day_delay',
+                $pendingDays === 3 => 'three_day_delay',
+                default => 'over_three_day_delay',
+            };
+            $delayBuckets[$delayBucketKey]['count']++;
+
+            $followupTypeKey = match ($this->normalizeFollowupType($enquiry->follow_type)) {
+                'Call' => 'call',
+                'Home visit' => 'home_visit',
+                'Showroom visit' => 'showroom_visit',
+                default => null,
+            };
+
+            if ($followupTypeKey !== null) {
+                $this->addFollowupPendingAggregateRow(
+                    $typePendingRows,
+                    $followupTypeKey,
+                    $typePendingRows[$followupTypeKey]['name'],
+                    'Followup Type',
+                    $lead
+                );
+            }
+
+            $this->addFollowupPendingAggregateRow(
+                $areaManagerRows,
+                $areaManager instanceof User ? (string) $areaManager->id : 'unassigned',
+                $areaManager instanceof User ? $areaManager->name : 'Unassigned Area Manager',
+                $areaManager instanceof User ? $areaManager->role_label : 'Area Manager',
+                $lead,
+                [
+                    'sales_consultants' => [],
+                ],
+                $owner->name
+            );
+
+            $this->addFollowupPendingAggregateRow(
+                $salesConsultantRows,
+                (string) $owner->id,
+                $owner->name,
+                $owner->role_label,
+                $lead,
+                [
+                    'area_manager_name' => $areaManager instanceof User ? $areaManager->name : 'Not assigned',
+                ]
+            );
+
             if ($pendingDays <= 1) {
                 $this->addFollowupEscalationRow($buckets['user']['rows'], $owner, $owner, $lead);
             } else {
-                $areaManager = $this->findHierarchyRecipient($owner, User::ROLE_AREA_MANAGER);
                 if ($areaManager instanceof User) {
                     $this->addFollowupEscalationRow($buckets['area_manager']['rows'], $owner, $areaManager, $lead);
                 }
@@ -561,15 +662,74 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
 
         return [
             'generated_at' => $today->format('d M Y'),
+            'summary' => array_values($delayBuckets),
+            'type_pending_rows' => $this->formatFollowupPendingAggregateRows($typePendingRows, false),
+            'area_manager_rows' => $this->formatFollowupPendingAggregateRows($areaManagerRows),
+            'sales_consultant_rows' => $this->formatFollowupPendingAggregateRows($salesConsultantRows),
             'buckets' => $buckets,
-            'total' => array_sum(array_map(
-                fn(array $bucket): int => array_sum(array_map(
-                    fn(array $row): int => (int) $row['count'],
-                    $bucket['rows']
-                )),
-                $buckets
-            )),
+            'total' => array_sum(array_map(fn(array $bucket): int => (int) $bucket['count'], $delayBuckets)),
         ];
+    }
+
+    private function addFollowupPendingAggregateRow(
+        array &$rows,
+        string $key,
+        string $name,
+        string $role,
+        array $lead,
+        array $extra = [],
+        ?string $consultantName = null
+    ): void {
+        if (!isset($rows[$key])) {
+            $rows[$key] = array_merge([
+                'name' => $name,
+                'role' => $role,
+                'count' => 0,
+                'max_pending_days' => 0,
+                'oldest_follow_date' => null,
+            ], $extra);
+        }
+
+        $rows[$key]['count']++;
+        $rows[$key]['max_pending_days'] = max((int) $rows[$key]['max_pending_days'], (int) $lead['pending_days']);
+
+        if (!$rows[$key]['oldest_follow_date'] instanceof Carbon
+            || $lead['follow_date']->lessThan($rows[$key]['oldest_follow_date'])) {
+            $rows[$key]['oldest_follow_date'] = $lead['follow_date']->copy();
+        }
+
+        if ($consultantName !== null && isset($rows[$key]['sales_consultants']) && is_array($rows[$key]['sales_consultants'])) {
+            $rows[$key]['sales_consultants'][$consultantName] = true;
+        }
+    }
+
+    private function formatFollowupPendingAggregateRows(array $rows, bool $sort = true): array
+    {
+        $rows = array_values($rows);
+        if ($sort) {
+            usort($rows, function (array $left, array $right): int {
+                if ((int) $left['count'] === (int) $right['count']) {
+                    return strcmp((string) $left['name'], (string) $right['name']);
+                }
+
+                return (int) $right['count'] <=> (int) $left['count'];
+            });
+        }
+
+        return array_map(function (array $row): array {
+            $row['oldest_follow_date_label'] = $row['oldest_follow_date'] instanceof Carbon
+                ? $row['oldest_follow_date']->format('d M Y')
+                : '-';
+
+            if (isset($row['sales_consultants']) && is_array($row['sales_consultants'])) {
+                $row['sales_consultants_count'] = count($row['sales_consultants']);
+                $row['sales_consultants_label'] = implode(', ', array_keys($row['sales_consultants']));
+            }
+
+            unset($row['oldest_follow_date'], $row['sales_consultants']);
+
+            return $row;
+        }, $rows);
     }
 
     private function addFollowupEscalationRow(array &$rows, User $owner, User $recipient, array $lead): void
@@ -888,11 +1048,14 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
         $validated = $request->validate([
             'name' => ['nullable', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255', Rule::unique('users', 'email')->ignore($managedUser->id)],
-            'employee_number' => ['nullable', 'string', 'max:50', Rule::unique('users', 'employee_number')->ignore($managedUser->id)],
-            'phone' => ['nullable', 'string', 'max:30'],
+            'employee_number' => ['nullable', 'regex:/^M\d{5}$/', Rule::unique('users', 'employee_number')->ignore($managedUser->id)],
+            'phone' => ['nullable', 'regex:/^0\d{9}$/'],
             'role' => ['required', Rule::in(User::ROLE_HIERARCHY)],
             'manager_id' => ['nullable', 'integer', Rule::exists('users', 'id')],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
+        ], [
+            'phone.regex' => 'Phone number must start with 0 and contain exactly 10 digits.',
+            'employee_number.regex' => 'Employee number must start with M followed by exactly 5 digits.',
         ]);
 
         $resolvedName = trim((string) ($validated['name'] ?? ''));

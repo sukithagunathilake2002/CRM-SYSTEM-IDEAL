@@ -1,3 +1,8 @@
+@php
+    $canViewAnalytics = auth()->user()?->role !== \App\Models\User::ROLE_SALES_CONSULTANT;
+@endphp
+
+@if($canViewAnalytics)
 <section class="card analytics-card">
     <div class="analytics-head">
         <h2>Analytics Filters</h2>
@@ -641,3 +646,4 @@
         });
     })();
 </script>
+@endif

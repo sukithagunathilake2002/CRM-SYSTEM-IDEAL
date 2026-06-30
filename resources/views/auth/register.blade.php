@@ -25,12 +25,29 @@
 
         <label>
             Employee Number
-            <input type="text" name="employee_number" value="{{ old('employee_number') }}" required>
+            <input
+                type="text"
+                name="employee_number"
+                value="{{ old('employee_number', 'M') }}"
+                maxlength="6"
+                pattern="M[0-9]{5}"
+                placeholder="M00000"
+                title="Employee number must start with M followed by exactly 5 digits"
+                required
+            >
         </label>
 
         <label>
             Phone
-            <input type="text" name="phone" value="{{ old('phone') }}">
+            <input
+                type="text"
+                name="phone"
+                value="{{ old('phone') }}"
+                inputmode="numeric"
+                maxlength="10"
+                pattern="0[0-9]{9}"
+                title="Phone number must start with 0 and contain exactly 10 digits"
+            >
         </label>
 
         @if($parentRole)

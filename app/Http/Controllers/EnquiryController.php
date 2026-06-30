@@ -187,6 +187,10 @@ public function list(Request $request)
     if (!in_array($selectedLeadStatus, ['hot', 'warm', 'cold'], true)) {
         $selectedLeadStatus = null;
     }
+    $selectedLeadResult = strtolower(trim((string) $request->query('lead_result', '')));
+    if (!in_array($selectedLeadResult, ['active', 'lost', 'closed'], true)) {
+        $selectedLeadResult = null;
+    }
 
     if ($viewer && $viewer->role !== User::ROLE_SUPER_ADMIN) {
         $accessibleUserIds = $this->resolveAccessibleUserIds($viewer);
@@ -203,6 +207,10 @@ public function list(Request $request)
         $enquiriesQuery->whereHas('prospectSheet', function ($query) use ($selectedLeadStatus) {
             $query->whereRaw("LOWER(COALESCE(lead_status, '')) = ?", [$selectedLeadStatus]);
         });
+    }
+
+    if ($selectedLeadResult !== null) {
+        $enquiriesQuery->whereRaw("LOWER(COALESCE(followup_result, '')) = ?", [$selectedLeadResult]);
     }
 
     $enquiries = $enquiriesQuery

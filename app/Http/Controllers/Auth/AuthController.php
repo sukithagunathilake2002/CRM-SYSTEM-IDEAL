@@ -48,7 +48,7 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->route('dashboard.main');
+        return redirect()->route('dashboard.home');
     }
 
     public function roles(): View
@@ -97,7 +97,7 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->route('dashboard.main');
+        return redirect()->route('dashboard.home');
     }
 
     public function showRegistrationForm(string $roleSlug): View
@@ -131,9 +131,13 @@ class AuthController extends Controller
         $rules = [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
-            'employee_number' => ['required', 'string', 'max:50', Rule::unique('users', 'employee_number')],
-            'phone' => ['nullable', 'string', 'max:30'],
+            'employee_number' => ['required', 'regex:/^M\d{5}$/', Rule::unique('users', 'employee_number')],
+            'phone' => ['nullable', 'regex:/^0\d{9}$/'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ];
+        $messages = [
+            'phone.regex' => 'Phone number must start with 0 and contain exactly 10 digits.',
+            'employee_number.regex' => 'Employee number must start with M followed by exactly 5 digits.',
         ];
 
         if ($parentRole) {
@@ -142,7 +146,7 @@ class AuthController extends Controller
             $rules['manager_id'] = ['nullable', 'integer'];
         }
 
-        $validated = $request->validate($rules);
+        $validated = $request->validate($rules, $messages);
 
         $managerId = $validated['manager_id'] ?? null;
 
@@ -172,7 +176,7 @@ class AuthController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
-        return redirect()->route('dashboard.main');
+        return redirect()->route('dashboard.home');
     }
 
     public function logout(Request $request): RedirectResponse

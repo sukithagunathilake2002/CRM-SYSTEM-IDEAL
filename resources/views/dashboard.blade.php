@@ -113,23 +113,17 @@ $viewerId = (int) ($user?->id ?? 0);
                 <aside id="dashboardSidebar" class="crm-left-nav" aria-label="Dashboard navigation">
                     <div class="crm-left-group">
                         <p>Leads and Bookings</p>
-                        <a href="{{ route('enquiries.list.call') }}">Hot Leads</a>
-                        <a href="{{ route('enquiries.list.showroom') }}">Warm Leads</a>
-                        <a href="{{ route('enquiries.list.home') }}">Cold Leads</a>
-                        <a href="{{ url('/epr') }}">Active Bookings</a>
-                        <a href="{{ url('/epr') }}">Lost Leads</a>
-                    </div>
-
-                    <div class="crm-left-group">
-                        <p>Management</p>
-                        <a href="{{ route('enquiries.list') }}">ERP</a>
+                        <a href="{{ route('enquiries.list', ['lead_status' => 'hot']) }}">Hot Leads</a>
+                        <a href="{{ route('enquiries.list', ['lead_status' => 'warm']) }}">Warm Leads</a>
+                        <a href="{{ route('enquiries.list', ['lead_status' => 'cold']) }}">Cold Leads</a>
+                        <a href="{{ route('enquiries.list', ['lead_result' => 'active']) }}">Active Lead</a>
+                        <a href="{{ route('enquiries.list', ['lead_result' => 'lost']) }}">Lost Lead</a>
+                        <a href="{{ route('enquiries.list', ['lead_result' => 'closed']) }}">Closed Lead</a>
+                        <a href="{{ route('enquiries.list', ['registration' => 'pending']) }}">EPR</a>
+                        <a href="{{ url('/epr') }}">Active Booking</a>
                         <a href="{{ url('/epr') }}">Inactive Booking</a>
-                        <a href="{{ url('/epr') }}">Canceled Booking</a>
-                    </div>
-
-                    <hr class="crm-left-sep">
-
-                    <div class="crm-left-group">
+                        <a href="{{ url('/epr') }}">Cancelled Booking</a>
+                        <a href="{{ url('/epr') }}">Deliveries</a>
                         <a href="{{ route('enquiries.list') }}">All Leads</a>
                     </div>
 
@@ -141,6 +135,10 @@ $viewerId = (int) ($user?->id ?? 0);
                             <strong>{{ $displayName }}</strong>
                             <small>{{ $roleLabel }}</small>
                         </div>
+                        <form method="POST" action="{{ route('auth.logout') }}" class="crm-left-logout-form">
+                            @csrf
+                            <button type="submit" class="crm-left-logout-btn">Logout</button>
+                        </form>
                     </div>
                 </aside>
 

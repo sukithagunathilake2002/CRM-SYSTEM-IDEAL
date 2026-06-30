@@ -14,21 +14,4 @@
     </div>
 </section>
 
-<section class="card">
-    <h2>Your Hierarchy</h2>
-    <ul class="list">
-        <li>
-            <strong>Area Manager</strong>
-            <span>{{ optional($user->manager)->name ?? 'Not assigned' }}</span>
-        </li>
-        <li>
-            <strong>Head Of Sales</strong>
-            <span>{{ optional(optional($user->manager)->manager)->name ?? 'Not assigned' }}</span>
-        </li>
-    </ul>
-</section>
-
-@include('dashboards.partials.followup-escalations', ['followupEscalations' => $followupEscalations])
-
-@include('dashboards.partials.analytics', ['analytics' => $analytics])
 @endsection

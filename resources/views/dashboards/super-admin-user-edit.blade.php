@@ -21,12 +21,28 @@
 
         <label>
             Employee Number
-            <input type="text" name="employee_number" value="{{ old('employee_number', $managedUser->employee_number) }}">
+            <input
+                type="text"
+                name="employee_number"
+                value="{{ old('employee_number', $managedUser->employee_number) }}"
+                maxlength="6"
+                pattern="M[0-9]{5}"
+                placeholder="M00000"
+                title="Employee number must start with M followed by exactly 5 digits"
+            >
         </label>
 
         <label>
             Phone
-            <input type="text" name="phone" value="{{ old('phone', $managedUser->phone) }}">
+            <input
+                type="text"
+                name="phone"
+                value="{{ old('phone', $managedUser->phone) }}"
+                inputmode="numeric"
+                maxlength="10"
+                pattern="0[0-9]{9}"
+                title="Phone number must start with 0 and contain exactly 10 digits"
+            >
         </label>
 
         <label>

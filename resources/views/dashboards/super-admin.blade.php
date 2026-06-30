@@ -48,17 +48,6 @@
     color: #1e3a8a;
 }
 
-.stats-card-enhanced {
-    background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
-    border: none;
-    border-radius: 16px;
-}
-
-.stats-card-enhanced .stat {
-    background: white;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
 .users-card {
     background: linear-gradient(135deg, #ffffff 0%, #f3f4f6 100%);
     border-radius: 16px;
@@ -104,20 +93,6 @@ html.theme-dark .dashboard-header-card {
     background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 100%);
 }
 
-html.theme-dark .stats-card-enhanced {
-    background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
-}
-
-html.theme-dark .stats-card-enhanced .stat {
-    background: #374151;
-    border-color: #4b5563;
-}
-
-html.theme-dark .stats-card-enhanced .stat strong,
-html.theme-dark .stats-card-enhanced .stat span {
-    color: #f3f4f6;
-}
-
 html.theme-dark .users-card {
     background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
 }
@@ -155,20 +130,6 @@ html.theme-dark .analytics-card-enhanced {
         <a class="btn-link" href="{{ route('auth.register.form', 'area-manager') }}">Register Area Manager</a>
         <a class="btn-link" href="{{ route('auth.register.form', 'sales-consultant') }}">Register Sales Consultant</a>
         <a class="btn-link alt" href="{{ url('/epr') }}">Open EPR</a>
-    </div>
-</section>
-
-<section class="card stats-card-enhanced">
-    <div class="card-title-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M3 7a4 4 0 0 0 4 4h4a4 4 0 0 0 4-4M19 7a4 4 0 0 0-4-4h-4a4 4 0 0 0-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-        <h2>Head Of Sales Hierarchy Summary</h2>
-    </div>
-    <div class="stats-grid">
-        <div class="stat"><strong>{{ $dependentCounts['dependent_users'] }}</strong><span>Total Dependent Users</span></div>
-        <div class="stat"><strong>{{ $dependentCounts['area_managers'] }}</strong><span>Area Managers</span></div>
-        <div class="stat"><strong>{{ $dependentCounts['sales_consultants'] }}</strong><span>Sales Consultants</span></div>
     </div>
 </section>
 
