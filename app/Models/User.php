@@ -6,11 +6,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;  // <-- ADD THIS IMPORT
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;  // <-- ADD HasApiTokens HERE
 
     public const ROLE_SUPER_ADMIN = 'super_admin';
     public const ROLE_HEAD_OF_SALES = 'head_of_sales';
