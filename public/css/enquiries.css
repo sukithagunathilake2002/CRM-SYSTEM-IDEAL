@@ -530,7 +530,9 @@ body.filter-open {
 
 .chip-btn {
     background: linear-gradient(180deg, var(--chip-red) 0%, var(--chip-red-dark) 100%);
+    border: 0;
     color: #fff;
+    cursor: pointer;
     text-decoration: none;
     border-radius: 999px;
     padding: 6px 13px;

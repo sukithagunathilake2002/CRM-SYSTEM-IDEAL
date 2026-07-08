@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\EmiController;
 use App\Http\Controllers\EnquiryController;
 use App\Http\Controllers\FollowUpController;
@@ -60,6 +61,15 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/dashboard/analytics-report', [DashboardController::class, 'downloadAnalyticsReport'])
         ->name('dashboard.analytics.report');
+
+    Route::get('/dashboard/analytics', [DashboardController::class, 'analytics'])
+        ->name('dashboard.analytics');
+
+    Route::get('/dashboard/followup-summary', [DashboardController::class, 'followupSummary'])
+        ->name('dashboard.followup_summary');
+
+    Route::get('/dashboard/analytics/{section}', [DashboardController::class, 'analyticsDetail'])
+        ->name('dashboard.analytics.detail');
 
     // District EPR API routes
     Route::get('/dashboard/district/{district}/eprs', [DashboardController::class, 'getDistrictEprs'])
@@ -129,4 +139,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/booking/{enquiry}', [BookingController::class, 'show'])->name('booking.show');
     Route::post('/booking/{enquiry}', [BookingController::class, 'store'])->name('booking.store');
+
+    Route::get('/delivery/{enquiry}', [DeliveryController::class, 'show'])->name('delivery.show');
+    Route::post('/delivery/{enquiry}', [DeliveryController::class, 'store'])->name('delivery.store');
 });

@@ -218,6 +218,7 @@
                                 <a href="{{ route('followup.show', $e->id) }}" class="chip-btn">Followup</a>
                                 <a href="{{ route('prospect.show', $e->id) }}" class="chip-btn">Prospect Sheet</a>
                                 <a href="{{ route('booking.show', $e->id) }}" class="chip-btn">Booking</a>
+                                <a href="{{ route('delivery.show', $e->id) }}" class="chip-btn">Delivery</a>
                                 @if(auth()->user()?->role === \App\Models\User::ROLE_SALES_CONSULTANT && (int) $e->user_id === (int) auth()->id())
                                     <a href="{{ route('lead_transfer.request.create', ['enquiry_id' => $e->id]) }}" class="chip-btn">Transfer</a>
                                 @endif

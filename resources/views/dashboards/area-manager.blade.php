@@ -10,6 +10,7 @@
         <a class="btn-link" href="{{ route('lead_transfer.approvals') }}">
             Transfer Approvals{{ ($pendingTransferRequestCount ?? 0) > 0 ? ' (' . $pendingTransferRequestCount . ')' : '' }}
         </a>
+        <a class="btn-link" href="{{ route('dashboard.analytics') }}">Analytics Filters</a>
         <a class="btn-link alt" href="{{ url('/epr') }}">Open EPR</a>
     </div>
 </section>
@@ -28,6 +29,4 @@
         @endforelse
     </ul>
 </section>
-
-@include('dashboards.partials.analytics', ['analytics' => $analytics])
 @endsection

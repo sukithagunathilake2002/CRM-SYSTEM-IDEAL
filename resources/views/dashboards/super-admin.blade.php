@@ -16,6 +16,7 @@
     border: none;
     color: white;
     border-radius: 16px;
+    text-align: center;
 }
 
 .dashboard-header-card h1,
@@ -23,9 +24,22 @@
     color: white;
 }
 
+.dashboard-header-card .card-title-icon,
+.dashboard-header-card .quick-links {
+    justify-content: center;
+}
+
+.dashboard-header-card .stats-grid {
+    grid-template-columns: repeat(3, minmax(180px, 1fr));
+    max-width: 980px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
 .dashboard-header-card .stat {
     background: rgba(255, 255, 255, 0.15);
     border: 1px solid rgba(255, 255, 255, 0.3);
+    text-align: center;
 }
 
 .dashboard-header-card .stat strong,
@@ -108,6 +122,13 @@ html.theme-dark .district-card {
 html.theme-dark .analytics-card-enhanced {
     background: linear-gradient(135deg, #172554 0%, #111827 100%);
 }
+
+@media (max-width: 760px) {
+    .dashboard-header-card .stats-grid {
+        grid-template-columns: 1fr;
+        max-width: 420px;
+    }
+}
 </style>
 
 <section class="card dashboard-header-card">
@@ -129,59 +150,90 @@ html.theme-dark .analytics-card-enhanced {
         <a class="btn-link" href="{{ route('auth.register.form', 'head-of-sales') }}">Register Head Of Sales</a>
         <a class="btn-link" href="{{ route('auth.register.form', 'area-manager') }}">Register Area Manager</a>
         <a class="btn-link" href="{{ route('auth.register.form', 'sales-consultant') }}">Register Sales Consultant</a>
+        <a class="btn-link" href="{{ route('dashboard.analytics') }}">Analytics Filters</a>
         <a class="btn-link alt" href="{{ url('/epr') }}">Open EPR</a>
     </div>
 </section>
 
 <section class="card users-card">
-    <div class="card-title-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-        <h2>Manage All Users</h2>
-    </div>
-    <p>Edit user details, role assignment, reporting manager, and password.</p>
-    <div class="quick-links manage-users-actions">
-        <a class="btn-link" href="{{ route('dashboard.super_admin.consultant_transfer.form') }}">Transfer Consultant Data</a>
-    </div>
+    @php
+        $manageableUserGroups = collect($manageableUsers)->groupBy('role');
+        $manageableRoleOrder = [
+            \App\Models\User::ROLE_HEAD_OF_SALES,
+            \App\Models\User::ROLE_AREA_MANAGER,
+            \App\Models\User::ROLE_SALES_CONSULTANT,
+        ];
+    @endphp
+    <details class="manage-users-toggle">
+        <summary>
+            <span class="card-title-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <span class="manage-users-heading">Manage All Users</span>
+            </span>
+            <span class="manage-users-summary-count">{{ count($manageableUsers) }} users</span>
+        </summary>
 
-    <div class="analytics-table-wrap">
-        <table class="analytics-table">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Employee Number</th>
-                    <th>Role</th>
-                    <th>Manager</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($manageableUsers as $managedUser)
-                <tr>
-                    <td>{{ $managedUser->name }}</td>
-                    <td>{{ $managedUser->email }}</td>
-                    <td>{{ $managedUser->employee_number ?: '-' }}</td>
-                    <td>{{ $managedUser->role_label }}</td>
-                    <td>{{ $managedUser->manager?->name ?? '-' }}</td>
-                    <td>
-                        <div class="quick-links user-table-actions">
-                            <a class="btn-link alt" href="{{ route('dashboard.super_admin.users.edit', $managedUser) }}">Edit</a>
-                            @if($managedUser->role === \App\Models\User::ROLE_SALES_CONSULTANT)
-                            <a class="btn-link" href="{{ route('dashboard.super_admin.consultant_transfer.form', ['source_consultant_id' => $managedUser->id]) }}">Transfer Data</a>
-                            @endif
-                        </div>
-                    </td>
-                </tr>
-                @empty
-                <tr>
-                    <td colspan="6">No users found.</td>
-                </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
+        <p>Edit user details, role assignment, reporting manager, and password.</p>
+        <div class="quick-links manage-users-actions">
+            <a class="btn-link" href="{{ route('dashboard.super_admin.consultant_transfer.form') }}">Transfer Consultant Data</a>
+        </div>
+
+        <div class="manage-users-groups">
+            @forelse($manageableRoleOrder as $roleKey)
+                @php
+                    $roleUsers = $manageableUserGroups->get($roleKey, collect());
+                    $roleLabel = \App\Models\User::ROLE_LABELS[$roleKey] ?? ucwords(str_replace('_', ' ', $roleKey));
+                @endphp
+                <details class="manage-users-group">
+                    <summary>
+                        <strong>{{ $roleLabel }}</strong>
+                        <span>{{ $roleUsers->count() }} user{{ $roleUsers->count() === 1 ? '' : 's' }}</span>
+                    </summary>
+                    <div class="analytics-table-wrap">
+                        <table class="analytics-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Employee Number</th>
+                                    <th>Role</th>
+                                    <th>Manager</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($roleUsers as $managedUser)
+                                <tr>
+                                    <td>{{ $managedUser->name }}</td>
+                                    <td>{{ $managedUser->email }}</td>
+                                    <td>{{ $managedUser->employee_number ?: '-' }}</td>
+                                    <td>{{ $managedUser->role_label }}</td>
+                                    <td>{{ $managedUser->manager?->name ?? '-' }}</td>
+                                    <td>
+                                        <div class="quick-links user-table-actions">
+                                            <a class="btn-link alt" href="{{ route('dashboard.super_admin.users.edit', $managedUser) }}">Edit</a>
+                                            @if($managedUser->role === \App\Models\User::ROLE_SALES_CONSULTANT)
+                                            <a class="btn-link" href="{{ route('dashboard.super_admin.consultant_transfer.form', ['source_consultant_id' => $managedUser->id]) }}">Transfer Data</a>
+                                            @endif
+                                        </div>
+                                    </td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="6">No {{ $roleLabel }} users found.</td>
+                                </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+            @empty
+                <p>No users found.</p>
+            @endforelse
+        </div>
+    </details>
 </section>
 
 <section class="card hierarchy-card">
@@ -194,43 +246,62 @@ html.theme-dark .analytics-card-enhanced {
     <ul class="list hierarchy-list">
         @forelse($headHierarchy as $head)
         <li>
-            <strong>{{ $head['name'] }} (Head Of Sales)</strong>
-            <span>{{ $head['email'] }}</span>
-            <span>
-                Dependent Users: {{ $head['dependent_users_count'] }} |
-                Area Managers: {{ $head['area_managers_count'] }} |
-                Sales Consultants: {{ $head['sales_consultants_count'] }}
-            </span>
+            <details class="hierarchy-toggle hierarchy-head-toggle">
+                <summary>
+                    <span class="hierarchy-summary-main">
+                        <strong>{{ $head['name'] }} (Head Of Sales)</strong>
+                        <span>{{ $head['email'] }}</span>
+                    </span>
+                    <span class="hierarchy-summary-counts">
+                        Dependent Users: {{ $head['dependent_users_count'] }} |
+                        Area Managers: {{ $head['area_managers_count'] }} |
+                        Sales Consultants: {{ $head['sales_consultants_count'] }}
+                    </span>
+                </summary>
 
-            @if(!empty($head['area_managers']))
-            <div class="hierarchy-children">
-                @foreach($head['area_managers'] as $areaManager)
-                <div class="hierarchy-child">
-                    <strong>{{ $areaManager['name'] }} (Area Manager)</strong>
-                    <span>{{ $areaManager['email'] }}</span>
-                    <span>Sales Consultants: {{ $areaManager['sales_consultants_count'] }}</span>
+                @if(!empty($head['area_managers']))
+                <div class="hierarchy-children">
+                    @foreach($head['area_managers'] as $areaManager)
+                    <details class="hierarchy-child hierarchy-toggle">
+                        <summary>
+                            <span class="hierarchy-summary-main">
+                                <strong>{{ $areaManager['name'] }} (Area Manager)</strong>
+                                <span>{{ $areaManager['email'] }}</span>
+                            </span>
+                            <span class="hierarchy-summary-counts">Sales Consultants: {{ $areaManager['sales_consultants_count'] }}</span>
+                        </summary>
 
-                    @if(!empty($areaManager['sales_consultants']))
-                    <div class="hierarchy-leaf-wrap">
-                        @foreach($areaManager['sales_consultants'] as $salesConsultant)
-                        <span class="hierarchy-pill">{{ $salesConsultant['name'] }}</span>
-                        @endforeach
-                    </div>
-                    @else
-                    <span>No Sales Consultants assigned under this Area Manager yet.</span>
-                    @endif
+                        @if(!empty($areaManager['sales_consultants']))
+                        <div class="hierarchy-leaf-wrap">
+                            @foreach($areaManager['sales_consultants'] as $salesConsultant)
+                            <span class="hierarchy-pill">{{ $salesConsultant['name'] }}</span>
+                            @endforeach
+                        </div>
+                        @else
+                        <span>No Sales Consultants assigned under this Area Manager yet.</span>
+                        @endif
+                    </details>
+                    @endforeach
                 </div>
-                @endforeach
-            </div>
-            @else
-            <span>No Area Managers assigned under this Head Of Sales yet.</span>
-            @endif
+                @else
+                <span>No Area Managers assigned under this Head Of Sales yet.</span>
+                @endif
+            </details>
         </li>
         @empty
         <li>No Head Of Sales users yet.</li>
         @endforelse
     </ul>
 </section>
+
+<div class="hierarchy-metric-actions" aria-label="Lead and followup analytics shortcuts">
+    <a class="hierarchy-metric-btn analytics" href="{{ route('dashboard.analytics') }}">Analytics Filters</a>
+    <a class="hierarchy-metric-btn active" href="{{ route('dashboard.analytics.detail', 'active') }}">Active</a>
+    <a class="hierarchy-metric-btn booking" href="{{ route('dashboard.analytics.detail', 'booking') }}">Booking</a>
+    <a class="hierarchy-metric-btn lost" href="{{ route('dashboard.analytics.detail', 'lost') }}">Lost</a>
+    <a class="hierarchy-metric-btn closed" href="{{ route('dashboard.analytics.detail', 'closed') }}">Closed Lead</a>
+    <a class="hierarchy-metric-btn followup" href="{{ route('dashboard.followup_summary') }}">FollowUp</a>
+</div>
 
 <section id="districtOverviewCard" class="card district-card">
     <div class="card-title-icon">
@@ -284,10 +355,6 @@ html.theme-dark .analytics-card-enhanced {
         </div>
     </div>
 </section>
-
-@include('dashboards.partials.followup-escalations', ['followupEscalations' => $followupEscalations])
-
-@include('dashboards.partials.analytics', ['analytics' => $analytics])
 
 <script>
 (function() {
@@ -606,6 +673,43 @@ html.theme-dark .analytics-card-enhanced {
             console.error('Error loading map:', error);
             mount.innerHTML = '<p>Unable to load district map data.</p>';
         });
+})();
+</script>
+<script>
+(() => {
+    const buttons = Array.from(document.querySelectorAll('.hierarchy-metric-btn[data-analytics-toggle][data-analytics-card], .hierarchy-metric-btn[data-scroll-target]'));
+    if (!buttons.length) {
+        return;
+    }
+
+    buttons.forEach((button) => {
+        button.addEventListener('click', () => {
+            const scrollTarget = document.getElementById(button.dataset.scrollTarget || '');
+            if (scrollTarget) {
+                scrollTarget.hidden = false;
+                button.setAttribute('aria-expanded', 'true');
+                window.requestAnimationFrame(() => {
+                    scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    window.dispatchEvent(new Event('resize'));
+                });
+                return;
+            }
+
+            const toggle = document.getElementById(button.dataset.analyticsToggle || '');
+            const card = document.getElementById(button.dataset.analyticsCard || '');
+
+            if (!toggle || !card) {
+                return;
+            }
+
+            if (card.hidden) {
+                toggle.click();
+                return;
+            }
+
+            card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    });
 })();
 </script>
 @endsection

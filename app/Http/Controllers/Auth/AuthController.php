@@ -14,36 +14,43 @@ class AuthController extends Controller
 {
     public function showCommonLoginForm(): View
     {
-        return view('auth.login-common', [
-            'roles' => User::ROLE_HIERARCHY,
-            'labels' => User::ROLE_LABELS,
-            'slugs' => User::ROLE_SLUGS,
-        ]);
+        return view('auth.login-common');
     }
 
     public function loginCommon(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'role' => ['required', Rule::in(array_values(User::ROLE_SLUGS))],
-            'email' => ['required', 'email'],
+            'email' => ['required', 'string', 'max:255'],
             'password' => ['required', 'string'],
             'remember' => ['nullable', 'boolean'],
         ]);
 
-        $role = $this->resolveRoleFromSlug($validated['role']);
+        $identifier = trim((string) $validated['email']);
+        $matchedUsers = User::query()
+            ->where('email', $identifier)
+            ->orWhere('name', $identifier)
+            ->limit(2)
+            ->get(['id', 'email']);
+
+        if ($matchedUsers->count() !== 1) {
+            return back()
+                ->withErrors(['email' => 'Invalid credentials.'])
+                ->withInput($request->only('email', 'remember'));
+        }
+
+        $matchedUser = $matchedUsers->first();
 
         $attemptData = [
-            'email' => $validated['email'],
+            'email' => $matchedUser->email,
             'password' => $validated['password'],
-            'role' => $role,
         ];
 
         $remember = (bool) ($validated['remember'] ?? false);
 
         if (!Auth::attempt($attemptData, $remember)) {
             return back()
-                ->withErrors(['email' => 'Invalid credentials for this user type.'])
-                ->withInput($request->only('role', 'email', 'remember'));
+                ->withErrors(['email' => 'Invalid credentials.'])
+                ->withInput($request->only('email', 'remember'));
         }
 
         $request->session()->regenerate();

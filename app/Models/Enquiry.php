@@ -108,4 +108,9 @@ class Enquiry extends Model
     {
         return $this->hasOne(Booking::class);
     }
+
+    public function delivery()
+    {
+        return $this->hasOne(Delivery::class);
+    }
 }

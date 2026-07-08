@@ -239,6 +239,57 @@ class DashboardController extends Controller
         return view('dashboards.area-manager', compact('salesConsultants', 'pendingTransferRequestCount', 'analytics', 'dashboardEpds', 'districtEpData'));
     }
 
+    public function analytics(Request $request): View|RedirectResponse
+    {
+        $user = $request->user();
+
+        if ($user?->role === User::ROLE_SALES_CONSULTANT) {
+            return redirect()->route('dashboard.main');
+        }
+
+        $analytics = $this->buildAnalytics($user, $request);
+
+        return view('dashboards.analytics', compact('analytics'));
+    }
+
+    public function followupSummary(Request $request): View|RedirectResponse
+    {
+        $user = $request->user();
+
+        if (!in_array($user?->role, [User::ROLE_SUPER_ADMIN, User::ROLE_HEAD_OF_SALES], true)) {
+            return redirect()->route('dashboard.home');
+        }
+
+        $followupEscalations = $this->buildFollowupEscalations($user);
+
+        return view('dashboards.followup-summary', compact('followupEscalations'));
+    }
+
+    public function analyticsDetail(Request $request, string $section): View|RedirectResponse
+    {
+        $user = $request->user();
+
+        if ($user?->role === User::ROLE_SALES_CONSULTANT) {
+            return redirect()->route('dashboard.main');
+        }
+
+        $sections = [
+            'active' => 'Active Analytics',
+            'booking' => 'Booking Analytics',
+            'lost' => 'Lost Analytics',
+            'closed' => 'Closed Lead Analytics',
+        ];
+
+        if (!array_key_exists($section, $sections)) {
+            abort(404);
+        }
+
+        $analytics = $this->buildAnalytics($user, $request);
+        $sectionTitle = $sections[$section];
+
+        return view('dashboards.analytics-section', compact('analytics', 'section', 'sectionTitle'));
+    }
+
     public function salesConsultant(Request $request): View
     {
         $user = $request->user();
@@ -1150,15 +1201,36 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
 
         $enquiriesQuery = Enquiry::query()
             ->leftJoin('customers', 'customers.id', '=', 'enquiries.customer_id')
+            ->leftJoin('vehicles', 'vehicles.id', '=', 'enquiries.vehicle_id')
+            ->leftJoin('prospect_sheets', 'prospect_sheets.enquiry_id', '=', 'enquiries.id')
+            ->leftJoin('bookings', 'bookings.enquiry_id', '=', 'enquiries.id')
             ->select([
                 'enquiries.id',
                 'enquiries.user_id',
+                'enquiries.status as enquiry_status',
+                'enquiries.lead_source',
+                'enquiries.source_of_information as enquiry_source_of_information',
                 'enquiries.followup_result',
                 'enquiries.followup_lead_temperature',
                 'enquiries.follow_type',
                 'enquiries.followup_status',
+                'enquiries.followup_customer_comment',
+                'enquiries.followup_lost_to',
+                'enquiries.followup_lost_competition_brand',
+                'enquiries.followup_lost_competition_model',
+                'enquiries.followup_lost_codealer_name',
+                'enquiries.followup_lost_reject_reasons',
+                'enquiries.followup_lost_reject_other_text',
                 'enquiries.created_at',
                 'customers.district as customer_district',
+                'customers.location as customer_location',
+                'vehicles.model as vehicle_model',
+                'prospect_sheets.lead_status as prospect_lead_status',
+                'prospect_sheets.current_step as prospect_current_step',
+                'prospect_sheets.source_of_information as prospect_source_of_information',
+                'bookings.id as booking_id',
+                'bookings.created_at as booking_created_at',
+                'bookings.interested_model as booking_interested_model',
             ]);
 
         if ($viewer->role === User::ROLE_SALES_CONSULTANT) {
@@ -1405,6 +1477,11 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
             }
         }
 
+        $lostAnalytics = $this->buildLostAnalytics($enquiries, $usersById);
+        $closedAnalytics = $this->buildClosedAnalytics($enquiries, $usersById);
+        $activeAnalytics = $this->buildActiveAnalytics($enquiries, $usersById);
+        $bookingAnalytics = $this->buildBookingAnalytics($enquiries, $usersById);
+
         $byUser = [];
         foreach ($users as $user) {
             $stats = $userStats[(string) $user->id] ?? $this->emptyAnalyticsStats();
@@ -1646,11 +1723,644 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
                     'values' => array_map(fn(array $row): int => (int) $row['leads'], $districtRows),
                 ],
             ],
+            'lost_analytics' => $lostAnalytics,
+            'closed_analytics' => $closedAnalytics,
+            'active_analytics' => $activeAnalytics,
+            'booking_analytics' => $bookingAnalytics,
             'by_user' => $byUser,
             'by_role' => $byRoleRows,
             'by_district' => $districtRows,
             'current_hierarchy' => $currentHierarchy,
         ];
+    }
+
+    private function buildActiveAnalytics(Collection $enquiries, Collection $usersById): array
+    {
+        $activeRows = $enquiries
+            ->filter(fn(Enquiry $enquiry): bool => $this->normalizeLeadResult($enquiry->followup_result) === 'active')
+            ->values();
+        $totalActive = $activeRows->count();
+
+        $groups = [
+            'registration' => [],
+            'month' => [],
+            'model' => [],
+            'lead_source' => [],
+            'source_information' => [],
+            'sales_consultant' => [],
+            'area_manager' => [],
+            'lead_state' => [],
+        ];
+        $monthOrder = [];
+
+        foreach ($activeRows as $enquiry) {
+            $createdAt = $this->analyticsDate($enquiry->created_at);
+            $monthKey = $createdAt->format('Y-m');
+            $monthOrder[$monthKey] = $createdAt->format('M Y');
+
+            $this->addActiveAggregate(
+                $groups['registration'],
+                $this->isRegisteredAnalyticsLead($enquiry) ? 'REGISTERED' : 'EPR'
+            );
+            $this->addActiveAggregate($groups['month'], $monthKey);
+            $this->addActiveAggregate($groups['model'], $this->displayAnalyticsLabel($enquiry->vehicle_model, 'Not specified'));
+            $this->addActiveAggregate($groups['lead_source'], $this->displayAnalyticsLabel($enquiry->lead_source, 'Not specified'));
+            $this->addActiveAggregate(
+                $groups['source_information'],
+                $this->displayAnalyticsLabel($enquiry->prospect_source_of_information ?: $enquiry->enquiry_source_of_information, 'Not specified')
+            );
+            $this->addActiveAggregate(
+                $groups['lead_state'],
+                $this->displayAnalyticsLabel($enquiry->prospect_lead_status ?: $enquiry->followup_lead_temperature, 'Not specified')
+            );
+
+            $owner = $enquiry->user_id ? $usersById->get((int) $enquiry->user_id) : null;
+            $this->addActiveAggregate($groups['sales_consultant'], $owner instanceof User ? $owner->name : 'Unassigned');
+            $areaManager = $this->resolveAreaManagerForAnalytics($owner, $usersById);
+            $this->addActiveAggregate($groups['area_manager'], $areaManager instanceof User ? $areaManager->name : 'Unassigned');
+        }
+
+        return [
+            'total' => $totalActive,
+            'tabs' => [
+                ['key' => 'registration', 'label' => 'EPR Vs Registered', 'title' => 'EPR Vs Registered', 'metric' => 'count', 'rows' => $this->formatActiveRegistrationRows($groups['registration'], $totalActive)],
+                ['key' => 'month', 'label' => 'Month Wise', 'title' => 'Month Wise', 'metric' => 'count', 'rows' => $this->formatActiveMonthRows($groups['month'], $monthOrder, $totalActive)],
+                ['key' => 'model', 'label' => 'Model Wise', 'title' => 'Model Wise', 'metric' => 'count', 'rows' => $this->formatActiveAggregateRows($groups['model'], $totalActive, 12)],
+                ['key' => 'lead_source', 'label' => 'Lead Source Wise', 'title' => 'Lead Source Wise', 'metric' => 'count', 'rows' => $this->formatActiveAggregateRows($groups['lead_source'], $totalActive, 12)],
+                ['key' => 'source_information', 'label' => 'Source Of Information Wise', 'title' => 'Source Of Information Wise', 'metric' => 'count', 'rows' => $this->formatActiveAggregateRows($groups['source_information'], $totalActive, 12)],
+                ['key' => 'sales_consultant', 'label' => 'Sales Consultant Wise', 'title' => 'Sales Consultant Wise', 'metric' => 'count', 'rows' => $this->formatActiveAggregateRows($groups['sales_consultant'], $totalActive, 12)],
+                ['key' => 'area_manager', 'label' => 'Area Manager Wise', 'title' => 'Area Manager Wise', 'metric' => 'count', 'rows' => $this->formatActiveAggregateRows($groups['area_manager'], $totalActive, 12)],
+                ['key' => 'lead_state', 'label' => 'Lead State Wise', 'title' => 'Lead State Wise', 'metric' => 'count', 'rows' => $this->formatActiveAggregateRows($groups['lead_state'], $totalActive, 12)],
+            ],
+        ];
+    }
+
+    private function addActiveAggregate(array &$groups, ?string $label): void
+    {
+        $label = $this->displayAnalyticsLabel($label, 'Not specified');
+        $groups[$label] = ($groups[$label] ?? 0) + 1;
+    }
+
+    private function formatActiveAggregateRows(array $groups, int $totalActive, int $limit): array
+    {
+        arsort($groups);
+
+        return array_values(array_map(
+            fn(string $label, int $count): array => [
+                'label' => $label,
+                'count' => $count,
+                'contribution' => $totalActive > 0 ? round(($count / $totalActive) * 100, 2) : 0,
+            ],
+            array_keys(array_slice($groups, 0, $limit, true)),
+            array_values(array_slice($groups, 0, $limit, true))
+        ));
+    }
+
+    private function formatActiveRegistrationRows(array $groups, int $totalActive): array
+    {
+        if ($totalActive <= 0) {
+            return [];
+        }
+
+        $ordered = [
+            'REGISTERED' => (int) ($groups['REGISTERED'] ?? 0),
+            'EPR' => (int) ($groups['EPR'] ?? 0),
+        ];
+
+        return array_values(array_map(
+            fn(string $label, int $count): array => [
+                'label' => $label,
+                'count' => $count,
+                'contribution' => $totalActive > 0 ? round(($count / $totalActive) * 100, 2) : 0,
+            ],
+            array_keys($ordered),
+            array_values($ordered)
+        ));
+    }
+
+    private function formatActiveMonthRows(array $groups, array $monthOrder, int $totalActive): array
+    {
+        ksort($groups);
+
+        return array_values(array_map(
+            fn(string $monthKey, int $count): array => [
+                'label' => $monthOrder[$monthKey] ?? $monthKey,
+                'count' => $count,
+                'contribution' => $totalActive > 0 ? round(($count / $totalActive) * 100, 2) : 0,
+            ],
+            array_keys($groups),
+            array_values($groups)
+        ));
+    }
+
+    private function isRegisteredAnalyticsLead(Enquiry $enquiry): bool
+    {
+        $leadState = strtolower(trim((string) $enquiry->prospect_lead_status));
+
+        return (int) ($enquiry->prospect_current_step ?? 0) >= 5
+            && in_array($leadState, ['hot', 'warm', 'cold'], true);
+    }
+
+    private function buildBookingAnalytics(Collection $enquiries, Collection $usersById): array
+    {
+        $bookingRows = $enquiries
+            ->filter(fn(Enquiry $enquiry): bool => !empty($enquiry->booking_id))
+            ->values();
+        $totalBookings = $bookingRows->count();
+        $totalEnquired = $enquiries->count();
+
+        $groups = [
+            'type' => [],
+            'month_booked' => [],
+            'model' => [],
+            'lead_source' => [],
+            'source_information' => [],
+            'sales_consultant' => [],
+            'area_manager' => [],
+            'lead_state' => [],
+        ];
+        $bookedMonthOrder = [];
+
+        foreach ($bookingRows as $enquiry) {
+            $bookingDate = $this->analyticsDate($enquiry->booking_created_at ?: $enquiry->created_at);
+            $monthKey = $bookingDate->format('Y-m');
+            $bookedMonthOrder[$monthKey] = $bookingDate->format('M Y');
+
+            $this->addBookingAggregate($groups['type'], $this->bookingTypeAnalyticsLabel($enquiry));
+            $this->addBookingAggregate($groups['month_booked'], $monthKey);
+            $this->addBookingAggregate($groups['model'], $this->displayAnalyticsLabel($enquiry->booking_interested_model ?: $enquiry->vehicle_model, 'Not specified'));
+            $this->addBookingAggregate($groups['lead_source'], $this->displayAnalyticsLabel($enquiry->lead_source, 'Not specified'));
+            $this->addBookingAggregate(
+                $groups['source_information'],
+                $this->displayAnalyticsLabel($enquiry->prospect_source_of_information ?: $enquiry->enquiry_source_of_information, 'Not specified')
+            );
+            $this->addBookingAggregate(
+                $groups['lead_state'],
+                $this->displayAnalyticsLabel($enquiry->prospect_lead_status ?: $enquiry->followup_lead_temperature, 'Not specified')
+            );
+
+            $owner = $enquiry->user_id ? $usersById->get((int) $enquiry->user_id) : null;
+            $this->addBookingAggregate($groups['sales_consultant'], $owner instanceof User ? $owner->name : 'Unassigned');
+            $areaManager = $this->resolveAreaManagerForAnalytics($owner, $usersById);
+            $this->addBookingAggregate($groups['area_manager'], $areaManager instanceof User ? $areaManager->name : 'Unassigned');
+        }
+
+        return [
+            'total' => $totalBookings,
+            'tabs' => [
+                ['key' => 'type', 'label' => 'Type of Booking', 'title' => 'Type of Booking', 'metric' => 'count', 'rows' => $this->formatBookingTypeRows($groups['type'], $totalBookings)],
+                ['key' => 'month_booked', 'label' => 'Month Wise - Booked', 'title' => 'Month Wise - Booked', 'metric' => 'count', 'rows' => $this->formatBookingMonthRows($groups['month_booked'], $bookedMonthOrder, $totalBookings)],
+                ['key' => 'model', 'label' => 'Model Wise', 'title' => 'Model Wise', 'metric' => 'count', 'rows' => $this->formatBookingAggregateRows($groups['model'], $totalBookings, 12)],
+                ['key' => 'lead_source', 'label' => 'Lead Source Wise', 'title' => 'Lead Source Wise', 'metric' => 'count', 'rows' => $this->formatBookingAggregateRows($groups['lead_source'], $totalBookings, 12)],
+                ['key' => 'source_information', 'label' => 'Source Of Information Wise', 'title' => 'Source Of Information Wise', 'metric' => 'count', 'rows' => $this->formatBookingAggregateRows($groups['source_information'], $totalBookings, 12)],
+                ['key' => 'sales_consultant', 'label' => 'Sales Consultant Wise', 'title' => 'Sales Consultant Wise', 'metric' => 'count', 'rows' => $this->formatBookingAggregateRows($groups['sales_consultant'], $totalBookings, 12)],
+                ['key' => 'area_manager', 'label' => 'Area Manager Wise', 'title' => 'Area Manager Wise', 'metric' => 'count', 'rows' => $this->formatBookingAggregateRows($groups['area_manager'], $totalBookings, 12)],
+                ['key' => 'lead_state', 'label' => 'Lead State Wise', 'title' => 'Lead State Wise', 'metric' => 'count', 'rows' => $this->formatBookingAggregateRows($groups['lead_state'], $totalBookings, 12)],
+                ['key' => 'month_enquired', 'label' => 'Month Wise - Enquired', 'title' => 'Month Wise - Enquired', 'metric' => 'enquired_leads', 'total' => $totalEnquired, 'rows' => $this->formatBookingEnquiredMonthRows($enquiries, $totalEnquired)],
+            ],
+        ];
+    }
+
+    private function addBookingAggregate(array &$groups, ?string $label): void
+    {
+        $label = $this->displayAnalyticsLabel($label, 'Not specified');
+        $groups[$label] = ($groups[$label] ?? 0) + 1;
+    }
+
+    private function formatBookingAggregateRows(array $groups, int $totalBookings, int $limit): array
+    {
+        arsort($groups);
+
+        return array_values(array_map(
+            fn(string $label, int $count): array => [
+                'label' => $label,
+                'count' => $count,
+                'contribution' => $totalBookings > 0 ? round(($count / $totalBookings) * 100, 2) : 0,
+            ],
+            array_keys(array_slice($groups, 0, $limit, true)),
+            array_values(array_slice($groups, 0, $limit, true))
+        ));
+    }
+
+    private function formatBookingTypeRows(array $groups, int $totalBookings): array
+    {
+        if ($totalBookings <= 0) {
+            return [];
+        }
+
+        $ordered = [
+            'BOOKED' => (int) ($groups['BOOKED'] ?? 0),
+            'CANCELLED' => (int) ($groups['CANCELLED'] ?? 0),
+            'INACTIVE' => (int) ($groups['INACTIVE'] ?? 0),
+        ];
+
+        return array_values(array_map(
+            fn(string $label, int $count): array => [
+                'label' => $label,
+                'count' => $count,
+                'contribution' => $totalBookings > 0 ? round(($count / $totalBookings) * 100, 2) : 0,
+            ],
+            array_keys($ordered),
+            array_values($ordered)
+        ));
+    }
+
+    private function formatBookingMonthRows(array $groups, array $monthOrder, int $totalBookings): array
+    {
+        ksort($groups);
+
+        return array_values(array_map(
+            fn(string $monthKey, int $count): array => [
+                'label' => $monthOrder[$monthKey] ?? $monthKey,
+                'count' => $count,
+                'contribution' => $totalBookings > 0 ? round(($count / $totalBookings) * 100, 2) : 0,
+            ],
+            array_keys($groups),
+            array_values($groups)
+        ));
+    }
+
+    private function formatBookingEnquiredMonthRows(Collection $enquiries, int $totalEnquired): array
+    {
+        $groups = [];
+        $monthOrder = [];
+
+        foreach ($enquiries as $enquiry) {
+            $createdAt = $this->analyticsDate($enquiry->created_at);
+            $monthKey = $createdAt->format('Y-m');
+            $monthOrder[$monthKey] = $createdAt->format('M Y');
+            $groups[$monthKey] = ($groups[$monthKey] ?? 0) + 1;
+        }
+
+        ksort($groups);
+
+        return array_values(array_map(
+            fn(string $monthKey, int $count): array => [
+                'label' => $monthOrder[$monthKey] ?? $monthKey,
+                'enquired_leads' => $count,
+                'contribution' => $totalEnquired > 0 ? round(($count / $totalEnquired) * 100, 2) : 0,
+            ],
+            array_keys($groups),
+            array_values($groups)
+        ));
+    }
+
+    private function bookingTypeAnalyticsLabel(Enquiry $enquiry): string
+    {
+        $status = strtolower(trim((string) $enquiry->enquiry_status));
+
+        if (in_array($status, ['cancelled', 'canceled'], true)) {
+            return 'CANCELLED';
+        }
+
+        if (in_array($status, ['inactive', 'closed', 'lost'], true)) {
+            return 'INACTIVE';
+        }
+
+        return 'BOOKED';
+    }
+
+    private function buildLostAnalytics(Collection $enquiries, Collection $usersById): array
+    {
+        $lostRows = $enquiries
+            ->filter(fn(Enquiry $enquiry): bool => $this->normalizeLeadResult($enquiry->followup_result) === 'lost')
+            ->values();
+        $totalLost = $lostRows->count();
+
+        $groups = [
+            'lost_to' => [],
+            'lead_source' => [],
+            'month' => [],
+            'lost_model_own' => [],
+            'area_manager' => [],
+            'sales_consultant' => [],
+            'city' => [],
+            'lost_to_model' => [],
+            'lost_to_brand' => [],
+            'reasons_competition' => [],
+            'lost_to_co_dealer' => [],
+            'reasons_co_dealer' => [],
+            'lead_status' => [],
+            'month_wise_enquired' => [],
+        ];
+
+        $monthOrder = [];
+
+        foreach ($lostRows as $enquiry) {
+            $lostTo = strtolower(trim((string) $enquiry->followup_lost_to));
+            $lostToLabel = match ($lostTo) {
+                'competitor' => 'Competitor',
+                'co_dealer', 'codealer', 'co-dealer' => 'Co-Dealer',
+                default => 'Not specified',
+            };
+
+            $this->addLostAggregate($groups['lost_to'], $lostToLabel);
+            $this->addLostAggregate($groups['lead_source'], $this->displayAnalyticsLabel($enquiry->lead_source, 'Not specified'));
+            $this->addLostAggregate($groups['lost_model_own'], $this->displayAnalyticsLabel($enquiry->vehicle_model, 'Not specified'));
+            $this->addLostAggregate($groups['city'], $this->displayAnalyticsLabel($enquiry->customer_location ?: $enquiry->customer_district, 'Not specified'));
+            $this->addLostAggregate($groups['lost_to_model'], $this->displayAnalyticsLabel($enquiry->followup_lost_competition_model, 'Not specified'));
+            $this->addLostAggregate($groups['lost_to_brand'], $this->displayAnalyticsLabel($enquiry->followup_lost_competition_brand, 'Not specified'));
+            $this->addLostAggregate($groups['lost_to_co_dealer'], $this->displayAnalyticsLabel($enquiry->followup_lost_codealer_name, 'Not specified'));
+            $this->addLostAggregate($groups['lead_status'], $this->displayAnalyticsLabel($enquiry->prospect_lead_status ?: $enquiry->followup_lead_temperature, 'Not specified'));
+
+            $owner = $enquiry->user_id ? $usersById->get((int) $enquiry->user_id) : null;
+            $this->addLostAggregate($groups['sales_consultant'], $owner instanceof User ? $owner->name : 'Unassigned');
+            $areaManager = $this->resolveAreaManagerForAnalytics($owner, $usersById);
+            $this->addLostAggregate($groups['area_manager'], $areaManager instanceof User ? $areaManager->name : 'Unassigned');
+
+            $monthKey = $enquiry->created_at instanceof Carbon
+                ? $enquiry->created_at->format('Y-m')
+                : Carbon::parse($enquiry->created_at)->format('Y-m');
+            $monthLabel = $enquiry->created_at instanceof Carbon
+                ? $enquiry->created_at->format('M Y')
+                : Carbon::parse($enquiry->created_at)->format('M Y');
+            $monthOrder[$monthKey] = $monthLabel;
+            $this->addLostAggregate($groups['month'], $monthKey);
+            $this->addLostAggregate($groups['month_wise_enquired'], $monthKey);
+
+            $reasons = $this->formatLostRejectReasons($enquiry->followup_lost_reject_reasons, $enquiry->followup_lost_reject_other_text);
+            foreach ($reasons as $reason) {
+                if ($lostTo === 'competitor') {
+                    $this->addLostAggregate($groups['reasons_competition'], $reason);
+                } elseif (in_array($lostTo, ['co_dealer', 'codealer', 'co-dealer'], true)) {
+                    $this->addLostAggregate($groups['reasons_co_dealer'], $reason);
+                }
+            }
+        }
+
+        $monthRows = $this->formatLostMonthRows($groups['month'], $monthOrder, $totalLost);
+        $monthWiseRows = $this->formatLostMonthRows($groups['month_wise_enquired'], $monthOrder, $totalLost);
+
+        return [
+            'total' => $totalLost,
+            'tabs' => [
+                ['key' => 'lost_to', 'label' => 'Lost To', 'title' => 'Lost To', 'rows' => $this->formatLostAggregateRows($groups['lost_to'], $totalLost, 12)],
+                ['key' => 'lead_source', 'label' => 'Lead Source', 'title' => 'Lead Source', 'rows' => $this->formatLostAggregateRows($groups['lead_source'], $totalLost, 12)],
+                ['key' => 'month', 'label' => 'Month', 'title' => 'Month', 'rows' => $monthRows],
+                ['key' => 'lost_model_own', 'label' => 'Lost Model Own', 'title' => 'Lost Model Own', 'rows' => $this->formatLostAggregateRows($groups['lost_model_own'], $totalLost, 12)],
+                ['key' => 'area_manager', 'label' => 'Area Manager', 'title' => 'Area Manager', 'rows' => $this->formatLostAggregateRows($groups['area_manager'], $totalLost, 12)],
+                ['key' => 'sales_consultant', 'label' => 'Sales Consultant', 'title' => 'Sales Consultant', 'rows' => $this->formatLostAggregateRows($groups['sales_consultant'], $totalLost, 12)],
+                ['key' => 'city', 'label' => 'City', 'title' => 'City', 'rows' => $this->formatLostAggregateRows($groups['city'], $totalLost, 12)],
+                ['key' => 'lost_to_model', 'label' => 'Lost To Model', 'title' => 'Lost To Model', 'rows' => $this->formatLostAggregateRows($groups['lost_to_model'], $totalLost, 12)],
+                ['key' => 'lost_to_brand', 'label' => 'Lost To Brand', 'title' => 'Lost To Brand', 'rows' => $this->formatLostAggregateRows($groups['lost_to_brand'], $totalLost, 12)],
+                ['key' => 'reasons_competition', 'label' => 'Reasons-Competition', 'title' => 'Reasons-Competition', 'rows' => $this->formatLostAggregateRows($groups['reasons_competition'], $totalLost, 12)],
+                ['key' => 'lost_to_co_dealer', 'label' => 'Lost To Co-Dealer', 'title' => 'Lost To Co-Dealer', 'rows' => $this->formatLostAggregateRows($groups['lost_to_co_dealer'], $totalLost, 12)],
+                ['key' => 'reasons_co_dealer', 'label' => 'Reasons-Co-Dealer', 'title' => 'Reasons-Co-Dealer', 'rows' => $this->formatLostAggregateRows($groups['reasons_co_dealer'], $totalLost, 12)],
+                ['key' => 'lead_status', 'label' => 'Lead Status', 'title' => 'Lead Status', 'rows' => $this->formatLostAggregateRows($groups['lead_status'], $totalLost, 12)],
+                ['key' => 'month_wise_enquired', 'label' => 'Month Wise Enquired', 'title' => 'Month Wise Enquired', 'rows' => $monthWiseRows],
+            ],
+        ];
+    }
+
+    private function addLostAggregate(array &$groups, ?string $label): void
+    {
+        $label = $this->displayAnalyticsLabel($label, 'Not specified');
+        $groups[$label] = ($groups[$label] ?? 0) + 1;
+    }
+
+    private function formatLostAggregateRows(array $groups, int $totalLost, int $limit): array
+    {
+        arsort($groups);
+
+        return array_values(array_map(
+            fn(string $label, int $count): array => [
+                'label' => $label,
+                'lost_leads' => $count,
+                'contribution' => $totalLost > 0 ? round(($count / $totalLost) * 100, 2) : 0,
+            ],
+            array_keys(array_slice($groups, 0, $limit, true)),
+            array_values(array_slice($groups, 0, $limit, true))
+        ));
+    }
+
+    private function formatLostMonthRows(array $groups, array $monthOrder, int $totalLost): array
+    {
+        ksort($groups);
+
+        return array_values(array_map(
+            fn(string $monthKey, int $count): array => [
+                'label' => $monthOrder[$monthKey] ?? $monthKey,
+                'lost_leads' => $count,
+                'contribution' => $totalLost > 0 ? round(($count / $totalLost) * 100, 2) : 0,
+            ],
+            array_keys($groups),
+            array_values($groups)
+        ));
+    }
+
+    private function formatLostRejectReasons($reasons, ?string $otherText): array
+    {
+        $reasonLabels = [
+            'issue_with_product' => 'Issue with product',
+            'got_better_discount' => 'Got better discount',
+            'other' => trim((string) $otherText) !== '' ? trim((string) $otherText) : 'Other',
+        ];
+
+        if (!is_array($reasons)) {
+            $reasons = [];
+        }
+
+        return array_values(array_filter(array_map(
+            fn($reason): string => $reasonLabels[(string) $reason] ?? $this->displayAnalyticsLabel($reason, ''),
+            $reasons
+        )));
+    }
+
+    private function buildClosedAnalytics(Collection $enquiries, Collection $usersById): array
+    {
+        $closedRows = $enquiries
+            ->filter(fn(Enquiry $enquiry): bool => $this->normalizeLeadResult($enquiry->followup_result) === 'closed')
+            ->values();
+        $totalClosed = $closedRows->count();
+        $totalEnquired = $enquiries->count();
+
+        $groups = [
+            'month_closed' => [],
+            'model' => [],
+            'area_manager' => [],
+            'sales_consultant' => [],
+            'city' => [],
+            'source' => [],
+            'lead_state' => [],
+            'reason' => [],
+        ];
+        $closedMonthOrder = [];
+
+        foreach ($closedRows as $enquiry) {
+            $createdAt = $this->analyticsDate($enquiry->created_at);
+            $monthKey = $createdAt->format('Y-m');
+            $closedMonthOrder[$monthKey] = $createdAt->format('M Y');
+
+            $this->addClosedAggregate($groups['month_closed'], $monthKey);
+            $this->addClosedAggregate($groups['model'], $this->displayAnalyticsLabel($enquiry->vehicle_model, 'Not specified'));
+            $this->addClosedAggregate($groups['city'], $this->displayAnalyticsLabel($enquiry->customer_location ?: $enquiry->customer_district, 'Not specified'));
+            $this->addClosedAggregate($groups['source'], $this->displayAnalyticsLabel($enquiry->lead_source, 'Not specified'));
+            $this->addClosedAggregate($groups['lead_state'], $this->displayAnalyticsLabel($enquiry->prospect_lead_status ?: $enquiry->followup_lead_temperature, 'Not specified'));
+            $this->addClosedAggregate($groups['reason'], $this->displayAnalyticsLabel($enquiry->followup_customer_comment, 'Not specified'));
+
+            $owner = $enquiry->user_id ? $usersById->get((int) $enquiry->user_id) : null;
+            $this->addClosedAggregate($groups['sales_consultant'], $owner instanceof User ? $owner->name : 'Unassigned');
+            $areaManager = $this->resolveAreaManagerForAnalytics($owner, $usersById);
+            $this->addClosedAggregate($groups['area_manager'], $areaManager instanceof User ? $areaManager->name : 'Unassigned');
+        }
+
+        return [
+            'total' => $totalClosed,
+            'tabs' => [
+                ['key' => 'month_closed', 'label' => 'Month Wise - Closed', 'title' => 'Month Wise - Closed', 'metric' => 'closed_leads', 'rows' => $this->formatClosedMonthRows($groups['month_closed'], $closedMonthOrder, $totalClosed)],
+                ['key' => 'model', 'label' => 'Model Wise', 'title' => 'Model Wise', 'metric' => 'closed_leads', 'rows' => $this->formatClosedAggregateRows($groups['model'], $totalClosed, 12)],
+                ['key' => 'area_manager', 'label' => 'Area Manager Wise', 'title' => 'Area Manager Wise', 'metric' => 'closed_leads', 'rows' => $this->formatClosedAggregateRows($groups['area_manager'], $totalClosed, 12)],
+                ['key' => 'sales_consultant', 'label' => 'Sales Consultant Wise', 'title' => 'Sales Consultant Wise', 'metric' => 'closed_leads', 'rows' => $this->formatClosedAggregateRows($groups['sales_consultant'], $totalClosed, 12)],
+                ['key' => 'city', 'label' => 'City Wise', 'title' => 'City Wise', 'metric' => 'closed_leads', 'rows' => $this->formatClosedAggregateRows($groups['city'], $totalClosed, 12)],
+                ['key' => 'source', 'label' => 'Source Wise', 'title' => 'Source Wise', 'metric' => 'closed_leads', 'rows' => $this->formatClosedAggregateRows($groups['source'], $totalClosed, 12)],
+                ['key' => 'lead_state', 'label' => 'Lead State Wise', 'title' => 'Lead State Wise', 'metric' => 'closed_leads', 'rows' => $this->formatClosedAggregateRows($groups['lead_state'], $totalClosed, 12)],
+                ['key' => 'reason', 'label' => 'Reason Wise', 'title' => 'Reason Wise', 'metric' => 'closed_leads', 'rows' => $this->formatClosedAggregateRows($groups['reason'], $totalClosed, 12)],
+                ['key' => 'month_enquired', 'label' => 'Month Wise - Enquired', 'title' => 'Month Wise - Enquired', 'metric' => 'enquired_leads', 'total' => $totalEnquired, 'rows' => $this->formatClosedEnquiredMonthRows($enquiries, $totalEnquired)],
+            ],
+        ];
+    }
+
+    private function addClosedAggregate(array &$groups, ?string $label): void
+    {
+        $label = $this->displayAnalyticsLabel($label, 'Not specified');
+        $groups[$label] = ($groups[$label] ?? 0) + 1;
+    }
+
+    private function formatClosedAggregateRows(array $groups, int $totalClosed, int $limit): array
+    {
+        arsort($groups);
+
+        return array_values(array_map(
+            fn(string $label, int $count): array => [
+                'label' => $label,
+                'closed_leads' => $count,
+                'contribution' => $totalClosed > 0 ? round(($count / $totalClosed) * 100, 2) : 0,
+            ],
+            array_keys(array_slice($groups, 0, $limit, true)),
+            array_values(array_slice($groups, 0, $limit, true))
+        ));
+    }
+
+    private function formatClosedMonthRows(array $groups, array $monthOrder, int $totalClosed): array
+    {
+        ksort($groups);
+
+        return array_values(array_map(
+            fn(string $monthKey, int $count): array => [
+                'label' => $monthOrder[$monthKey] ?? $monthKey,
+                'closed_leads' => $count,
+                'contribution' => $totalClosed > 0 ? round(($count / $totalClosed) * 100, 2) : 0,
+            ],
+            array_keys($groups),
+            array_values($groups)
+        ));
+    }
+
+    private function formatClosedEnquiredMonthRows(Collection $enquiries, int $totalEnquired): array
+    {
+        $months = [];
+
+        foreach ($enquiries as $enquiry) {
+            $createdAt = $this->analyticsDate($enquiry->created_at);
+            $monthKey = $createdAt->format('Y-m');
+            $weekKey = 'wk' . $createdAt->weekOfMonth;
+            $dateKey = $createdAt->format('Y-m-d');
+
+            if (!isset($months[$monthKey])) {
+                $months[$monthKey] = [
+                    'label' => $createdAt->format('M Y'),
+                    'count' => 0,
+                    'weeks' => [],
+                ];
+            }
+
+            if (!isset($months[$monthKey]['weeks'][$weekKey])) {
+                $months[$monthKey]['weeks'][$weekKey] = [
+                    'label' => $weekKey,
+                    'count' => 0,
+                    'dates' => [],
+                ];
+            }
+
+            $months[$monthKey]['count']++;
+            $months[$monthKey]['weeks'][$weekKey]['count']++;
+            $months[$monthKey]['weeks'][$weekKey]['dates'][$dateKey] = ($months[$monthKey]['weeks'][$weekKey]['dates'][$dateKey] ?? 0) + 1;
+        }
+
+        ksort($months);
+
+        return array_values(array_map(function (array $month) use ($totalEnquired): array {
+            ksort($month['weeks']);
+            $weekRows = array_values(array_map(function (array $week) use ($month): array {
+                ksort($week['dates']);
+                $dateRows = array_values(array_map(
+                    fn(string $date, int $count): array => [
+                        'label' => $date,
+                        'enquired_leads' => $count,
+                        'contribution' => $week['count'] > 0 ? round(($count / $week['count']) * 100, 2) : 0,
+                    ],
+                    array_keys($week['dates']),
+                    array_values($week['dates'])
+                ));
+
+                return [
+                    'label' => $week['label'],
+                    'enquired_leads' => $week['count'],
+                    'contribution' => $month['count'] > 0 ? round(($week['count'] / $month['count']) * 100, 2) : 0,
+                    'drilldown' => [
+                        'title' => 'Date Wise - Enquired',
+                        'metric' => 'enquired_leads',
+                        'total' => $week['count'],
+                        'rows' => $dateRows,
+                    ],
+                ];
+            }, $month['weeks']));
+
+            return [
+                'label' => $month['label'],
+                'enquired_leads' => $month['count'],
+                'contribution' => $totalEnquired > 0 ? round(($month['count'] / $totalEnquired) * 100, 2) : 0,
+                'drilldown' => [
+                    'title' => 'Week Wise - Enquired',
+                    'metric' => 'enquired_leads',
+                    'total' => $month['count'],
+                    'rows' => $weekRows,
+                ],
+            ];
+        }, $months));
+    }
+
+    private function analyticsDate($value): Carbon
+    {
+        return $value instanceof Carbon ? $value : Carbon::parse($value);
+    }
+
+    private function displayAnalyticsLabel($value, string $fallback): string
+    {
+        $label = trim((string) $value);
+        if ($label === '') {
+            return $fallback;
+        }
+
+        return ucwords(str_replace('_', ' ', $label));
+    }
+
+    private function resolveAreaManagerForAnalytics(?User $owner, Collection $usersById): ?User
+    {
+        if (!$owner instanceof User) {
+            return null;
+        }
+
+        if ($owner->role === User::ROLE_AREA_MANAGER) {
+            return $owner;
+        }
+
+        $manager = $owner->manager_id ? $usersById->get((int) $owner->manager_id) : null;
+        if ($manager instanceof User && $manager->role === User::ROLE_AREA_MANAGER) {
+            return $manager;
+        }
+
+        return null;
     }
 
     private function resolveAccessibleUserIds(User $viewer): array

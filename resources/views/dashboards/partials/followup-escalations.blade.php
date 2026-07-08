@@ -3,6 +3,7 @@
         \App\Models\User::ROLE_SUPER_ADMIN,
         \App\Models\User::ROLE_HEAD_OF_SALES,
     ], true);
+    $startHiddenFollowupSummary = $startHiddenFollowupSummary ?? false;
 
     $followupEscalations = $followupEscalations ?? [
         'summary' => [],
@@ -26,7 +27,7 @@
 @endphp
 
 @if($canViewFollowupSummary)
-<section class="card followup-summary-card">
+<section class="card followup-summary-card" id="followupSummaryCard" @if($startHiddenFollowupSummary) hidden @endif>
     <div class="followup-escalation-head">
         <div>
             <h2>Followup Summary</h2>
@@ -222,6 +223,10 @@
         </div>
     </div>
 </section>
+
+@once
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
+@endonce
 
 <script>
     (() => {

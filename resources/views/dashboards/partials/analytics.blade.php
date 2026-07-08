@@ -1,8 +1,25 @@
 @php
     $canViewAnalytics = auth()->user()?->role !== \App\Models\User::ROLE_SALES_CONSULTANT;
+    $canViewLostAnalytics = in_array(auth()->user()?->role, [
+        \App\Models\User::ROLE_SUPER_ADMIN,
+        \App\Models\User::ROLE_HEAD_OF_SALES,
+    ], true);
+    $canViewActiveAnalytics = $canViewLostAnalytics;
+    $canViewClosedAnalytics = $canViewLostAnalytics;
+    $lostAnalytics = $analytics['lost_analytics'] ?? ['total' => 0, 'tabs' => []];
+    $closedAnalytics = $analytics['closed_analytics'] ?? ['total' => 0, 'tabs' => []];
+    $activeAnalytics = $analytics['active_analytics'] ?? ['total' => 0, 'tabs' => []];
+    $bookingAnalytics = $analytics['booking_analytics'] ?? ['total' => 0, 'tabs' => []];
+    $showAnalyticsUserTable = $showAnalyticsUserTable ?? true;
+    $initialAnalyticsSection = $initialAnalyticsSection ?? request('analytics_section', '');
+    $onlyAnalyticsSection = $onlyAnalyticsSection ?? null;
+    $showAnalyticsFilters = $showAnalyticsFilters ?? true;
+    $showLeadAnalyticsSummary = $showLeadAnalyticsSummary ?? true;
+    $showAnalysisCharts = $showAnalysisCharts ?? true;
 @endphp
 
 @if($canViewAnalytics)
+@if($showAnalyticsFilters)
 <section class="card analytics-card">
     <div class="analytics-head">
         <h2>Analytics Filters</h2>
@@ -36,9 +53,9 @@
             <select name="owner_role">
                 <option value="">All roles</option>
                 @foreach($analytics['filter_options']['owner_roles'] as $option)
+                    @continue(($option['value'] ?? '') === \App\Models\User::ROLE_HEAD_OF_SALES)
                     <option value="{{ $option['value'] }}" @selected(($analytics['filters']['owner_role'] ?? '') === $option['value'])>{{ $option['label'] }}</option>
                 @endforeach
-                <option value="unassigned" @selected(($analytics['filters']['owner_role'] ?? '') === 'unassigned')>Unassigned</option>
             </select>
         </label>
         <label>
@@ -117,11 +134,27 @@
         </div>
     </form>
 </section>
+@endif
 
+@if($showLeadAnalyticsSummary)
 <section class="card analytics-card">
     <div class="analytics-head">
         <h2>Lead Analytics</h2>
         <p>Scope: {{ $analytics['scope_label'] }} ({{ $analytics['scope_user_count'] }} user{{ $analytics['scope_user_count'] === 1 ? '' : 's' }})</p>
+        <div class="analytics-toggle-actions" hidden>
+            @if($canViewActiveAnalytics)
+                <button type="button" class="btn-link analytics-active-toggle" id="activeAnalyticsToggle">Active</button>
+            @endif
+            @if($canViewActiveAnalytics)
+                <button type="button" class="btn-link analytics-booking-toggle" id="bookingAnalyticsToggle">Booking</button>
+            @endif
+            @if($canViewLostAnalytics)
+                <button type="button" class="btn-link analytics-lost-toggle" id="lostAnalyticsToggle">Lost</button>
+            @endif
+            @if($canViewClosedAnalytics)
+                <button type="button" class="btn-link analytics-closed-toggle" id="closedAnalyticsToggle">Closed Lead</button>
+            @endif
+        </div>
     </div>
 
     <div class="analytics-kpi-grid">
@@ -151,7 +184,152 @@
         </div>
     </div>
 </section>
+@endif
 
+@if($canViewActiveAnalytics && ($onlyAnalyticsSection === null || $onlyAnalyticsSection === 'active'))
+<section class="card analytics-card lost-analytics-card" id="activeAnalyticsCard" hidden>
+    <div class="analytics-head lost-analytics-head">
+        <div>
+            <h2>Active Analytics</h2>
+            <p>Active Percentage = active count / total active leads for the selected parameter.</p>
+        </div>
+        <strong>Total : {{ number_format((int) ($activeAnalytics['total'] ?? 0)) }}</strong>
+    </div>
+
+    <div class="lost-analytics-tabs" role="tablist" aria-label="Active analytics charts">
+        @foreach(($activeAnalytics['tabs'] ?? []) as $index => $tab)
+            <button
+                type="button"
+                class="lost-analytics-tab {{ $index === 0 ? 'active' : '' }}"
+                data-active-tab="{{ $tab['key'] }}"
+                role="tab"
+                aria-selected="{{ $index === 0 ? 'true' : 'false' }}"
+            >
+                {{ $tab['label'] }}
+            </button>
+        @endforeach
+    </div>
+
+    <div class="lost-analytics-chart-wrap">
+        <div class="lost-analytics-chart-top">
+            <h3 id="activeAnalyticsTitle">{{ ($activeAnalytics['tabs'][0]['title'] ?? 'EPR Vs Registered') }}</h3>
+            <span>Total : <strong id="activeAnalyticsTotal">{{ number_format((int) ($activeAnalytics['total'] ?? 0)) }}</strong></span>
+        </div>
+        <canvas id="activeAnalyticsChart" aria-label="Active analytics chart"></canvas>
+        <p class="lost-analytics-empty" id="activeAnalyticsEmpty" hidden>No active lead data available for this parameter.</p>
+    </div>
+</section>
+@endif
+
+@if($canViewActiveAnalytics && ($onlyAnalyticsSection === null || $onlyAnalyticsSection === 'booking'))
+<section class="card analytics-card lost-analytics-card" id="bookingAnalyticsCard" hidden>
+    <div class="analytics-head lost-analytics-head">
+        <div>
+            <h2>Booking Analytics</h2>
+            <p>Booking Percentage = booking count / total bookings for the selected parameter.</p>
+        </div>
+        <strong>Total : {{ number_format((int) ($bookingAnalytics['total'] ?? 0)) }}</strong>
+    </div>
+
+    <div class="lost-analytics-tabs" role="tablist" aria-label="Booking analytics charts">
+        @foreach(($bookingAnalytics['tabs'] ?? []) as $index => $tab)
+            <button
+                type="button"
+                class="lost-analytics-tab {{ $index === 0 ? 'active' : '' }}"
+                data-booking-tab="{{ $tab['key'] }}"
+                role="tab"
+                aria-selected="{{ $index === 0 ? 'true' : 'false' }}"
+            >
+                {{ $tab['label'] }}
+            </button>
+        @endforeach
+    </div>
+
+    <div class="lost-analytics-chart-wrap">
+        <div class="lost-analytics-chart-top">
+            <h3 id="bookingAnalyticsTitle">{{ ($bookingAnalytics['tabs'][0]['title'] ?? 'Type of Booking') }}</h3>
+            <span>Total : <strong id="bookingAnalyticsTotal">{{ number_format((int) ($bookingAnalytics['total'] ?? 0)) }}</strong></span>
+        </div>
+        <canvas id="bookingAnalyticsChart" aria-label="Booking analytics chart"></canvas>
+        <p class="lost-analytics-empty" id="bookingAnalyticsEmpty" hidden>No booking data available for this parameter.</p>
+    </div>
+</section>
+@endif
+
+@if($canViewLostAnalytics && ($onlyAnalyticsSection === null || $onlyAnalyticsSection === 'lost'))
+<section class="card analytics-card lost-analytics-card" id="lostAnalyticsCard" hidden>
+    <div class="analytics-head lost-analytics-head">
+        <div>
+            <h2>Lost Analytics</h2>
+            <p>Lost Leads Percentage = lost leads / total lost leads for the selected parameter.</p>
+        </div>
+        <strong>Total : {{ number_format((int) ($lostAnalytics['total'] ?? 0)) }}</strong>
+    </div>
+
+    <div class="lost-analytics-tabs" role="tablist" aria-label="Lost analytics charts">
+        @foreach(($lostAnalytics['tabs'] ?? []) as $index => $tab)
+            <button
+                type="button"
+                class="lost-analytics-tab {{ $index === 0 ? 'active' : '' }}"
+                data-lost-tab="{{ $tab['key'] }}"
+                role="tab"
+                aria-selected="{{ $index === 0 ? 'true' : 'false' }}"
+            >
+                {{ $tab['label'] }}
+            </button>
+        @endforeach
+    </div>
+
+    <div class="lost-analytics-chart-wrap">
+        <div class="lost-analytics-chart-top">
+            <h3 id="lostAnalyticsTitle">{{ ($lostAnalytics['tabs'][0]['title'] ?? 'Lost To') }}</h3>
+            <span>Total : <strong id="lostAnalyticsTotal">{{ number_format((int) ($lostAnalytics['total'] ?? 0)) }}</strong></span>
+        </div>
+        <canvas id="lostAnalyticsChart" aria-label="Lost analytics chart"></canvas>
+        <p class="lost-analytics-empty" id="lostAnalyticsEmpty" hidden>No lost lead data available for this parameter.</p>
+    </div>
+</section>
+@endif
+
+@if($canViewClosedAnalytics && ($onlyAnalyticsSection === null || $onlyAnalyticsSection === 'closed'))
+<section class="card analytics-card lost-analytics-card" id="closedAnalyticsCard" hidden>
+    <div class="analytics-head lost-analytics-head">
+        <div>
+            <h2>Closed Lead Analytics</h2>
+            <p>Closed Leads Percentage = closed leads / total closed leads for the selected parameter.</p>
+        </div>
+        <strong>Total : {{ number_format((int) ($closedAnalytics['total'] ?? 0)) }}</strong>
+    </div>
+
+    <div class="lost-analytics-tabs" role="tablist" aria-label="Closed lead analytics charts">
+        @foreach(($closedAnalytics['tabs'] ?? []) as $index => $tab)
+            <button
+                type="button"
+                class="lost-analytics-tab {{ $index === 0 ? 'active' : '' }}"
+                data-closed-tab="{{ $tab['key'] }}"
+                role="tab"
+                aria-selected="{{ $index === 0 ? 'true' : 'false' }}"
+            >
+                {{ $tab['label'] }}
+            </button>
+        @endforeach
+    </div>
+
+    <div class="lost-analytics-chart-wrap">
+        <div class="lost-analytics-chart-top">
+            <h3 id="closedAnalyticsTitle">{{ ($closedAnalytics['tabs'][0]['title'] ?? 'Month Wise - Closed') }}</h3>
+            <div class="analytics-chart-actions">
+                <span>Total : <strong id="closedAnalyticsTotal">{{ number_format((int) ($closedAnalytics['total'] ?? 0)) }}</strong></span>
+                <button type="button" class="btn-link alt analytics-drill-back" id="closedAnalyticsBack" hidden>Back</button>
+            </div>
+        </div>
+        <canvas id="closedAnalyticsChart" aria-label="Closed lead analytics chart"></canvas>
+        <p class="lost-analytics-empty" id="closedAnalyticsEmpty" hidden>No closed lead data available for this parameter.</p>
+    </div>
+</section>
+@endif
+
+@if($showAnalysisCharts)
 <section class="card analytics-card analysis-charts-card">
     <h2>Analysis Charts</h2>
     <p class="analysis-charts-subtitle">Overview of leads and follow-up performance</p>
@@ -182,80 +360,22 @@
         </div>
     </div>
 </section>
+@endif
 
-<section class="card analytics-card">
-    <h2>Current User Hierarchy</h2>
-    <div class="hierarchy-badges">
-        @foreach($analytics['current_hierarchy'] as $node)
-            <span>{{ $node['role'] }}: {{ $node['name'] }}</span>
-        @endforeach
-    </div>
-</section>
-
-<section class="card analytics-card">
-    <h2>By Hierarchy (Role)</h2>
-    <div class="analytics-table-wrap">
-        <table class="analytics-table">
-            <thead>
-                <tr>
-                    <th>Role</th>
-                    <th>Users</th>
-                    <th>Leads</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($analytics['by_role'] as $row)
-                    <tr>
-                        <td>{{ $row['label'] }}</td>
-                        <td>{{ $row['users'] }}</td>
-                        <td>{{ $row['leads'] }}</td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="3">No hierarchy data available.</td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
-</section>
-
-<section class="card analytics-card">
-    <h2>By District</h2>
-    <div class="analytics-table-wrap">
-        <table class="analytics-table">
-            <thead>
-                <tr>
-                    <th>District</th>
-                    <th>Leads</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($analytics['by_district'] as $row)
-                    <tr>
-                        <td>{{ $row['district'] }}</td>
-                        <td>{{ $row['leads'] }}</td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="2">No district data available.</td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
-</section>
-
+@if($showAnalyticsUserTable)
 <section class="card analytics-card">
     <h2>By User</h2>
     @php
-        $byUserRoles = collect($analytics['by_user'])
+        $byUserAnalytics = collect($analytics['by_user'])
+            ->reject(fn ($row) => in_array($row['role'] ?? '', ['Head Of Sales', 'Super Admin'], true))
+            ->values();
+        $byUserRoles = $byUserAnalytics
             ->pluck('role')
             ->filter()
             ->unique()
             ->sort()
             ->values();
-        $byUserManagers = collect($analytics['by_user'])
+        $byUserManagers = $byUserAnalytics
             ->pluck('manager')
             ->filter(fn ($manager) => $manager !== '-')
             ->unique()
@@ -306,7 +426,7 @@
                 </tr>
             </thead>
             <tbody>
-                @forelse($analytics['by_user'] as $row)
+                @forelse($byUserAnalytics as $row)
                     <tr
                         data-user-row="1"
                         data-user="{{ strtolower((string) $row['name']) }}"
@@ -338,12 +458,54 @@
         </table>
     </div>
 </section>
+@endif
 
 @once
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
 @endonce
 
 <script>
+    (() => {
+        const cards = document.querySelectorAll('.analytics-card');
+
+        cards.forEach((card, index) => {
+            let header = card.querySelector(':scope > .analytics-head');
+
+            if (!header) {
+                const heading = card.querySelector(':scope > h2');
+                if (!heading) {
+                    return;
+                }
+
+                header = document.createElement('div');
+                header.className = 'analytics-head analytics-card-titlebar';
+                heading.before(header);
+                header.appendChild(heading);
+            } else {
+                header.classList.add('analytics-card-titlebar');
+            }
+
+            const toggle = document.createElement('button');
+            const toggleId = `analyticsCardToggle${index}`;
+            toggle.type = 'button';
+            toggle.id = toggleId;
+            toggle.className = 'btn-link alt analytics-minimize-toggle';
+            toggle.setAttribute('aria-expanded', 'true');
+            toggle.textContent = 'Minimize';
+            header.appendChild(toggle);
+
+            toggle.addEventListener('click', () => {
+                const isMinimized = card.classList.toggle('is-minimized');
+                toggle.textContent = isMinimized ? 'Maximize' : 'Minimize';
+                toggle.setAttribute('aria-expanded', String(!isMinimized));
+
+                if (!isMinimized) {
+                    window.dispatchEvent(new Event('resize'));
+                }
+            });
+        });
+    })();
+
     (() => {
         const form = document.querySelector('.analytics-filter-form');
         if (!form) {
@@ -451,6 +613,10 @@
         const followupStatusByType = @json($analytics['charts']['followup_by_status']);
         const leadsByUser = @json($analytics['charts']['user_totals']);
         const leadsByDistrict = @json($analytics['charts']['district_totals']);
+        const lostAnalytics = @json($lostAnalytics);
+        const closedAnalytics = @json($closedAnalytics);
+        const activeAnalytics = @json($activeAnalytics);
+        const bookingAnalytics = @json($bookingAnalytics);
 
         const colors = {
             red: '#eca8a0',
@@ -644,6 +810,284 @@
                 animations: { x: { from: 0 } }
             }
         });
+
+        const setupBreakdownAnalytics = ({
+            toggleId,
+            cardId,
+            canvasId,
+            titleId,
+            totalId,
+            emptyId,
+            backId,
+            tabSelector,
+            tabDataset,
+            analytics,
+            fallbackTitle,
+        }) => {
+            const toggle = document.getElementById(toggleId);
+            const card = document.getElementById(cardId);
+            const canvas = document.getElementById(canvasId);
+            const title = document.getElementById(titleId);
+            const total = document.getElementById(totalId);
+            const empty = document.getElementById(emptyId);
+            const back = backId ? document.getElementById(backId) : null;
+            const tabs = Array.from(document.querySelectorAll(tabSelector));
+            const tabData = Array.isArray(analytics.tabs) ? analytics.tabs : [];
+            if (!card || !canvas || !tabs.length) {
+                return;
+            }
+
+            let chart = null;
+            let activeKey = tabs[0]?.dataset[tabDataset] || '';
+            let currentView = null;
+            let drillStack = [];
+
+            const getActiveTab = () => tabData.find((tab) => tab.key === activeKey) || tabData[0] || null;
+
+            const setActiveButton = () => {
+                tabs.forEach((button) => {
+                    const active = button.dataset[tabDataset] === activeKey;
+                    button.classList.toggle('active', active);
+                    button.setAttribute('aria-selected', active ? 'true' : 'false');
+                });
+            };
+
+            const getMetric = (view) => view?.metric || 'lost_leads';
+
+            const renderChart = () => {
+                const view = currentView || getActiveTab();
+                const rows = Array.isArray(view?.rows) ? view.rows : [];
+                const metric = getMetric(view);
+                const labels = rows.map((row) => row.label);
+                const leadCounts = rows.map((row) => Number(row[metric] || 0));
+                const contribution = rows.map((row) => Number(row.contribution || 0));
+                const hasRows = rows.length > 0;
+                const totalValue = view?.total ?? analytics.total ?? 0;
+
+                if (title) {
+                    title.textContent = view?.title || fallbackTitle;
+                }
+                if (total) {
+                    total.textContent = new Intl.NumberFormat('en-US').format(Number(totalValue || 0));
+                }
+                if (empty) {
+                    empty.hidden = hasRows;
+                }
+                if (back) {
+                    back.hidden = drillStack.length === 0;
+                }
+                canvas.hidden = !hasRows;
+
+                if (chart) {
+                    chart.destroy();
+                    chart = null;
+                }
+                if (!hasRows) {
+                    return;
+                }
+
+                chart = new Chart(canvas, {
+                    type: 'bar',
+                    data: {
+                        labels,
+                        datasets: [
+                            {
+                                type: 'bar',
+                                label: metric,
+                                data: leadCounts,
+                                backgroundColor: '#1f77b4',
+                                borderRadius: 2,
+                                yAxisID: 'y',
+                            },
+                            {
+                                type: 'line',
+                                label: 'contribution',
+                                data: contribution,
+                                borderColor: '#ff7a00',
+                                backgroundColor: '#ff7a00',
+                                tension: 0.28,
+                                pointRadius: 3,
+                                pointHoverRadius: 5,
+                                yAxisID: 'y1',
+                            },
+                        ],
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: barAnimation(55),
+                        onClick: (_event, elements) => {
+                            const first = elements[0];
+                            if (!first) {
+                                return;
+                            }
+
+                            const next = rows[first.index]?.drilldown;
+                            if (!next || !Array.isArray(next.rows)) {
+                                return;
+                            }
+
+                            drillStack.push(view);
+                            currentView = next;
+                            renderChart();
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    color: '#334155',
+                                    boxWidth: 10,
+                                    usePointStyle: true,
+                                },
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: (context) => {
+                                        const label = context.dataset.label || '';
+                                        const value = Number(context.parsed.y || 0);
+                                        return label === 'contribution'
+                                            ? `${label}: ${value.toFixed(2)}%`
+                                            : `${label}: ${value}`;
+                                    },
+                                },
+                            },
+                        },
+                        scales: {
+                            x: {
+                                ticks: { color: '#0f172a', font: { size: 10 }, maxRotation: 0, autoSkip: false },
+                                grid: { display: false },
+                            },
+                            y: {
+                                beginAtZero: true,
+                                ticks: { precision: 0, color: '#0f172a', font: { size: 10 } },
+                                grid: { color: '#e5e7eb' },
+                            },
+                            y1: {
+                                beginAtZero: true,
+                                position: 'right',
+                                ticks: {
+                                    color: '#ff7a00',
+                                    font: { size: 10 },
+                                    callback: (value) => `${value}%`,
+                                },
+                                grid: { drawOnChartArea: false },
+                            },
+                        },
+                    },
+                });
+            };
+
+            const showCard = () => {
+                card.hidden = false;
+                if (toggle) {
+                    toggle.setAttribute('aria-expanded', 'true');
+                }
+                window.requestAnimationFrame(renderChart);
+            };
+
+            if (toggle) {
+                toggle.setAttribute('aria-controls', cardId);
+                toggle.setAttribute('aria-expanded', 'false');
+                toggle.addEventListener('click', () => {
+                    if (card.hidden) {
+                        showCard();
+                        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        return;
+                    }
+
+                    card.hidden = true;
+                    toggle.setAttribute('aria-expanded', 'false');
+                });
+            }
+
+            tabs.forEach((button) => {
+                button.addEventListener('click', () => {
+                    activeKey = button.dataset[tabDataset] || activeKey;
+                    currentView = null;
+                    drillStack = [];
+                    setActiveButton();
+                    showCard();
+                });
+            });
+
+            if (back) {
+                back.addEventListener('click', () => {
+                    currentView = drillStack.pop() || getActiveTab();
+                    renderChart();
+                });
+            }
+
+            setActiveButton();
+
+            return {
+                card,
+                showCard,
+            };
+        };
+
+        const breakdownCards = {};
+
+        breakdownCards.active = setupBreakdownAnalytics({
+            toggleId: 'activeAnalyticsToggle',
+            cardId: 'activeAnalyticsCard',
+            canvasId: 'activeAnalyticsChart',
+            titleId: 'activeAnalyticsTitle',
+            totalId: 'activeAnalyticsTotal',
+            emptyId: 'activeAnalyticsEmpty',
+            tabSelector: '[data-active-tab]',
+            tabDataset: 'activeTab',
+            analytics: activeAnalytics,
+            fallbackTitle: 'Active Analytics',
+        });
+
+        breakdownCards.booking = setupBreakdownAnalytics({
+            toggleId: 'bookingAnalyticsToggle',
+            cardId: 'bookingAnalyticsCard',
+            canvasId: 'bookingAnalyticsChart',
+            titleId: 'bookingAnalyticsTitle',
+            totalId: 'bookingAnalyticsTotal',
+            emptyId: 'bookingAnalyticsEmpty',
+            tabSelector: '[data-booking-tab]',
+            tabDataset: 'bookingTab',
+            analytics: bookingAnalytics,
+            fallbackTitle: 'Booking Analytics',
+        });
+
+        breakdownCards.lost = setupBreakdownAnalytics({
+            toggleId: 'lostAnalyticsToggle',
+            cardId: 'lostAnalyticsCard',
+            canvasId: 'lostAnalyticsChart',
+            titleId: 'lostAnalyticsTitle',
+            totalId: 'lostAnalyticsTotal',
+            emptyId: 'lostAnalyticsEmpty',
+            tabSelector: '[data-lost-tab]',
+            tabDataset: 'lostTab',
+            analytics: lostAnalytics,
+            fallbackTitle: 'Lost Analytics',
+        });
+
+        breakdownCards.closed = setupBreakdownAnalytics({
+            toggleId: 'closedAnalyticsToggle',
+            cardId: 'closedAnalyticsCard',
+            canvasId: 'closedAnalyticsChart',
+            titleId: 'closedAnalyticsTitle',
+            totalId: 'closedAnalyticsTotal',
+            emptyId: 'closedAnalyticsEmpty',
+            backId: 'closedAnalyticsBack',
+            tabSelector: '[data-closed-tab]',
+            tabDataset: 'closedTab',
+            analytics: closedAnalytics,
+            fallbackTitle: 'Closed Lead Analytics',
+        });
+
+        const initialAnalyticsSection = @json($initialAnalyticsSection);
+        const initialBreakdown = breakdownCards[initialAnalyticsSection] || null;
+        if (initialBreakdown) {
+            initialBreakdown.showCard();
+            window.requestAnimationFrame(() => {
+                initialBreakdown.card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        }
     })();
 </script>
 @endif

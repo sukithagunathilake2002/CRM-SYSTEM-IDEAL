@@ -7,7 +7,6 @@
     <section class="login-ui-left">
         <div class="login-ui-form-wrap">
             <img src="{{ asset('icons/logo.png') }}" alt="Ideal Motors Logo" class="login-ui-logo">
-            <h1>LOGIN</h1>
             @if(session('success'))
                 <div class="login-ui-inline-flash success auto-dismiss" data-auto-dismiss="10000">{{ session('success') }}</div>
             @endif
@@ -19,41 +18,21 @@
                 @csrf
 
                 <label class="login-ui-field">
-                    <span class="sr-only">User Type</span>
+                    <span class="sr-only">Username</span>
                     <span class="login-ui-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24">
-                            <path d="M4 7h16M4 12h16M4 17h10"></path>
+                            <path d="M12 12c2.21 0 4-1.8 4-4s-1.79-4-4-4-4 1.8-4 4 1.79 4 4 4Z"></path>
+                            <path d="M4.5 20c.55-3.45 3.47-6 7.5-6s6.95 2.55 7.5 6H4.5Z"></path>
                         </svg>
                     </span>
-                    <select name="role" required>
-                        <option value="">Select user type</option>
-                        @foreach($roles as $role)
-                        @php
-                        $slug = $slugs[$role];
-                        $label = $labels[$role];
-                        @endphp
-                        <option value="{{ $slug }}" @selected(old('role')===$slug)>{{ $label }}</option>
-                        @endforeach
-                    </select>
-                </label>
-
-                <label class="login-ui-field">
-                    <span class="sr-only">Email</span>
-                    <span class="login-ui-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24">
-                            <path d="M4 8l8 5 8-5"></path>
-                            <rect x="4" y="6" width="16" height="12" rx="2"></rect>
-                        </svg>
-                    </span>
-                    <input type="email" name="email" value="{{ old('email') }}" placeholder="Username" required>
+                    <input type="text" name="email" value="{{ old('email') }}" placeholder="Username" required>
                 </label>
 
                 <div class="login-ui-field login-ui-password-field">
                     <label class="sr-only" for="commonLoginPassword">Password</label>
                     <span class="login-ui-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24">
-                            <rect x="5" y="11" width="14" height="9" rx="2"></rect>
-                            <path d="M8 11V8a4 4 0 0 1 8 0v3"></path>
+                            <path d="M17 9h-1V7a4 4 0 0 0-8 0v2H7a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2Zm-7 0V7a2 2 0 0 1 4 0v2h-4Z"></path>
                         </svg>
                     </span>
                     <input id="commonLoginPassword" type="password" name="password" placeholder="Password" required>
