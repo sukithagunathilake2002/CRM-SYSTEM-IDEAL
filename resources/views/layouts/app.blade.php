@@ -72,6 +72,11 @@
                 const quickIcons = document.createElement('div');
                 quickIcons.className = 'global-quick-icons';
                 quickIcons.innerHTML = `
+                    <a href="${dashboardMainUrl}" class="global-menu-link" aria-label="Open menu" title="Menu">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </a>
                     <a href="${notificationUrl}" class="global-quick-icon" aria-label="Notifications" title="Notifications">
                         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <path d="M12 4a4 4 0 0 0-4 4v2.6c0 .8-.2 1.6-.6 2.3L6 15h12l-1.4-2.1c-.4-.7-.6-1.5-.6-2.3V8a4 4 0 0 0-4-4Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>

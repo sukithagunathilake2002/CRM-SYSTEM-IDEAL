@@ -7,26 +7,37 @@
     --line: #cdd3df;
     --text: #111827;
     --text-soft: #4b5563;
-    --navy: #161f43;
-    --red: #ef1f2d;
+    --navy: #10225a;
+    --red: #DF0000;
     --green: #10b981;
+    --neon-blue: #09b8ff;
+    --neon-pink: #DF0000;
+    --neon-violet: #8957ff;
+    --neon-coral: #ff7a45;
 }
 
 html.theme-dark {
-    --page-bg: #0b1220;
-    --surface: #111a2e;
-    --surface-card: #16233b;
-    --line: #2f446d;
-    --text: #eaf2ff;
-    --text-soft: #b7c7e6;
-    --navy: #8fa8ff;
-    --red: #ff6077;
-    --green: #3dd8a3;
+    --page-bg: #050814;
+    --surface: #0c1227;
+    --surface-card: #111832;
+    --line: #2d4f8e;
+    --text: #f7fbff;
+    --text-soft: #a9c1ef;
+    --navy: #09b8ff;
+    --red: #DF0000;
+    --green: #4dffbd;
+    --neon-blue: #09b8ff;
+    --neon-pink: #DF0000;
+    --neon-violet: #8957ff;
+    --neon-coral: #ff7a45;
 }
 
 html.theme-dark body {
-    background: radial-gradient(circle at 18% 12%, #1a2747, #0b1220) !important;
-    color: #eaf2ff !important;
+    background:
+        radial-gradient(circle at 14% 8%, rgba(223, 0, 0, 0.28), transparent 30%),
+        radial-gradient(circle at 86% 12%, rgba(9, 184, 255, 0.26), transparent 32%),
+        linear-gradient(135deg, #050814 0%, #09152f 52%, #140726 100%) !important;
+    color: #f7fbff !important;
 }
 
 html.theme-dark .crm-dashboard,
@@ -37,8 +48,11 @@ html.theme-dark .prospect-page,
 html.theme-dark .booking-page,
 html.theme-dark .followup-page,
 html.theme-dark .emi-page {
-    background: #0b1220 !important;
-    color: #eaf2ff !important;
+    background:
+        radial-gradient(circle at 16% 12%, rgba(9, 184, 255, 0.18), transparent 28%),
+        radial-gradient(circle at 82% 18%, rgba(223, 0, 0, 0.16), transparent 30%),
+        #050814 !important;
+    color: #f7fbff !important;
 }
 
 html.theme-dark .crm-shell,
@@ -67,9 +81,10 @@ html.theme-dark .flash,
 html.theme-dark .booking-flash,
 html.theme-dark .followup-flash,
 html.theme-dark .form-flash {
-    background: #121d33 !important;
-    border-color: #2f446d !important;
-    color: #eaf2ff !important;
+    background: linear-gradient(145deg, rgba(17, 24, 50, 0.95), rgba(9, 16, 36, 0.95)) !important;
+    border-color: rgba(9, 184, 255, 0.36) !important;
+    color: #f7fbff !important;
+    box-shadow: 0 0 0 1px rgba(223, 0, 0, 0.08), 0 16px 34px rgba(1, 7, 22, 0.45) !important;
 }
 
 html.theme-dark .step-label,
@@ -85,6 +100,7 @@ html.theme-dark .card-info,
 html.theme-dark .crm-title,
 html.theme-dark .crm-greeting,
 html.theme-dark .crm-action-card h3,
+html.theme-dark .crm-action-count,
 html.theme-dark .crm-action-card p,
 html.theme-dark .crm-subline,
 html.theme-dark .crm-overview-head h3,
@@ -139,11 +155,6 @@ html.theme-dark .crm-current-date-pill {
 
 html.theme-dark .crm-current-date-pill svg {
     stroke: #eef4ff;
-}
-
-html.theme-dark .crm-day-map-link {
-    background: #0f1a31;
-    border-color: #3d5b92;
 }
 
 html.theme-dark .crm-overview-head,
@@ -319,6 +330,36 @@ html.theme-dark .global-unified-topbar {
     display: inline-flex;
     align-items: center;
     gap: 8px;
+}
+
+.global-menu-link {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 1px solid #c6cedf;
+    background: #ffffff;
+    color: #1f2937;
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    text-decoration: none;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
+}
+
+.global-menu-link span {
+    width: 16px;
+    height: 2px;
+    border-radius: 2px;
+    background: currentColor;
+    display: block;
+}
+
+html.theme-dark .global-menu-link {
+    border-color: #475569;
+    background: #0f172a;
+    color: #e2e8f0;
 }
 
 .global-right-host {
@@ -745,6 +786,7 @@ html.theme-dark .prospect-page .summary-modal-close {
     margin-top: auto;
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 10px;
     border-radius: 10px;
     padding: 8px;
@@ -776,6 +818,28 @@ html.theme-dark .prospect-page .summary-modal-close {
     margin-top: 2px;
     color: #d1d5db;
     font-size: 11px;
+}
+
+.crm-left-logout-form {
+    width: 100%;
+    margin: 4px 0 0;
+}
+
+.crm-left-logout-btn {
+    width: 100%;
+    min-height: 34px;
+    border: 0;
+    border-radius: 7px;
+    background: #DF0000;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 160ms ease;
+}
+
+.crm-left-logout-btn:hover {
+    background: #d91527;
 }
 
 .crm-sidebar {
@@ -1214,6 +1278,18 @@ html.theme-dark .prospect-page .summary-modal-close {
     box-shadow: 6px 8px 10px rgba(0, 0, 0, 0.25);
 }
 
+.crm-stat-label {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+}
+
+.crm-stat-label strong {
+    font-size: 18px;
+    line-height: 1;
+    font-weight: 800;
+}
+
 .crm-stat-dot {
     width: 14px;
     height: 14px;
@@ -1221,25 +1297,6 @@ html.theme-dark .prospect-page .summary-modal-close {
     background: #6cff4c;
     border: 2px solid #118131;
     box-sizing: border-box;
-}
-
-.crm-day-map-link {
-    width: 84px;
-    height: 84px;
-    border-radius: 18px;
-    background: #f4f6fb;
-    border: 1px solid #c9d1e0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    text-decoration: none;
-    flex: 0 0 84px;
-}
-
-.crm-day-map-link img {
-    width: 58px;
-    height: 58px;
-    object-fit: contain;
 }
 
 .crm-overview-head {
@@ -1347,6 +1404,14 @@ html.theme-dark .prospect-page .summary-modal-close {
     line-height: 1.2;
 }
 
+.crm-action-count {
+    display: block;
+    color: #0f172a;
+    font-size: 24px;
+    line-height: 1;
+    font-weight: 800;
+}
+
 .crm-cta-row {
     margin-top: 16px;
     display: flex;
@@ -1359,13 +1424,13 @@ html.theme-dark .prospect-page .summary-modal-close {
     min-width: 190px;
     text-align: center;
     text-decoration: none;
-    background: var(--red);
+    background: #DF0000;
     color: #ffffff;
     border-radius: 999px;
     padding: 10px 20px;
     font-size: 13px;
     font-weight: 700;
-    box-shadow: 0 5px 10px rgba(239, 31, 45, 0.3);
+    box-shadow: 0 5px 10px rgba(223, 0, 0, 0.3);
     transition: transform 160ms ease;
 }
 
@@ -1410,6 +1475,13 @@ html.theme-dark .prospect-page .summary-modal-close {
 
 .crm-quick-chip span {
     line-height: 1;
+}
+
+.crm-quick-chip strong {
+    margin-left: 4px;
+    font-size: 22px;
+    line-height: 1;
+    font-weight: 800;
 }
 
 .crm-quick-chip.hot {
@@ -1871,4 +1943,218 @@ html.theme-dark .prospect-page .summary-modal-close {
         transform: scale(1);
         filter: drop-shadow(0 0 4px rgba(239, 31, 45, 0.3));
     }
+}
+
+/* Neon dark system theme */
+html.theme-dark .crm-left-nav,
+html.theme-dark .global-unified-topbar,
+html.theme-dark .booking-topbar,
+html.theme-dark .followup-topbar,
+html.theme-dark .map-topbar,
+html.theme-dark .topbar,
+html.theme-dark .prospect-header,
+html.theme-dark .emi-topbar {
+    background:
+        linear-gradient(180deg, rgba(13, 19, 42, 0.96), rgba(5, 8, 20, 0.98)),
+        radial-gradient(circle at 18% 0%, rgba(223, 0, 0, 0.28), transparent 34%) !important;
+    border-color: rgba(9, 184, 255, 0.34) !important;
+    box-shadow: 0 12px 30px rgba(1, 7, 22, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+}
+
+html.theme-dark .crm-header {
+    background:
+        linear-gradient(135deg, rgba(12, 18, 39, 0.96), rgba(18, 10, 42, 0.92)),
+        radial-gradient(circle at 88% 0%, rgba(223, 0, 0, 0.32), transparent 36%) !important;
+    border-color: rgba(9, 184, 255, 0.38) !important;
+    box-shadow: 0 14px 32px rgba(1, 7, 22, 0.36), inset 0 -1px 0 rgba(223, 0, 0, 0.14) !important;
+}
+
+html.theme-dark .crm-shell,
+html.theme-dark .booking-shell,
+html.theme-dark .enquiry-shell,
+html.theme-dark .epr-filter-sheet,
+html.theme-dark .map-filter-form,
+html.theme-dark .map-summary,
+html.theme-dark .map-list,
+html.theme-dark .followup-card,
+html.theme-dark .lead-summary-card,
+html.theme-dark .prospect-step,
+html.theme-dark .summary-card,
+html.theme-dark .summary-modal-card,
+html.theme-dark .emi-shell,
+html.theme-dark .emi-card {
+    background:
+        linear-gradient(145deg, rgba(17, 24, 50, 0.94), rgba(7, 13, 31, 0.96)),
+        radial-gradient(circle at 12% 0%, rgba(9, 184, 255, 0.12), transparent 28%),
+        radial-gradient(circle at 100% 100%, rgba(223, 0, 0, 0.12), transparent 34%) !important;
+    border-color: rgba(9, 184, 255, 0.32) !important;
+    box-shadow: 0 22px 45px rgba(1, 7, 22, 0.44), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+}
+
+html.theme-dark .crm-stats-card,
+html.theme-dark .crm-action-card,
+html.theme-dark .crm-lower-card,
+html.theme-dark .epr-list,
+html.theme-dark .epr-card,
+html.theme-dark .map-list-card,
+html.theme-dark .summary-modern-total,
+html.theme-dark .global-quick-menu,
+html.theme-dark .crm-notify-menu,
+html.theme-dark .crm-profile-menu,
+html.theme-dark .district-epr-modal-content {
+    background: rgba(12, 18, 39, 0.92) !important;
+    border-color: rgba(223, 0, 0, 0.28) !important;
+    box-shadow: 0 18px 36px rgba(1, 7, 22, 0.48), 0 0 22px rgba(9, 184, 255, 0.08) !important;
+}
+
+html.theme-dark .crm-action-card:hover,
+html.theme-dark .crm-lower-card:hover,
+html.theme-dark .epr-card:hover,
+html.theme-dark .map-list-card:hover,
+html.theme-dark .district-epr-card:hover {
+    border-color: rgba(223, 0, 0, 0.62) !important;
+    box-shadow: 0 20px 38px rgba(1, 7, 22, 0.52), 0 0 24px rgba(223, 0, 0, 0.18) !important;
+}
+
+html.theme-dark .crm-stat-pill,
+html.theme-dark .crm-cta,
+html.theme-dark .crm-logout-btn,
+html.theme-dark .global-quick-logout-btn,
+html.theme-dark .booking-next,
+html.theme-dark .booking-save,
+html.theme-dark .followup-save-btn,
+html.theme-dark .prospect-submit-btn,
+html.theme-dark .summary-confirm-btn,
+html.theme-dark .epr-filter-action.primary,
+html.theme-dark .map-filter-btn,
+html.theme-dark .district-epr-modal-header {
+    background: linear-gradient(135deg, var(--neon-pink) 0%, var(--neon-violet) 48%, var(--neon-blue) 100%) !important;
+    border-color: rgba(255, 255, 255, 0.14) !important;
+    color: #ffffff !important;
+    box-shadow: 0 10px 22px rgba(223, 0, 0, 0.28), 0 0 22px rgba(9, 184, 255, 0.18) !important;
+}
+
+html.theme-dark .crm-cta {
+    background: #DF0000 !important;
+    box-shadow: 0 10px 22px rgba(223, 0, 0, 0.28) !important;
+}
+
+html.theme-dark .theme-toggle-btn,
+html.theme-dark .global-quick-icon,
+html.theme-dark .global-menu-link,
+html.theme-dark .crm-menu-toggle,
+html.theme-dark .crm-analytics-nav,
+html.theme-dark .crm-notify-btn,
+html.theme-dark .crm-profile-btn,
+html.theme-dark .tool-btn,
+html.theme-dark .menu-dot-btn,
+html.theme-dark .map-link-btn,
+html.theme-dark .top-circle {
+    background: rgba(15, 26, 58, 0.94) !important;
+    border-color: rgba(9, 184, 255, 0.45) !important;
+    color: #dff7ff !important;
+    box-shadow: 0 8px 18px rgba(1, 7, 22, 0.38), inset 0 0 0 1px rgba(223, 0, 0, 0.1) !important;
+}
+
+html.theme-dark .theme-toggle-btn:hover,
+html.theme-dark .global-quick-icon:hover,
+html.theme-dark .global-menu-link:hover,
+html.theme-dark .crm-menu-toggle:hover,
+html.theme-dark .crm-analytics-nav:hover,
+html.theme-dark .crm-notify-btn:hover,
+html.theme-dark .crm-profile-btn:hover,
+html.theme-dark .tool-btn:hover,
+html.theme-dark .map-link-btn:hover {
+    border-color: rgba(223, 0, 0, 0.62) !important;
+    color: #ffffff !important;
+    box-shadow: 0 10px 24px rgba(1, 7, 22, 0.42), 0 0 18px rgba(223, 0, 0, 0.22) !important;
+}
+
+html.theme-dark input[type="text"],
+html.theme-dark input[type="search"],
+html.theme-dark input[type="email"],
+html.theme-dark input[type="tel"],
+html.theme-dark input[type="number"],
+html.theme-dark input[type="date"],
+html.theme-dark input[type="time"],
+html.theme-dark textarea,
+html.theme-dark select,
+html.theme-dark .input-pill,
+html.theme-dark .global-header-search input,
+html.theme-dark .crm-search {
+    background: rgba(5, 11, 28, 0.86) !important;
+    border-color: rgba(9, 184, 255, 0.42) !important;
+    color: #f7fbff !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 0 0 1px rgba(223, 0, 0, 0.06) !important;
+}
+
+html.theme-dark input:focus,
+html.theme-dark textarea:focus,
+html.theme-dark select:focus,
+html.theme-dark .input-pill:focus,
+html.theme-dark .global-header-search input:focus {
+    border-color: rgba(223, 0, 0, 0.76) !important;
+    box-shadow: 0 0 0 3px rgba(223, 0, 0, 0.16), 0 0 22px rgba(9, 184, 255, 0.12) !important;
+}
+
+html.theme-dark .crm-greeting,
+html.theme-dark .crm-title,
+html.theme-dark .crm-overview-head h3,
+html.theme-dark .crm-quick-head,
+html.theme-dark .section-title,
+html.theme-dark .booking-shell h2,
+html.theme-dark .district-lead-info-name {
+    color: #ffffff !important;
+    text-shadow: 0 0 14px rgba(9, 184, 255, 0.24);
+}
+
+html.theme-dark .crm-action-count,
+html.theme-dark .crm-quick-chip strong,
+html.theme-dark .district-lead-info-value,
+html.theme-dark .summary-modern-total span,
+html.theme-dark .summary-modern-total strong {
+    color: var(--neon-pink) !important;
+    text-shadow: 0 0 18px rgba(223, 0, 0, 0.32);
+}
+
+html.theme-dark .crm-quick-chip,
+html.theme-dark .crm-current-date-pill,
+html.theme-dark .epr-filter-pill,
+html.theme-dark .map-filter-note,
+html.theme-dark .field-pill,
+html.theme-dark .province-filter-box {
+    background: rgba(15, 26, 58, 0.86) !important;
+    border-color: rgba(137, 87, 255, 0.38) !important;
+    color: #dff7ff !important;
+}
+
+html.theme-dark .crm-quick-chip.hot {
+    border-color: rgba(223, 0, 0, 0.58) !important;
+    color: #ffb3b3 !important;
+}
+
+html.theme-dark .crm-quick-chip.warm {
+    border-color: rgba(255, 122, 69, 0.58) !important;
+    color: #ffc2a5 !important;
+}
+
+html.theme-dark .crm-quick-chip.cold {
+    border-color: rgba(9, 184, 255, 0.58) !important;
+    color: #9be8ff !important;
+}
+
+html.theme-dark .crm-action-badge,
+html.theme-dark .step-number {
+    background: rgba(5, 11, 28, 0.92) !important;
+    border-color: rgba(9, 184, 255, 0.56) !important;
+    box-shadow: inset 0 0 18px rgba(9, 184, 255, 0.1), 0 0 16px rgba(223, 0, 0, 0.1) !important;
+}
+
+html.theme-dark .stepper-item.active .step-number,
+html.theme-dark .stepper-item.complete .step-number,
+html.theme-dark .segmented input:checked + span,
+html.theme-dark .plan-follow-type-segment input:checked + span {
+    background: linear-gradient(135deg, var(--neon-pink), var(--neon-blue)) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+    color: #ffffff !important;
 }

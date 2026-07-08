@@ -93,6 +93,8 @@ class FollowUpController extends Controller
             $selectedLostRejectReasons = [];
         }
         $selectedLostRejectOtherText = old('followup_lost_reject_other_text', $enquiry->followup_lost_reject_other_text ?? '');
+        $selectedNotDoneReason = old('followup_not_done_reason', '');
+        $selectedNotDoneReasonOther = old('followup_not_done_reason_other', '');
 
         $statusLabel = match ($followupStatus) {
             'done' => 'Done',
@@ -140,6 +142,8 @@ class FollowUpController extends Controller
             'selectedLostCodealerName' => $selectedLostCodealerName,
             'selectedLostRejectReasons' => $selectedLostRejectReasons,
             'selectedLostRejectOtherText' => $selectedLostRejectOtherText,
+            'selectedNotDoneReason' => $selectedNotDoneReason,
+            'selectedNotDoneReasonOther' => $selectedNotDoneReasonOther,
             'statusLabel' => $statusLabel,
             'showPhysicalVisitFields' => $showPhysicalVisitFields,
             'isHomeVisit' => $isHomeVisit,

@@ -26,26 +26,6 @@ $viewerId = (int) ($user?->id ?? 0);
     if ($viewerRole === \App\Models\User::ROLE_SUPER_ADMIN) {
         $visibleUserIds = \App\Models\User::query()->pluck('id');
     } elseif ($viewerRole === \App\Models\User::ROLE_HEAD_OF_SALES) {
-        $regionalIds = \App\Models\User::query()
-            ->where('role', \App\Models\User::ROLE_REGIONAL_MANAGER)
-            ->where('manager_id', $viewerId)
-            ->pluck('id');
-        $areaIds = \App\Models\User::query()
-            ->where('role', \App\Models\User::ROLE_AREA_MANAGER)
-            ->whereIn('manager_id', $regionalIds)
-            ->pluck('id');
-        $consultantIds = \App\Models\User::query()
-            ->where('role', \App\Models\User::ROLE_SALES_CONSULTANT)
-            ->whereIn('manager_id', $areaIds)
-            ->pluck('id');
-
-        $visibleUserIds = $visibleUserIds
-            ->merge($regionalIds)
-            ->merge($areaIds)
-            ->merge($consultantIds)
-            ->unique()
-            ->values();
-    } elseif ($viewerRole === \App\Models\User::ROLE_REGIONAL_MANAGER) {
         $areaIds = \App\Models\User::query()
             ->where('role', \App\Models\User::ROLE_AREA_MANAGER)
             ->where('manager_id', $viewerId)
@@ -74,8 +54,6 @@ $viewerId = (int) ($user?->id ?? 0);
 
     $sriNow = now('Asia/Colombo');
     $todaySriLanka = $sriNow->toDateString();
-    $todayStartUtc = $sriNow->copy()->startOfDay()->timezone('UTC');
-    $todayEndUtc = $sriNow->copy()->endOfDay()->timezone('UTC');
 
     $activeBookings = \App\Models\Booking::query()
         ->whereHas('enquiry', function ($query) use ($visibleUserIds) {
@@ -84,10 +62,28 @@ $viewerId = (int) ($user?->id ?? 0);
         })
         ->count();
 
-    $todayLeads = \App\Models\Enquiry::query()
+    $activeInquiries = \App\Models\Enquiry::query()
         ->whereIn('user_id', $visibleUserIds)
-        ->whereBetween('created_at', [$todayStartUtc, $todayEndUtc])
+        ->whereRaw("LOWER(COALESCE(status, 'open')) NOT IN ('closed', 'cancelled', 'canceled', 'lost')")
         ->count();
+
+    $totalInquiries = \App\Models\Enquiry::query()
+        ->whereIn('user_id', $visibleUserIds)
+        ->count();
+
+    $leadStatusCounts = collect(['hot', 'warm', 'cold'])
+        ->mapWithKeys(function (string $status) use ($visibleUserIds): array {
+            $count = \App\Models\Enquiry::query()
+                ->whereIn('user_id', $visibleUserIds)
+                ->registeredLead()
+                ->whereHas('prospectSheet', function ($query) use ($status): void {
+                    $query->whereRaw("LOWER(COALESCE(lead_status, '')) = ?", [$status]);
+                })
+                ->count();
+
+            return [$status => $count];
+        })
+        ->all();
 
     $todayFollowups = \App\Models\Enquiry::query()
         ->with(['customer:id,title,name'])
@@ -99,16 +95,8 @@ $viewerId = (int) ($user?->id ?? 0);
     ->limit(8)
     ->get();
     $todayFollowupCount = $todayFollowups->count();
-    $recentActivities = \App\Models\Enquiry::query()
-    ->with(['customer:id,title,name'])
-    ->select(['id', 'customer_id', 'updated_at'])
-    ->where('user_id', $viewerId)
-    ->latest('updated_at')
-    ->limit(5)
-    ->get();
     $todayLabel = now('Asia/Colombo')->format('M d, Y');
     $roleLabel = (string) ($user?->role_label ?? 'Sales Executive');
-    $isSuperAdmin = (string) ($user?->role ?? '') === \App\Models\User::ROLE_SUPER_ADMIN;
 
     $sriLankaHour = now('Asia/Colombo')->hour;
     if ($sriLankaHour >= 5 && $sriLankaHour < 12) {
@@ -125,23 +113,17 @@ $viewerId = (int) ($user?->id ?? 0);
                 <aside id="dashboardSidebar" class="crm-left-nav" aria-label="Dashboard navigation">
                     <div class="crm-left-group">
                         <p>Leads and Bookings</p>
-                        <a href="{{ route('enquiries.list.call') }}">Hot Leads</a>
-                        <a href="{{ route('enquiries.list.showroom') }}">Warm Leads</a>
-                        <a href="{{ route('enquiries.list.home') }}">Cold Leads</a>
-                        <a href="{{ url('/epr') }}">Active Bookings</a>
-                        <a href="{{ url('/epr') }}">Lost Leads</a>
-                    </div>
-
-                    <div class="crm-left-group">
-                        <p>Management</p>
-                        <a href="{{ route('enquiries.list') }}">ERP</a>
+                        <a href="{{ route('enquiries.list', ['lead_status' => 'hot']) }}">Hot Leads</a>
+                        <a href="{{ route('enquiries.list', ['lead_status' => 'warm']) }}">Warm Leads</a>
+                        <a href="{{ route('enquiries.list', ['lead_status' => 'cold']) }}">Cold Leads</a>
+                        <a href="{{ route('enquiries.list', ['lead_result' => 'active']) }}">Active Lead</a>
+                        <a href="{{ route('enquiries.list', ['lead_result' => 'lost']) }}">Lost Lead</a>
+                        <a href="{{ route('enquiries.list', ['lead_result' => 'closed']) }}">Closed Lead</a>
+                        <a href="{{ route('enquiries.list', ['registration' => 'pending']) }}">EPR</a>
+                        <a href="{{ url('/epr') }}">Active Booking</a>
                         <a href="{{ url('/epr') }}">Inactive Booking</a>
-                        <a href="{{ url('/epr') }}">Canceled Booking</a>
-                    </div>
-
-                    <hr class="crm-left-sep">
-
-                    <div class="crm-left-group">
+                        <a href="{{ url('/epr') }}">Cancelled Booking</a>
+                        <a href="{{ url('/epr') }}">Deliveries</a>
                         <a href="{{ route('enquiries.list') }}">All Leads</a>
                     </div>
 
@@ -153,6 +135,10 @@ $viewerId = (int) ($user?->id ?? 0);
                             <strong>{{ $displayName }}</strong>
                             <small>{{ $roleLabel }}</small>
                         </div>
+                        <form method="POST" action="{{ route('auth.logout') }}" class="crm-left-logout-form">
+                            @csrf
+                            <button type="submit" class="crm-left-logout-btn">Logout</button>
+                        </form>
                     </div>
                 </aside>
 
@@ -246,16 +232,17 @@ $viewerId = (int) ($user?->id ?? 0);
                                 <div class="crm-stats-list">
                                     <div class="crm-stat-pill">
                                         <span class="crm-stat-dot"></span>
-                                        <span>{{ $activeBookings }} Active Booking</span>
+                                        <span class="crm-stat-label">Active Bookings – <strong>{{ str_pad((string) $activeBookings, 2, '0', STR_PAD_LEFT) }}</strong></span>
                                     </div>
                         <div class="crm-stat-pill">
                             <span class="crm-stat-dot"></span>
-                            <span>{{ $todayLeads }} Today Leads</span>
+                            <span class="crm-stat-label">Active Inquiries – <strong>{{ str_pad((string) $activeInquiries, 2, '0', STR_PAD_LEFT) }}</strong></span>
+                        </div>
+                        <div class="crm-stat-pill">
+                            <span class="crm-stat-dot"></span>
+                            <span class="crm-stat-label">Total Inquiries – <strong>{{ str_pad((string) $totalInquiries, 2, '0', STR_PAD_LEFT) }}</strong></span>
                         </div>
                     </div>
-                    <a href="{{ route('enquiries.map', ['date' => $todaySriLanka]) }}" class="crm-day-map-link" aria-label="Open day map">
-                        <img src="{{ asset('icons/mapdsh.png') }}" alt="Day Map">
-                    </a>
                 </article>
                         </div>
 
@@ -277,6 +264,7 @@ $viewerId = (int) ($user?->id ?? 0);
                                 <span class="crm-action-badge">
                                     <img src="{{ asset('icons/Call.png') }}" alt="Call">
                                 </span>
+                                <strong class="crm-action-count">{{ number_format((int) ($dashboardEpds['call_count'] ?? 0)) }}</strong>
                                 <h3>Call</h3>
                             </a>
 
@@ -284,6 +272,7 @@ $viewerId = (int) ($user?->id ?? 0);
                                 <span class="crm-action-badge">
                                     <img src="{{ asset('icons/showroom.png') }}" alt="Showroom Visit">
                                 </span>
+                                <strong class="crm-action-count">{{ number_format((int) ($dashboardEpds['showroom_count'] ?? 0)) }}</strong>
                                 <h3>Showroom Visits</h3>
                             </a>
 
@@ -291,20 +280,22 @@ $viewerId = (int) ($user?->id ?? 0);
                                 <span class="crm-action-badge">
                                     <img src="{{ asset('icons/home123.png') }}" alt="Home Visit">
                                 </span>
+                                <strong class="crm-action-count">{{ number_format((int) ($dashboardEpds['home_count'] ?? 0)) }}</strong>
                                 <h3>Home Visits</h3>
                             </a>
 
-                            <a href="{{ route('enquiries.list') }}" class="crm-action-card">
+                            <a href="{{ route('enquiries.list', ['registration' => 'pending']) }}" class="crm-action-card">
                                 <span class="crm-action-badge">
                                     <img src="{{ asset('icons/epr.png') }}" alt="EPR">
                                 </span>
-                                <h3>EPR Records</h3>
+                                <strong class="crm-action-count">{{ number_format((int) ($dashboardEpds['total_count'] ?? 0)) }}</strong>
+                                <h3>Enquiry Pending Registration</h3>
                             </a>
                         </div>
 
                         <div class="crm-cta-row">
                             <a href="{{ route('emi.calculator') }}" class="crm-cta">EMI Calculator</a>
-                            <a href="{{ url('/new-enquiry') }}" class="crm-cta">Add new EPR</a>
+                            <a href="{{ url('/new-enquiry') }}" class="crm-cta">Add New Lead</a>
                         </div>
 
             <div class="crm-quick-head">Quick Actions</div>
@@ -312,67 +303,20 @@ $viewerId = (int) ($user?->id ?? 0);
                 <a href="{{ route('enquiries.list', ['lead_status' => 'hot']) }}" class="crm-quick-chip hot">
                     <img src="{{ asset('icons/hotadsh.png') }}" alt="Hot Leads">
                     <span>Hot Leads</span>
+                    <strong>{{ number_format((int) ($leadStatusCounts['hot'] ?? 0)) }}</strong>
                 </a>
                 <a href="{{ route('enquiries.list', ['lead_status' => 'warm']) }}" class="crm-quick-chip warm">
                     <img src="{{ asset('icons/warmdsh.png') }}" alt="Warm Leads">
                     <span>Warm Leads</span>
+                    <strong>{{ number_format((int) ($leadStatusCounts['warm'] ?? 0)) }}</strong>
                 </a>
                 <a href="{{ route('enquiries.list', ['lead_status' => 'cold']) }}" class="crm-quick-chip cold">
                     <img src="{{ asset('icons/colddsh.png') }}" alt="Cold Leads">
                     <span>Cold Leads</span>
+                    <strong>{{ number_format((int) ($leadStatusCounts['cold'] ?? 0)) }}</strong>
                 </a>
             </div>
 
-                        @if(!$isSuperAdmin)
-                        <div class="crm-lower-grid">
-                            <section class="crm-lower-card">
-                                <div class="crm-lower-head">
-                                    <h4>Upcoming Tasks</h4>
-                                    <a href="{{ url('/epr') }}">View All</a>
-                                </div>
-                                <div class="crm-lower-list">
-                                    @forelse($todayFollowups as $followup)
-                                    @php
-                                    $taskTime = $followup->follow_time ? substr((string) $followup->follow_time, 0, 5) : '--:--';
-                                    $taskName = trim((string) ($followup->customer?->name ?? 'Customer'));
-                                    @endphp
-                                    <div class="crm-lower-item">
-                                        <span>{{ $followup->follow_type ?: 'Followup' }} - {{ $taskName }}</span>
-                                        <small>{{ $taskTime }}</small>
-                                    </div>
-                                    @empty
-                                    <div class="crm-lower-item">
-                                        <span>No tasks for today</span>
-                                        <small>--:--</small>
-                                    </div>
-                                    @endforelse
-                                </div>
-                            </section>
-
-                            <section class="crm-lower-card">
-                                <div class="crm-lower-head">
-                                    <h4>Recent Activities</h4>
-                                    <a href="{{ url('/epr') }}">View All</a>
-                                </div>
-                                <div class="crm-lower-list">
-                                    @forelse($recentActivities as $activity)
-                                    @php
-                                    $activityName = trim((string) ($activity->customer?->name ?? 'Lead'));
-                                    @endphp
-                                    <div class="crm-lower-item">
-                                        <span>{{ $activityName }} updated</span>
-                                        <small>{{ $activity->updated_at?->timezone('Asia/Colombo')->format('h:i A') }}</small>
-                                    </div>
-                                    @empty
-                                    <div class="crm-lower-item">
-                                        <span>No recent activities</span>
-                                        <small>--:--</small>
-                                    </div>
-                                    @endforelse
-                                </div>
-                            </section>
-                        </div>
-                        @endif
                     </section>
                 </main>
             </div>

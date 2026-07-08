@@ -3,9 +3,11 @@
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\EmiController;
 use App\Http\Controllers\EnquiryController;
 use App\Http\Controllers\FollowUpController;
+use App\Http\Controllers\LeadTransferRequestController;
 use App\Http\Controllers\ProspectSheetController;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
@@ -37,7 +39,7 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->n
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth')->group(function () {
-    Route::view('/crm-dashboard', 'dashboard')->name('dashboard.main');
+    Route::get('/crm-dashboard', [DashboardController::class, 'main'])->name('dashboard.main');
 
     Route::get('/dashboard', [DashboardController::class, 'home'])->name('dashboard.home');
 
@@ -49,10 +51,6 @@ Route::middleware('auth')->group(function () {
         ->middleware('role:' . User::ROLE_HEAD_OF_SALES)
         ->name('dashboard.head_of_sales');
 
-    Route::get('/dashboard/regional-manager', [DashboardController::class, 'regionalManager'])
-        ->middleware('role:' . User::ROLE_REGIONAL_MANAGER)
-        ->name('dashboard.regional_manager');
-
     Route::get('/dashboard/area-manager', [DashboardController::class, 'areaManager'])
         ->middleware('role:' . User::ROLE_AREA_MANAGER)
         ->name('dashboard.area_manager');
@@ -63,6 +61,15 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/dashboard/analytics-report', [DashboardController::class, 'downloadAnalyticsReport'])
         ->name('dashboard.analytics.report');
+
+    Route::get('/dashboard/analytics', [DashboardController::class, 'analytics'])
+        ->name('dashboard.analytics');
+
+    Route::get('/dashboard/followup-summary', [DashboardController::class, 'followupSummary'])
+        ->name('dashboard.followup_summary');
+
+    Route::get('/dashboard/analytics/{section}', [DashboardController::class, 'analyticsDetail'])
+        ->name('dashboard.analytics.detail');
 
     // District EPR API routes
     Route::get('/dashboard/district/{district}/eprs', [DashboardController::class, 'getDistrictEprs'])
@@ -83,6 +90,26 @@ Route::middleware('auth')->group(function () {
     Route::put('/dashboard/super-admin/users/{managedUser}', [DashboardController::class, 'updateUser'])
         ->middleware('role:' . User::ROLE_SUPER_ADMIN)
         ->name('dashboard.super_admin.users.update');
+
+    Route::get('/lead-transfer/request', [LeadTransferRequestController::class, 'create'])
+        ->middleware('role:' . User::ROLE_SALES_CONSULTANT)
+        ->name('lead_transfer.request.create');
+
+    Route::post('/lead-transfer/request', [LeadTransferRequestController::class, 'store'])
+        ->middleware('role:' . User::ROLE_SALES_CONSULTANT)
+        ->name('lead_transfer.request.store');
+
+    Route::get('/lead-transfer/approvals', [LeadTransferRequestController::class, 'approvals'])
+        ->middleware('role:' . User::ROLE_AREA_MANAGER)
+        ->name('lead_transfer.approvals');
+
+    Route::post('/lead-transfer/{transferRequest}/approve', [LeadTransferRequestController::class, 'approve'])
+        ->middleware('role:' . User::ROLE_AREA_MANAGER)
+        ->name('lead_transfer.approve');
+
+    Route::post('/lead-transfer/{transferRequest}/reject', [LeadTransferRequestController::class, 'reject'])
+        ->middleware('role:' . User::ROLE_AREA_MANAGER)
+        ->name('lead_transfer.reject');
 });
 
 /*
@@ -104,7 +131,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/epr/showroom', [EnquiryController::class, 'listShowroomEpds'])->name('enquiries.list.showroom');
     Route::get('/epr/home', [EnquiryController::class, 'listHomeEpds'])->name('enquiries.list.home');
     
-    Route::get('/epr-map', [EnquiryController::class, 'map'])->name('enquiries.map');
     Route::get('/followup/{enquiry}', [FollowUpController::class, 'show'])->name('followup.show');
     Route::post('/followup/{enquiry}/status', [FollowUpController::class, 'updateStatus'])->name('followup.update_status');
 
@@ -113,4 +139,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/booking/{enquiry}', [BookingController::class, 'show'])->name('booking.show');
     Route::post('/booking/{enquiry}', [BookingController::class, 'store'])->name('booking.store');
+
+    Route::get('/delivery/{enquiry}', [DeliveryController::class, 'show'])->name('delivery.show');
+    Route::post('/delivery/{enquiry}', [DeliveryController::class, 'store'])->name('delivery.store');
 });

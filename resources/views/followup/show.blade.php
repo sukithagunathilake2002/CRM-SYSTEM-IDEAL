@@ -404,21 +404,18 @@
                             <label class="reason-option" data-reason="I was busy">
                                 <input type="radio" name="followup_not_done_reason" value="I was busy" @checked($selectedNotDoneReason === 'I was busy')>
                                 <span class="reason-card">
-                                    <span class="reason-icon">⏰</span>
                                     <span class="reason-text">I was busy</span>
                                 </span>
                             </label>
                             <label class="reason-option" data-reason="Vehicle was not available">
                                 <input type="radio" name="followup_not_done_reason" value="Vehicle was not available" @checked($selectedNotDoneReason === 'Vehicle was not available')>
                                 <span class="reason-card">
-                                    <span class="reason-icon">🚗</span>
                                     <span class="reason-text">Vehicle was not available</span>
                                 </span>
                             </label>
                             <label class="reason-option" data-reason="Other">
                                 <input type="radio" name="followup_not_done_reason" value="Other" @checked($selectedNotDoneReason === 'Other')>
                                 <span class="reason-card">
-                                    <span class="reason-icon">📝</span>
                                     <span class="reason-text">Other</span>
                                 </span>
                             </label>
@@ -426,7 +423,7 @@
                         
                         <div id="notDoneOtherTextWrap" class="not-done-other-wrap {{ $selectedNotDoneReason === 'Other' ? '' : 'hidden' }}">
                             <label class="not-done-label">Please specify:</label>
-                            <input type="text" name="followup_not_done_reason_other" id="followup_not_done_reason_other" class="pill-input" placeholder="Enter other reason" value="{{ $selectedNotDoneReason === 'Other' && $selectedNotDoneReason !== 'I was busy' && $selectedNotDoneReason !== 'Vehicle was not available' ? $selectedNotDoneReason : '' }}">
+                            <input type="text" name="followup_not_done_reason_other" id="followup_not_done_reason_other" class="pill-input" placeholder="Enter other reason" value="{{ $selectedNotDoneReasonOther }}">
                         </div>
                     </div>
                 </div>
@@ -506,9 +503,6 @@
     box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
 }
 
-.reason-icon {
-    font-size: 32px;
-}
 
 .reason-text {
     font-size: 13px;
@@ -575,9 +569,6 @@ html.theme-dark .reason-option input:checked + .reason-card .reason-text {
         padding: 12px;
     }
     
-    .reason-icon {
-        font-size: 24px;
-    }
 }
 </style>
 

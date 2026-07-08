@@ -14,41 +14,48 @@ class AuthController extends Controller
 {
     public function showCommonLoginForm(): View
     {
-        return view('auth.login-common', [
-            'roles' => User::ROLE_HIERARCHY,
-            'labels' => User::ROLE_LABELS,
-            'slugs' => User::ROLE_SLUGS,
-        ]);
+        return view('auth.login-common');
     }
 
     public function loginCommon(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'role' => ['required', Rule::in(array_values(User::ROLE_SLUGS))],
-            'email' => ['required', 'email'],
+            'email' => ['required', 'string', 'max:255'],
             'password' => ['required', 'string'],
             'remember' => ['nullable', 'boolean'],
         ]);
 
-        $role = $this->resolveRoleFromSlug($validated['role']);
+        $identifier = trim((string) $validated['email']);
+        $matchedUsers = User::query()
+            ->where('email', $identifier)
+            ->orWhere('name', $identifier)
+            ->limit(2)
+            ->get(['id', 'email']);
+
+        if ($matchedUsers->count() !== 1) {
+            return back()
+                ->withErrors(['email' => 'Invalid credentials.'])
+                ->withInput($request->only('email', 'remember'));
+        }
+
+        $matchedUser = $matchedUsers->first();
 
         $attemptData = [
-            'email' => $validated['email'],
+            'email' => $matchedUser->email,
             'password' => $validated['password'],
-            'role' => $role,
         ];
 
         $remember = (bool) ($validated['remember'] ?? false);
 
         if (!Auth::attempt($attemptData, $remember)) {
             return back()
-                ->withErrors(['email' => 'Invalid credentials for this user type.'])
-                ->withInput($request->only('role', 'email', 'remember'));
+                ->withErrors(['email' => 'Invalid credentials.'])
+                ->withInput($request->only('email', 'remember'));
         }
 
         $request->session()->regenerate();
 
-        return redirect()->route('dashboard.main');
+        return redirect()->route('dashboard.home');
     }
 
     public function roles(): View
@@ -97,7 +104,7 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->route('dashboard.main');
+        return redirect()->route('dashboard.home');
     }
 
     public function showRegistrationForm(string $roleSlug): View
@@ -105,24 +112,12 @@ class AuthController extends Controller
         $role = $this->resolveRoleFromSlug($roleSlug);
         $parentRole = User::parentRoleFor($role);
         $managerOptions = collect();
-        $managerPermittedDistrictMap = [];
-        $supportsDistrictPermissions = in_array($role, [
-            User::ROLE_REGIONAL_MANAGER,
-            User::ROLE_AREA_MANAGER,
-            User::ROLE_SALES_CONSULTANT,
-        ], true);
 
         if ($parentRole) {
             $managerOptions = User::query()
                 ->where('role', $parentRole)
                 ->orderBy('name')
-                ->get(['id', 'name', 'email', 'role', 'manager_id', 'permitted_districts']);
-
-            if ($supportsDistrictPermissions) {
-                $managerPermittedDistrictMap = $managerOptions
-                    ->mapWithKeys(fn(User $manager): array => [(string) $manager->id => $manager->resolvePermittedDistricts()])
-                    ->all();
-            }
+                ->get(['id', 'name', 'email', 'role', 'manager_id']);
         }
 
         return view('auth.register', [
@@ -132,10 +127,6 @@ class AuthController extends Controller
             'parentRole' => $parentRole,
             'parentRoleLabel' => $parentRole ? User::ROLE_LABELS[$parentRole] : null,
             'managerOptions' => $managerOptions,
-            'supportsDistrictPermissions' => $supportsDistrictPermissions,
-            'districtOptions' => User::DISTRICT_OPTIONS,
-            'provinceDistrictMap' => User::PROVINCE_DISTRICT_MAP,
-            'managerPermittedDistrictMap' => $managerPermittedDistrictMap,
         ]);
     }
 
@@ -147,14 +138,14 @@ class AuthController extends Controller
         $rules = [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
-            'phone' => ['nullable', 'string', 'max:30'],
+            'employee_number' => ['required', 'regex:/^M\d{5}$/', Rule::unique('users', 'employee_number')],
+            'phone' => ['nullable', 'regex:/^0\d{9}$/'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ];
-        $supportsDistrictPermissions = in_array($role, [
-            User::ROLE_REGIONAL_MANAGER,
-            User::ROLE_AREA_MANAGER,
-            User::ROLE_SALES_CONSULTANT,
-        ], true);
+        $messages = [
+            'phone.regex' => 'Phone number must start with 0 and contain exactly 10 digits.',
+            'employee_number.regex' => 'Employee number must start with M followed by exactly 5 digits.',
+        ];
 
         if ($parentRole) {
             $rules['manager_id'] = ['required', 'integer', Rule::exists('users', 'id')];
@@ -162,12 +153,7 @@ class AuthController extends Controller
             $rules['manager_id'] = ['nullable', 'integer'];
         }
 
-        if ($supportsDistrictPermissions) {
-            $rules['permitted_districts'] = ['nullable', 'array'];
-            $rules['permitted_districts.*'] = ['string', Rule::in(User::DISTRICT_OPTIONS)];
-        }
-
-        $validated = $request->validate($rules);
+        $validated = $request->validate($rules, $messages);
 
         $managerId = $validated['manager_id'] ?? null;
 
@@ -183,54 +169,21 @@ class AuthController extends Controller
             $managerId = null;
         }
 
-        $managerPermittedDistricts = User::DISTRICT_OPTIONS;
-        if ($managerId !== null) {
-            $manager = User::query()->find((int) $managerId);
-            if ($manager instanceof User) {
-                $managerPermittedDistricts = $manager->resolvePermittedDistricts();
-            }
-        }
-
-        $permittedDistricts = null;
-        if ($supportsDistrictPermissions) {
-            $selectedDistricts = collect($validated['permitted_districts'] ?? [])
-                ->map(fn($district): ?string => User::normalizeDistrictName((string) $district))
-                ->filter()
-                ->unique()
-                ->sort()
-                ->values()
-                ->all();
-
-            if (!empty($selectedDistricts)) {
-                $allowedLookup = array_fill_keys($managerPermittedDistricts, true);
-                $hasInvalid = collect($selectedDistricts)->contains(
-                    fn(string $district): bool => !isset($allowedLookup[$district])
-                );
-
-                if ($hasInvalid) {
-                    return back()
-                        ->withErrors(['permitted_districts' => 'Selected districts must be within manager access.'])
-                        ->withInput();
-                }
-            }
-
-            $permittedDistricts = !empty($selectedDistricts) ? $selectedDistricts : null;
-        }
-
         $user = User::query()->create([
             'name' => $validated['name'],
             'email' => $validated['email'],
+            'employee_number' => $validated['employee_number'],
             'phone' => $validated['phone'] ?? null,
             'role' => $role,
             'manager_id' => $managerId,
             'password' => $validated['password'],
-            'permitted_districts' => $permittedDistricts,
+            'permitted_districts' => null,
         ]);
 
         Auth::login($user);
         $request->session()->regenerate();
 
-        return redirect()->route('dashboard.main');
+        return redirect()->route('dashboard.home');
     }
 
     public function logout(Request $request): RedirectResponse

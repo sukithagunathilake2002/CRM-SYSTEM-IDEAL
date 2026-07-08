@@ -6,9 +6,7 @@ use App\Models\Customer;
 use App\Models\Enquiry;
 use App\Models\User;
 use App\Models\Vehicle;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
@@ -24,8 +22,9 @@ class EnquiryController extends Controller
         $districtOptions = $viewer instanceof User
             ? $viewer->resolvePermittedDistricts()
             : User::DISTRICT_OPTIONS;
+        $sourceInfoMap = $this->sourceInformationOptions();
 
-        return view('new-enquiry', compact('models', 'districtOptions'));
+        return view('new-enquiry', compact('models', 'districtOptions', 'sourceInfoMap'));
     }
 
     /**
@@ -67,6 +66,10 @@ class EnquiryController extends Controller
             ->keys()
             ->values()
             ->all();
+        $sourceInfoMap = $this->sourceInformationOptions();
+        $leadSourceOptions = array_keys($sourceInfoMap);
+        $selectedLeadSource = (string) $request->input('lead_source', '');
+        $sourceInformationOptions = $sourceInfoMap[$selectedLeadSource] ?? [];
 
         $request->validate([
             'model' => ['required', 'string'],
@@ -82,7 +85,8 @@ class EnquiryController extends Controller
             'state' => ['nullable', 'string', 'max:100'],
             'address1' => ['nullable', 'string', 'max:255'],
             'address2' => ['nullable', 'string', 'max:255'],
-            'lead_source' => ['required', Rule::in(['Walk-In', 'Tele-In', 'Activity', 'Digital', 'Referral', 'Press'])],
+            'lead_source' => ['required', Rule::in($leadSourceOptions)],
+            'source_of_information' => ['required', 'string', 'max:255', Rule::in($sourceInformationOptions)],
             'follow_type' => ['required', Rule::in(['Home Visit', 'Showroom Visit', 'Call'])],
             'follow_date' => ['required', 'date'],
             'follow_time' => ['required', 'date_format:H:i'],
@@ -90,12 +94,6 @@ class EnquiryController extends Controller
             'mobiles.*.regex' => 'Contact number must be 10 digits and start with 0.',
         ]);
 
-        $latitude = is_numeric($request->input('latitude'))
-            ? (float) $request->input('latitude')
-            : null;
-        $longitude = is_numeric($request->input('longitude'))
-            ? (float) $request->input('longitude')
-            : null;
         $mobileNumbers = collect($request->input('mobiles', []))
             ->map(fn($mobile) => trim((string) $mobile))
             ->filter()
@@ -133,16 +131,7 @@ class EnquiryController extends Controller
 
         $location = trim((string) $request->input('location', ''));
         if ($location === '') {
-            $location = ($latitude !== null && $longitude !== null) ? 'GPS Captured' : $district;
-        }
-
-        $locationCapturedAt = null;
-        if ($request->filled('location_captured_at')) {
-            try {
-                $locationCapturedAt = Carbon::parse($request->input('location_captured_at'));
-            } catch (\Throwable $e) {
-                $locationCapturedAt = null;
-            }
+            $location = $district;
         }
 
         $vehicle = Vehicle::where('model', $request->model)
@@ -156,7 +145,7 @@ class EnquiryController extends Controller
 
         $ownerUserId = $request->user()?->id;
 
-        DB::transaction(function () use ($request, $vehicle, $mobileNumbers, $district, $location, $latitude, $longitude, $locationCapturedAt, $ownerUserId) {
+        DB::transaction(function () use ($request, $vehicle, $mobileNumbers, $district, $location, $ownerUserId) {
             $customer = Customer::create([
                 'title' => $request->title,
                 'name' => trim((string) $request->name),
@@ -173,15 +162,13 @@ class EnquiryController extends Controller
                 'customer_id' => $customer->id,
                 'vehicle_id' => $vehicle->id,
                 'lead_source' => $request->lead_source,
+                'source_of_information' => $request->source_of_information,
                 'follow_type' => $request->follow_type,
                 'follow_date' => $request->follow_date,
                 'follow_time' => $request->follow_time,
                 'followup_status' => 'pending',
                 'exchange' => $request->exchange ? 1 : 0,
                 'finance' => $request->finance ? 1 : 0,
-                'latitude' => $latitude,
-                'longitude' => $longitude,
-                'location_captured_at' => $locationCapturedAt,
                 'status' => 'OPEN',
             ]);
         });
@@ -194,10 +181,15 @@ class EnquiryController extends Controller
 public function list(Request $request)
 {
     $viewer = $request->user();
-    $enquiriesQuery = Enquiry::with(['customer', 'vehicle', 'user']);
+    $enquiriesQuery = Enquiry::with(['customer', 'vehicle', 'user', 'prospectSheet']);
+    $registrationView = $request->query('registration') === 'pending' ? 'pending' : 'registered';
     $selectedLeadStatus = strtolower(trim((string) $request->query('lead_status', '')));
     if (!in_array($selectedLeadStatus, ['hot', 'warm', 'cold'], true)) {
         $selectedLeadStatus = null;
+    }
+    $selectedLeadResult = strtolower(trim((string) $request->query('lead_result', '')));
+    if (!in_array($selectedLeadResult, ['active', 'lost', 'closed'], true)) {
+        $selectedLeadResult = null;
     }
 
     if ($viewer && $viewer->role !== User::ROLE_SUPER_ADMIN) {
@@ -205,10 +197,20 @@ public function list(Request $request)
         $enquiriesQuery->whereIn('user_id', $accessibleUserIds);
     }
 
+    if ($registrationView === 'pending') {
+        $enquiriesQuery->pendingRegistration();
+    } else {
+        $enquiriesQuery->registeredLead();
+    }
+
     if ($selectedLeadStatus !== null) {
         $enquiriesQuery->whereHas('prospectSheet', function ($query) use ($selectedLeadStatus) {
             $query->whereRaw("LOWER(COALESCE(lead_status, '')) = ?", [$selectedLeadStatus]);
         });
+    }
+
+    if ($selectedLeadResult !== null) {
+        $enquiriesQuery->whereRaw("LOWER(COALESCE(followup_result, '')) = ?", [$selectedLeadResult]);
     }
 
     $enquiries = $enquiriesQuery
@@ -221,7 +223,10 @@ public function list(Request $request)
 public function listCallEpds(Request $request)
 {
     $viewer = $request->user();
-    $enquiriesQuery = Enquiry::with(['customer', 'vehicle', 'user'])
+    $today = now('Asia/Colombo')->toDateString();
+    $enquiriesQuery = Enquiry::with(['customer', 'vehicle', 'user', 'prospectSheet'])
+        ->pendingRegistration()
+        ->whereDate('follow_date', '<=', $today)
         ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%call%']);
 
     if ($viewer && $viewer->role !== User::ROLE_SUPER_ADMIN) {
@@ -239,7 +244,10 @@ public function listCallEpds(Request $request)
 public function listShowroomEpds(Request $request)
 {
     $viewer = $request->user();
-    $enquiriesQuery = Enquiry::with(['customer', 'vehicle', 'user'])
+    $today = now('Asia/Colombo')->toDateString();
+    $enquiriesQuery = Enquiry::with(['customer', 'vehicle', 'user', 'prospectSheet'])
+        ->pendingRegistration()
+        ->whereDate('follow_date', '<=', $today)
         ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%showroom%']);
 
     if ($viewer && $viewer->role !== User::ROLE_SUPER_ADMIN) {
@@ -257,7 +265,10 @@ public function listShowroomEpds(Request $request)
 public function listHomeEpds(Request $request)
 {
     $viewer = $request->user();
-    $enquiriesQuery = Enquiry::with(['customer', 'vehicle', 'user'])
+    $today = now('Asia/Colombo')->toDateString();
+    $enquiriesQuery = Enquiry::with(['customer', 'vehicle', 'user', 'prospectSheet'])
+        ->pendingRegistration()
+        ->whereDate('follow_date', '<=', $today)
         ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%home%']);
 
     if ($viewer && $viewer->role !== User::ROLE_SUPER_ADMIN) {
@@ -271,211 +282,6 @@ public function listHomeEpds(Request $request)
 
     return view('enquiries.index', compact('enquiries'));
 }
-
-    public function map(Request $request)
-    {
-        $viewer = $request->user();
-        $accessibleUserIds = $this->resolveAccessibleUserIds($viewer);
-        $scopeUsers = User::query()
-            ->whereIn('id', $accessibleUserIds)
-            ->where('role', '!=', User::ROLE_SUPER_ADMIN)
-            ->orderBy('name')
-            ->get(['id', 'name', 'role']);
-        $availableUsers = $this->filterUsersForViewerHierarchy($viewer, $scopeUsers);
-        $availableUserIds = $availableUsers
-            ->pluck('id')
-            ->map(fn($id) => (int) $id)
-            ->values()
-            ->all();
-
-        $selectedUserIdInput = (string) $request->query('user_id', '');
-        $selectedUserId = ctype_digit($selectedUserIdInput) ? (int) $selectedUserIdInput : null;
-        if ($selectedUserId !== null && !in_array($selectedUserId, $availableUserIds, true)) {
-            $selectedUserId = null;
-        }
-
-        $selectedDateInput = (string) $request->query('date', '');
-        $selectedFromDateInput = (string) $request->query('from_date', '');
-        $selectedToDateInput = (string) $request->query('to_date', '');
-
-        $selectedFromDate = null;
-        $selectedToDate = null;
-
-        if (trim($selectedFromDateInput) !== '') {
-            try {
-                $selectedFromDate = Carbon::parse($selectedFromDateInput)->toDateString();
-            } catch (\Throwable $e) {
-                $selectedFromDate = null;
-            }
-        }
-
-        if (trim($selectedToDateInput) !== '') {
-            try {
-                $selectedToDate = Carbon::parse($selectedToDateInput)->toDateString();
-            } catch (\Throwable $e) {
-                $selectedToDate = null;
-            }
-        }
-
-        // Backward compatible support for old single-date map link/filter.
-        if ($selectedFromDate === null && $selectedToDate === null && trim($selectedDateInput) !== '') {
-            try {
-                $legacyDate = Carbon::parse($selectedDateInput)->toDateString();
-                $selectedFromDate = $legacyDate;
-                $selectedToDate = $legacyDate;
-            } catch (\Throwable $e) {
-                // Ignore invalid legacy date and continue with defaults.
-            }
-        }
-
-        if ($selectedFromDate === null && $selectedToDate === null) {
-            $today = now()->toDateString();
-            $selectedFromDate = $today;
-            $selectedToDate = $today;
-        }
-
-        if ($selectedFromDate !== null && $selectedToDate !== null && $selectedFromDate > $selectedToDate) {
-            [$selectedFromDate, $selectedToDate] = [$selectedToDate, $selectedFromDate];
-        }
-
-        $enquiriesQuery = Enquiry::with(['customer', 'vehicle', 'user'])
-            ->whereNotNull('latitude')
-            ->whereNotNull('longitude');
-
-        if ($selectedFromDate !== null && $selectedToDate !== null) {
-            $enquiriesQuery->where(function ($query) use ($selectedFromDate, $selectedToDate) {
-                $query->where(function ($located) use ($selectedFromDate, $selectedToDate) {
-                    $located->whereNotNull('location_captured_at')
-                        ->whereDate('location_captured_at', '>=', $selectedFromDate)
-                        ->whereDate('location_captured_at', '<=', $selectedToDate);
-                })->orWhere(function ($fallback) use ($selectedFromDate, $selectedToDate) {
-                    $fallback->whereNull('location_captured_at')
-                        ->whereDate('created_at', '>=', $selectedFromDate)
-                        ->whereDate('created_at', '<=', $selectedToDate);
-                });
-            });
-        } elseif ($selectedFromDate !== null) {
-            $enquiriesQuery->where(function ($query) use ($selectedFromDate) {
-                $query->where(function ($located) use ($selectedFromDate) {
-                    $located->whereNotNull('location_captured_at')
-                        ->whereDate('location_captured_at', '>=', $selectedFromDate);
-                })->orWhere(function ($fallback) use ($selectedFromDate) {
-                    $fallback->whereNull('location_captured_at')
-                        ->whereDate('created_at', '>=', $selectedFromDate);
-                });
-            });
-        } elseif ($selectedToDate !== null) {
-            $enquiriesQuery->where(function ($query) use ($selectedToDate) {
-                $query->where(function ($located) use ($selectedToDate) {
-                    $located->whereNotNull('location_captured_at')
-                        ->whereDate('location_captured_at', '<=', $selectedToDate);
-                })->orWhere(function ($fallback) use ($selectedToDate) {
-                    $fallback->whereNull('location_captured_at')
-                        ->whereDate('created_at', '<=', $selectedToDate);
-                });
-            });
-        }
-
-        if ($viewer->role !== User::ROLE_SUPER_ADMIN) {
-            $enquiriesQuery->whereIn('user_id', $accessibleUserIds);
-        }
-
-        $selectedHierarchyUserIds = null;
-        if ($selectedUserId !== null) {
-            $selectedUser = $availableUsers->firstWhere('id', $selectedUserId);
-            if ($selectedUser instanceof User) {
-                $selectedHierarchyUserIds = array_values(array_intersect(
-                    $accessibleUserIds,
-                    $this->resolveAccessibleUserIds($selectedUser)
-                ));
-            } else {
-                $selectedHierarchyUserIds = [$selectedUserId];
-            }
-
-            if (!empty($selectedHierarchyUserIds)) {
-                $enquiriesQuery->whereIn('user_id', $selectedHierarchyUserIds);
-            } else {
-                $enquiriesQuery->whereRaw('1 = 0');
-            }
-        }
-
-        $enquiries = $enquiriesQuery
-            ->orderByDesc('location_captured_at')
-            ->orderByDesc('created_at')
-            ->get();
-
-        $mapPoints = $enquiries->map(function (Enquiry $enquiry) {
-            $customer = $enquiry->customer;
-            $vehicle = $enquiry->vehicle;
-            $mobileNumbers = is_array($customer?->mobile_numbers)
-                ? array_values(array_filter($customer->mobile_numbers))
-                : [];
-            $primaryPhone = count($mobileNumbers) ? (string) $mobileNumbers[0] : 'N/A';
-            $capturedAt = $enquiry->location_captured_at ?: $enquiry->created_at;
-
-            return [
-                'id' => $enquiry->id,
-                'name' => trim(($customer?->title ? $customer->title . ' ' : '') . ($customer?->name ?? 'Unknown')),
-                'phone' => $primaryPhone,
-                'vehicle' => trim(($vehicle?->model ?? '') . ' ' . ($vehicle?->variant ?? '')),
-                'lat' => (float) $enquiry->latitude,
-                'lng' => (float) $enquiry->longitude,
-                'time' => $capturedAt ? Carbon::parse($capturedAt)->format('h:i A') : 'N/A',
-                'captured_at_label' => $capturedAt ? Carbon::parse($capturedAt)->format('d M Y h:i A') : 'N/A',
-                'location' => $customer?->location ?: 'N/A',
-                'owner' => $enquiry->user?->name ?: 'Unassigned',
-            ];
-        })->values();
-
-        if ($selectedFromDate !== null && $selectedToDate !== null) {
-            $mapDateLabel = $selectedFromDate === $selectedToDate
-                ? $selectedFromDate
-                : $selectedFromDate . ' to ' . $selectedToDate;
-            $listHeading = $selectedFromDate === $selectedToDate
-                ? 'Enquiries on ' . $selectedFromDate
-                : 'Enquiries from ' . $selectedFromDate . ' to ' . $selectedToDate;
-        } elseif ($selectedFromDate !== null) {
-            $mapDateLabel = 'From ' . $selectedFromDate;
-            $listHeading = 'Enquiries from ' . $selectedFromDate . ' onwards';
-        } else {
-            $mapDateLabel = 'Up to ' . $selectedToDate;
-            $listHeading = 'Enquiries up to ' . $selectedToDate;
-        }
-
-        $selectedFilterUser = $selectedUserId !== null
-            ? $availableUsers->firstWhere('id', $selectedUserId)
-            : null;
-        $selectedFilterUserName = $selectedFilterUser instanceof User ? $selectedFilterUser->name : null;
-
-        return view('enquiries.map', [
-            'selectedDate' => $selectedToDate ?? $selectedFromDate ?? now()->toDateString(),
-            'selectedFromDate' => $selectedFromDate,
-            'selectedToDate' => $selectedToDate,
-            'mapPoints' => $mapPoints,
-            'selectedUserId' => $selectedUserId,
-            'availableUsers' => $availableUsers,
-            'mapDateLabel' => $mapDateLabel,
-            'listHeading' => $listHeading,
-            'selectedHierarchyCount' => is_array($selectedHierarchyUserIds) ? count($selectedHierarchyUserIds) : null,
-            'selectedFilterUserName' => $selectedFilterUserName,
-        ]);
-    }
-
-    private function filterUsersForViewerHierarchy(User $viewer, Collection $users): Collection
-    {
-        return match ($viewer->role) {
-            User::ROLE_AREA_MANAGER => $users
-                ->filter(fn(User $user): bool => $user->role === User::ROLE_SALES_CONSULTANT)
-                ->values(),
-            User::ROLE_REGIONAL_MANAGER => $users
-                ->filter(fn(User $user): bool => in_array($user->role, [User::ROLE_AREA_MANAGER, User::ROLE_SALES_CONSULTANT], true))
-                ->values(),
-            User::ROLE_SALES_CONSULTANT => $users
-                ->filter(fn(User $user): bool => (int) $user->id === (int) $viewer->id)
-                ->values(),
-            default => $users,
-        };
-    }
 
     private function resolveAccessibleUserIds(User $viewer): array
     {
@@ -504,5 +310,17 @@ public function listHomeEpds(Request $request)
         }
 
         return $resolvedIds;
+    }
+
+    private function sourceInformationOptions(): array
+    {
+        return [
+            'Walk-In' => ['Showroom Visit', 'Road Show', 'Display', 'Existing Customer', 'Other'],
+            'Tele-In' => ['Call Center', 'Hotline', 'Inbound Call', 'Missed Call', 'Other'],
+            'Activity' => ['Event', 'Mall Display', 'Corporate Visit', 'Canvasing', 'Other'],
+            'Digital' => ['Facebook', 'Instagram', 'Google', 'Website', 'YouTube', 'TikTok', 'Other'],
+            'Referral' => ['Customer Referral', 'Employee Referral', 'Dealer Referral', 'Friends/Family', 'Other'],
+            'Press' => ['Newspaper', 'Magazine', 'Radio', 'TV', 'Other'],
+        ];
     }
 }

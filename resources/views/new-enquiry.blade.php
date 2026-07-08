@@ -33,6 +33,18 @@
         $hasAddressValues = trim((string) old('state')) !== ''
             || trim((string) old('address1')) !== ''
             || trim((string) old('address2')) !== '';
+        $sourceInfoMap = is_array($sourceInfoMap ?? null) ? $sourceInfoMap : [
+            'Walk-In' => ['Showroom Visit', 'Road Show', 'Display', 'Existing Customer', 'Other'],
+            'Tele-In' => ['Call Center', 'Hotline', 'Inbound Call', 'Missed Call', 'Other'],
+            'Activity' => ['Event', 'Mall Display', 'Corporate Visit', 'Canvasing', 'Other'],
+            'Digital' => ['Facebook', 'Instagram', 'Google', 'Website', 'YouTube', 'TikTok', 'Other'],
+            'Referral' => ['Customer Referral', 'Employee Referral', 'Dealer Referral', 'Friends/Family', 'Other'],
+            'Press' => ['Newspaper', 'Magazine', 'Radio', 'TV', 'Other'],
+        ];
+        $selectedSourceInformation = old('source_of_information', '');
+        $selectedFollowTime = old('follow_time')
+            ? substr((string) old('follow_time'), 0, 5)
+            : \Carbon\Carbon::now('Asia/Colombo')->format('H:i');
     @endphp
 
     <header class="topbar">
@@ -92,6 +104,21 @@
                 <button type="button" class="segment-btn source-btn" data-value="Press" onclick="selectSource(this)">Press</button>
             </div>
 
+            <div class="field-row">
+                <div class="stack-field full-width">
+                    <label class="stack-label" for="sourceOfInformationSelect">Source Of Information</label>
+                    <select
+                        id="sourceOfInformationSelect"
+                        name="source_of_information"
+                        class="input-pill"
+                        data-selected-source-info="{{ $selectedSourceInformation }}"
+                        required
+                    >
+                        <option value="">Select Source of Information</option>
+                    </select>
+                </div>
+            </div>
+
             <div class="field-row split name-contact-row">
                 <div class="name-block">
                     <div class="field-row title-name-row">
@@ -143,10 +170,6 @@
                 </select>
                 <input type="text" name="location" class="input-pill" placeholder="Location" value="{{ old('location') }}">
             </div>
-            <input type="hidden" name="latitude" id="enquiryLatitude">
-            <input type="hidden" name="longitude" id="enquiryLongitude">
-            <input type="hidden" name="location_captured_at" id="locationCapturedAt">
-            <p id="geoStatus" class="geo-status">Trying to capture current location...</p>
 
             <button type="button" class="add-address-btn" onclick="toggleAddress()">
                 <span class="add-address-plus" aria-hidden="true">+</span>
@@ -176,7 +199,7 @@
                 </div>
                 <div class="stack-field">
                     <label class="stack-label" for="followTimeInput">Follow up Time</label>
-                    <input id="followTimeInput" type="time" name="follow_time" class="input-pill" placeholder="Followup Time" value="{{ old('follow_time') ? substr((string) old('follow_time'), 0, 5) : '' }}" required>
+                    <input id="followTimeInput" type="time" name="follow_time" class="input-pill" placeholder="Followup Time" value="{{ $selectedFollowTime }}" required>
                 </div>
                 <div class="stack-field">
                     <label class="stack-label" for="inquiryDateInput">Date of Inquiry</label>
@@ -217,6 +240,7 @@
     const oldModel = @json(old('model'));
     const oldEngine = @json(old('engine'));
     const oldVariant = @json(old('variant'));
+    const sourceInfoMap = @json($sourceInfoMap);
 
     function resetSelect(selectEl, placeholder) {
         selectEl.innerHTML = `<option value="">${placeholder}</option>`;
@@ -363,6 +387,7 @@
         document.querySelectorAll('.source-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         document.getElementById('lead_source').value = btn.dataset.value || btn.innerText;
+        updateSourceInformationOptions();
     }
 
     function selectFollow(btn) {
@@ -371,40 +396,30 @@
         document.getElementById('follow_type').value = btn.dataset.value || btn.innerText;
     }
 
-    function captureCurrentLocation() {
-        const statusEl = document.getElementById('geoStatus');
-        const latitudeEl = document.getElementById('enquiryLatitude');
-        const longitudeEl = document.getElementById('enquiryLongitude');
-        const capturedAtEl = document.getElementById('locationCapturedAt');
-
-        if (!navigator.geolocation) {
-            if (statusEl) {
-                statusEl.textContent = 'Current location is not supported on this device.';
-                statusEl.classList.add('error');
-            }
+    function updateSourceInformationOptions() {
+        const sourceSelect = document.getElementById('sourceOfInformationSelect');
+        const leadSourceInput = document.getElementById('lead_source');
+        if (!sourceSelect || !leadSourceInput) {
             return;
         }
 
-        navigator.geolocation.getCurrentPosition(function (position) {
-            if (latitudeEl) latitudeEl.value = position.coords.latitude.toFixed(7);
-            if (longitudeEl) longitudeEl.value = position.coords.longitude.toFixed(7);
-            if (capturedAtEl) capturedAtEl.value = new Date().toISOString();
+        const selectedLeadSource = String(leadSourceInput.value || '');
+        const selectedFromServer = sourceSelect.dataset.selectedSourceInfo || sourceSelect.value;
+        const options = Array.isArray(sourceInfoMap[selectedLeadSource]) ? sourceInfoMap[selectedLeadSource] : [];
 
-            if (statusEl) {
-                statusEl.textContent = 'Current location captured successfully.';
-                statusEl.classList.remove('error');
-                statusEl.classList.add('success');
+        sourceSelect.innerHTML = '<option value="">Select Source of Information</option>';
+        options.forEach((sourceOption) => {
+            const option = document.createElement('option');
+            option.value = sourceOption;
+            option.textContent = sourceOption;
+            if (sourceOption === selectedFromServer) {
+                option.selected = true;
             }
-        }, function () {
-            if (statusEl) {
-                statusEl.textContent = 'Location permission denied. Enquiry will save without GPS.';
-                statusEl.classList.add('error');
-            }
-        }, {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 300000
+            sourceSelect.appendChild(option);
         });
+
+        sourceSelect.disabled = options.length === 0;
+        sourceSelect.dataset.selectedSourceInfo = '';
     }
 
     (function initializeSegmentedSelections() {
@@ -422,6 +437,7 @@
             const fallback = document.querySelector('.source-btn');
             if (fallback) selectSource(fallback);
         }
+        updateSourceInformationOptions();
 
         if (followBtn) {
             selectFollow(followBtn);
@@ -451,6 +467,5 @@
         }
     });
 
-    captureCurrentLocation();
 </script>
 @endsection

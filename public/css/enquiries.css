@@ -530,7 +530,9 @@ body.filter-open {
 
 .chip-btn {
     background: linear-gradient(180deg, var(--chip-red) 0%, var(--chip-red-dark) 100%);
+    border: 0;
     color: #fff;
+    cursor: pointer;
     text-decoration: none;
     border-radius: 999px;
     padding: 6px 13px;
@@ -816,6 +818,33 @@ body.filter-open {
     background: #12151d;
     color: #f8c23b;
     border-color: #e0e4eb;
+}
+
+.flag-pill.hot,
+.flag-pill.warm,
+.flag-pill.cold {
+    min-width: 44px;
+    padding: 0 8px;
+    font-size: 10px;
+    line-height: 18px;
+}
+
+.flag-pill.hot {
+    background: #fee2e2;
+    border-color: #ef4444;
+    color: #991b1b;
+}
+
+.flag-pill.warm {
+    background: #fef3c7;
+    border-color: #f59e0b;
+    color: #92400e;
+}
+
+.flag-pill.cold {
+    background: #dbeafe;
+    border-color: #3b82f6;
+    color: #1e40af;
 }
 
 .epr-customer {

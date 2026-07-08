@@ -15,14 +15,12 @@ class User extends Authenticatable
 
     public const ROLE_SUPER_ADMIN = 'super_admin';
     public const ROLE_HEAD_OF_SALES = 'head_of_sales';
-    public const ROLE_REGIONAL_MANAGER = 'regional_manager';
     public const ROLE_AREA_MANAGER = 'area_manager';
     public const ROLE_SALES_CONSULTANT = 'sales_consultant';
 
     public const ROLE_HIERARCHY = [
         self::ROLE_SUPER_ADMIN,
         self::ROLE_HEAD_OF_SALES,
-        self::ROLE_REGIONAL_MANAGER,
         self::ROLE_AREA_MANAGER,
         self::ROLE_SALES_CONSULTANT,
     ];
@@ -30,7 +28,6 @@ class User extends Authenticatable
     public const ROLE_LABELS = [
         self::ROLE_SUPER_ADMIN => 'Super Admin',
         self::ROLE_HEAD_OF_SALES => 'Head Of Sales',
-        self::ROLE_REGIONAL_MANAGER => 'Regional Manager',
         self::ROLE_AREA_MANAGER => 'Area Manager',
         self::ROLE_SALES_CONSULTANT => 'Sales Consultant',
     ];
@@ -38,7 +35,6 @@ class User extends Authenticatable
     public const ROLE_SLUGS = [
         self::ROLE_SUPER_ADMIN => 'super-admin',
         self::ROLE_HEAD_OF_SALES => 'head-of-sales',
-        self::ROLE_REGIONAL_MANAGER => 'regional-manager',
         self::ROLE_AREA_MANAGER => 'area-manager',
         self::ROLE_SALES_CONSULTANT => 'sales-consultant',
     ];
@@ -91,6 +87,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'employee_number',
         'password',
         'phone',
         'role',
@@ -151,8 +148,7 @@ class User extends Authenticatable
     public static function parentRoleFor(string $role): ?string
     {
         return match ($role) {
-            self::ROLE_REGIONAL_MANAGER => self::ROLE_HEAD_OF_SALES,
-            self::ROLE_AREA_MANAGER => self::ROLE_REGIONAL_MANAGER,
+            self::ROLE_AREA_MANAGER => self::ROLE_HEAD_OF_SALES,
             self::ROLE_SALES_CONSULTANT => self::ROLE_AREA_MANAGER,
             default => null,
         };
@@ -207,35 +203,6 @@ class User extends Authenticatable
 
     public function resolvePermittedDistricts(): array
     {
-        if (in_array($this->role, [self::ROLE_SUPER_ADMIN, self::ROLE_HEAD_OF_SALES], true)) {
-            return self::DISTRICT_OPTIONS;
-        }
-
-        $ownDistricts = collect($this->permitted_districts ?? [])
-            ->map(fn($district): ?string => self::normalizeDistrictName((string) $district))
-            ->filter()
-            ->unique()
-            ->values()
-            ->all();
-
-        $managerDistricts = self::DISTRICT_OPTIONS;
-        if ($this->manager_id !== null) {
-            $this->loadMissing('manager.manager.manager');
-            if ($this->manager instanceof self) {
-                $managerDistricts = $this->manager->resolvePermittedDistricts();
-            }
-        }
-
-        if (empty($ownDistricts)) {
-            return $managerDistricts;
-        }
-
-        $allowedLookup = array_fill_keys($managerDistricts, true);
-        $resolved = array_values(array_filter(
-            $ownDistricts,
-            fn(string $district): bool => isset($allowedLookup[$district])
-        ));
-
-        return !empty($resolved) ? $resolved : $managerDistricts;
+        return self::DISTRICT_OPTIONS;
     }
 }

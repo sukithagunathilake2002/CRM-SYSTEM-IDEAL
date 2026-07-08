@@ -16,6 +16,7 @@ class Enquiry extends Model
         'customer_id',
         'vehicle_id',
         'lead_source',
+        'source_of_information',
         'follow_type',
         'follow_date',
         'follow_time',
@@ -48,9 +49,6 @@ class Enquiry extends Model
         'followup_lost_reject_other_text',
         'exchange',
         'finance',
-        'latitude',
-        'longitude',
-        'location_captured_at',
         'status'
     ];
 
@@ -63,13 +61,26 @@ class Enquiry extends Model
         'followup_test_drive_when' => 'date',
         'followup_next_date' => 'date',
         'followup_lost_reject_reasons' => 'array',
-        'latitude' => 'float',
-        'longitude' => 'float',
-        'location_captured_at' => 'datetime',
     ];
 
     // Enable timestamps
     public $timestamps = true;
+
+    public function scopeRegisteredLead($query)
+    {
+        return $query->whereHas('prospectSheet', function ($query): void {
+            $query->where('current_step', '>=', 5)
+                ->whereRaw("LOWER(COALESCE(lead_status, '')) IN ('hot', 'warm', 'cold')");
+        });
+    }
+
+    public function scopePendingRegistration($query)
+    {
+        return $query->whereDoesntHave('prospectSheet', function ($query): void {
+            $query->where('current_step', '>=', 5)
+                ->whereRaw("LOWER(COALESCE(lead_status, '')) IN ('hot', 'warm', 'cold')");
+        });
+    }
 
     // Each enquiry belongs to one customer
     public function customer()
@@ -96,5 +107,10 @@ class Enquiry extends Model
     public function booking()
     {
         return $this->hasOne(Booking::class);
+    }
+
+    public function delivery()
+    {
+        return $this->hasOne(Delivery::class);
     }
 }

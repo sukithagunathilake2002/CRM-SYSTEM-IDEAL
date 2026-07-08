@@ -18,12 +18,25 @@
     <link rel="stylesheet" href="{{ asset('css/portal.css') }}">
 </head>
 <body class="@yield('bodyClass')">
+    @php
+        $portalUser = auth()->user();
+        $isLoginRoute = request()->routeIs('login') || request()->routeIs('auth.login.form');
+    @endphp
     <div class="portal-shell">
         <header class="portal-topbar">
+            @auth
+                @unless($isLoginRoute)
+                    <button type="button" class="portal-menu-link" id="portalMenuToggle" aria-label="Open menu" aria-expanded="false" aria-controls="portalSidebar" title="Menu">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </button>
+                @endunless
+            @endauth
             <a href="{{ route('dashboard.main') }}" class="portal-brand">IDEAL MOTORS CRM</a>
             <div class="portal-topbar-right">
                 @auth
-                    @unless(request()->routeIs('login'))
+                    @unless($isLoginRoute)
                     <div class="portal-user">
                         <span>{{ auth()->user()->name }} ({{ auth()->user()->role_label }})</span>
                         <form method="POST" action="{{ route('auth.logout') }}">
@@ -45,11 +58,45 @@
             </div>
         </header>
 
-        <main class="portal-main">
-            @php
-                $isLoginRoute = request()->routeIs('login') || request()->routeIs('auth.login.form');
-            @endphp
+        @auth
+            @unless($isLoginRoute)
+                <button type="button" class="portal-sidebar-overlay" id="portalSidebarOverlay" aria-label="Close menu"></button>
+                <aside class="portal-sidebar" id="portalSidebar" aria-label="Dashboard menu">
+                    <div class="portal-sidebar-profile portal-sidebar-profile-top">
+                        <span>{{ strtoupper(substr((string) ($portalUser?->name ?? 'U'), 0, 1)) }}</span>
+                        <div>
+                            <strong>{{ $portalUser?->name ?? 'User' }}</strong>
+                            <small>{{ $portalUser?->role_label ?? 'User' }}</small>
+                        </div>
+                    </div>
 
+                    <div class="portal-sidebar-group-title">Leads and Bookings</div>
+                    <nav class="portal-sidebar-nav">
+                        <a href="{{ route('enquiries.list', ['lead_status' => 'hot']) }}">Hot Leads</a>
+                        <a href="{{ route('enquiries.list', ['lead_status' => 'warm']) }}">Warm Leads</a>
+                        <a href="{{ route('enquiries.list', ['lead_status' => 'cold']) }}">Cold Leads</a>
+                        <a href="{{ route('enquiries.list', ['lead_result' => 'active']) }}">Active Lead</a>
+                        <a href="{{ route('enquiries.list', ['lead_result' => 'lost']) }}">Lost Lead</a>
+                        <a href="{{ route('enquiries.list', ['lead_result' => 'closed']) }}">Closed Lead</a>
+                        <a href="{{ route('enquiries.list', ['registration' => 'pending']) }}">EPR</a>
+                        <a href="{{ url('/epr') }}">Active Booking</a>
+                        <a href="{{ url('/epr') }}">Inactive Booking</a>
+                        <a href="{{ url('/epr') }}">Cancelled Booking</a>
+                        <a href="{{ url('/epr') }}">Deliveries</a>
+                        <a href="{{ route('enquiries.list') }}">All Leads</a>
+                    </nav>
+
+                    <hr class="portal-sidebar-sep">
+
+                    <form method="POST" action="{{ route('auth.logout') }}" class="portal-sidebar-logout-form">
+                        @csrf
+                        <button type="submit">Logout</button>
+                    </form>
+                </aside>
+            @endunless
+        @endauth
+
+        <main class="portal-main">
             @if(session('success') && !$isLoginRoute)
                 <div class="portal-flash success">{{ session('success') }}</div>
             @endif
@@ -97,6 +144,34 @@
                     // Ignore theme save errors.
                 }
                 updateLabel();
+            });
+        })();
+
+        (() => {
+            const root = document.querySelector('.portal-shell');
+            const toggle = document.getElementById('portalMenuToggle');
+            const overlay = document.getElementById('portalSidebarOverlay');
+            const sidebar = document.getElementById('portalSidebar');
+            if (!root || !toggle || !overlay || !sidebar) {
+                return;
+            }
+
+            const setOpen = (open) => {
+                root.classList.toggle('portal-sidebar-open', open);
+                toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+            };
+
+            toggle.addEventListener('click', () => {
+                setOpen(!root.classList.contains('portal-sidebar-open'));
+            });
+            overlay.addEventListener('click', () => setOpen(false));
+            sidebar.querySelectorAll('a').forEach((link) => {
+                link.addEventListener('click', () => setOpen(false));
+            });
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') {
+                    setOpen(false);
+                }
             });
         })();
 
@@ -155,6 +230,30 @@
                     notice.classList.add('is-hidden');
                     window.setTimeout(() => notice.remove(), 350);
                 }, timeout);
+            });
+        })();
+
+        (() => {
+            const toggles = Array.from(document.querySelectorAll('[data-password-toggle]'));
+            if (!toggles.length) {
+                return;
+            }
+
+            toggles.forEach((toggle) => {
+                const targetId = toggle.getAttribute('data-password-target');
+                const input = targetId ? document.getElementById(targetId) : null;
+                if (!input) {
+                    return;
+                }
+
+                toggle.addEventListener('click', () => {
+                    const shouldShow = input.type === 'password';
+                    input.type = shouldShow ? 'text' : 'password';
+                    toggle.setAttribute('aria-pressed', shouldShow ? 'true' : 'false');
+                    toggle.setAttribute('aria-label', shouldShow ? 'Hide password' : 'Show password');
+                    toggle.setAttribute('title', shouldShow ? 'Hide password' : 'Show password');
+                    input.focus({ preventScroll: true });
+                });
             });
         })();
     </script>
