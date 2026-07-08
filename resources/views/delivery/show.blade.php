@@ -291,11 +291,15 @@
 
             <div class="delivery-more">
                 <p>Add more images</p>
-                @php($existingExtraImages = is_array($delivery->extra_images) ? $delivery->extra_images : [])
+                @php
+                    $existingExtraImages = is_array($delivery->extra_images) ? $delivery->extra_images : [];
+                @endphp
                 @if(!empty($existingExtraImages))
                     <div class="delivery-extra-grid delivery-existing-extra-grid">
                         @foreach($existingExtraImages as $extraImagePath)
-                            @php($extraImageUrl = asset('storage/' . $extraImagePath))
+                            @php
+                                $extraImageUrl = asset('storage/' . $extraImagePath);
+                            @endphp
                             <div
                                 class="delivery-extra-tile has-image"
                                 data-image-tile
@@ -596,11 +600,15 @@
 
                 <div class="delivery-more">
                     <p>Additional Images</p>
-                    @php($existingExchangeExtraImages = is_array($delivery->exchange_extra_images) ? $delivery->exchange_extra_images : [])
+                    @php
+                        $existingExchangeExtraImages = is_array($delivery->exchange_extra_images) ? $delivery->exchange_extra_images : [];
+                    @endphp
                     @if(!empty($existingExchangeExtraImages))
                         <div class="delivery-extra-grid delivery-existing-extra-grid">
                             @foreach($existingExchangeExtraImages as $extraImagePath)
-                                @php($extraImageUrl = asset('storage/' . $extraImagePath))
+                                @php
+                                    $extraImageUrl = asset('storage/' . $extraImagePath);
+                                @endphp
                                 <div class="delivery-extra-tile has-image" data-image-tile data-default-label="Image {{ $loop->iteration }}" data-has-existing="1">
                                     <input type="hidden" name="remove_exchange_extra_images[]" value="{{ $extraImagePath }}" data-remove-input disabled>
                                     <img src="{{ $extraImageUrl }}" alt="Exchange extra image {{ $loop->iteration }} preview" class="delivery-image-preview" data-image-preview>

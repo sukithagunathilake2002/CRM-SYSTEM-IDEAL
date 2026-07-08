@@ -452,6 +452,7 @@ body.login-page .portal-flash {
 
 .login-ui-left {
     width: min(100%, 400px);
+    margin: 0 auto;
     padding: 0;
     background: transparent;
 }
@@ -459,6 +460,7 @@ body.login-page .portal-flash {
 .login-ui-form-wrap {
     width: 100%;
     max-width: 400px;
+    margin: 0 auto;
 }
 
 .login-ui-logo {
@@ -509,6 +511,7 @@ body.login-page .portal-flash {
 .login-ui-form {
     display: grid;
     gap: 24px;
+    width: 100%;
     font-family: inherit;
     margin-top: 22px;
 }
