@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\CompetitionVehicle;
 use App\Models\Enquiry;
+use App\Models\FollowupAttempt;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -283,8 +284,12 @@ class FollowUpController extends Controller
             ],
         ]);
 
+        $attemptedType = $enquiry->follow_type;
+        $attemptedAt = now();
+
         $enquiry->followup_status = $validated['followup_status'];
-        $enquiry->followup_marked_at = now();
+        $enquiry->followup_attempted_type = $attemptedType;
+        $enquiry->followup_marked_at = $attemptedAt;
 
         if ($validated['followup_status'] === 'done') {
             // Only set visit date and met whom for Home Visit followups
@@ -399,6 +404,14 @@ class FollowUpController extends Controller
         }
 
         $enquiry->save();
+
+        FollowupAttempt::query()->create([
+            'enquiry_id' => (int) $enquiry->id,
+            'user_id' => $request->user()?->id,
+            'follow_type' => $attemptedType,
+            'followup_status' => $validated['followup_status'],
+            'attempted_at' => $attemptedAt,
+        ]);
 
         return redirect()
             ->route('followup.show', $enquiry->id)

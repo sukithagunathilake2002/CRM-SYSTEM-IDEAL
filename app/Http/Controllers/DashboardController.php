@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Enquiry;
+use App\Models\FollowupAttempt;
 use App\Models\LeadTransferRequest;
 use App\Models\User;
+use App\Models\Vehicle;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -263,6 +265,30 @@ class DashboardController extends Controller
         $followupEscalations = $this->buildFollowupEscalations($user);
 
         return view('dashboards.followup-summary', compact('followupEscalations'));
+    }
+
+    public function followupTracker(Request $request): View|RedirectResponse
+    {
+        $user = $request->user();
+
+        if (!$this->canViewFollowupTracker($user)) {
+            return redirect()->route('dashboard.home');
+        }
+
+        return view('dashboards.followup-tracker');
+    }
+
+    public function followupTrackerSection(Request $request, string $section): View|RedirectResponse
+    {
+        $user = $request->user();
+
+        if (!$this->canViewFollowupTracker($user)) {
+            return redirect()->route('dashboard.home');
+        }
+
+        $report = $this->buildFollowupTrackerReport($user, $section, $request);
+
+        return view('dashboards.followup-tracker-section', compact('report'));
     }
 
     public function analyticsDetail(Request $request, string $section): View|RedirectResponse
@@ -524,6 +550,344 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
             'home_count' => $homeCount,
             'total_count' => $totalCount,
         ];
+    }
+
+    private function canViewFollowupTracker(?User $user): bool
+    {
+        return $user instanceof User
+            && in_array($user->role, [User::ROLE_SUPER_ADMIN, User::ROLE_HEAD_OF_SALES], true);
+    }
+
+    private function buildFollowupTrackerReport(User $viewer, string $section, Request $request): array
+    {
+        $today = Carbon::now('Asia/Colombo')->startOfDay();
+        $accessibleUserIds = $this->resolveAccessibleUserIds($viewer);
+        $filters = [
+            'from_date' => trim((string) $request->query('from_date', '')),
+            'to_date' => trim((string) $request->query('to_date', '')),
+            'dealer_id' => trim((string) $request->query('dealer_id', '')),
+            'sc_id' => trim((string) $request->query('sc_id', '')),
+            'model' => trim((string) $request->query('model', '')),
+        ];
+        $requiresDateFilter = in_array($section, ['total-followed', 'total-attempted'], true);
+        $fromDate = $this->parseFilterDate($filters['from_date'], true);
+        $toDate = $this->parseFilterDate($filters['to_date'], false);
+        $filterError = null;
+
+        if ($requiresDateFilter) {
+            if (!$fromDate || !$toDate) {
+                $filterError = 'Please select From Date and To Date to view total follow-up data.';
+            } elseif ($fromDate->greaterThan($toDate)) {
+                $filterError = 'From Date must be before To Date.';
+            } elseif ($fromDate->diffInDays($toDate) > 31) {
+                $filterError = 'Please select dates within one month.';
+            }
+        }
+
+        $sectionConfig = [
+            'today-due' => [
+                'title' => 'No. Of Leads Follow Up Today',
+                'subtitle' => 'Today pending follow-ups categorized by type.',
+                'notice' => "This dashboard is showing today's pending follow-up data.",
+                'date_label' => $today->format('d M Y'),
+                'total_label' => 'Leads follow up today',
+                'type_source' => 'follow_type',
+            ],
+            'today-attempted' => [
+                'title' => 'No. Of Leads Follow Ups Attempted Today',
+                'subtitle' => 'Follow-up attempts saved today categorized by type.',
+                'notice' => "This dashboard is showing today's attempted follow-up data.",
+                'date_label' => $today->format('d M Y'),
+                'total_label' => 'Follow-ups attempted today',
+                'type_source' => 'attempted_type',
+            ],
+            'total-followed' => [
+                'title' => 'Total No. Of Leads Followed Up',
+                'subtitle' => 'Done follow-ups from the selected filter.',
+                'notice' => 'This dashboard is showing filtered done follow-up data.',
+                'date_label' => null,
+                'total_label' => 'Leads followed up',
+                'type_source' => 'attempted_type',
+            ],
+            'total-attempted' => [
+                'title' => 'Total No. Of Follow Ups Attempted',
+                'subtitle' => 'Done and Not Done follow-up attempts from the selected filter.',
+                'notice' => 'This dashboard is showing filtered attempted follow-up data.',
+                'date_label' => null,
+                'total_label' => 'Follow-ups attempted',
+                'type_source' => 'attempted_type',
+            ],
+        ][$section] ?? null;
+
+        if ($sectionConfig === null) {
+            abort(404);
+        }
+
+        $groups = [
+            'call' => ['label' => 'Calls', 'count' => 0, 'rows' => []],
+            'home_visit' => ['label' => 'Home Visit', 'count' => 0, 'rows' => []],
+            'showroom_visit' => ['label' => 'Showroom Visit', 'count' => 0, 'rows' => []],
+        ];
+
+        if ($filterError === null) {
+            if ($section === 'today-due') {
+                $query = Enquiry::query()
+                    ->with(['customer', 'vehicle', 'user.manager'])
+                    ->whereIn('user_id', $accessibleUserIds);
+
+                $query->whereDate('follow_date', $today->toDateString())
+                    ->whereRaw("LOWER(COALESCE(followup_status, '')) <> ?", ['done']);
+
+                $this->applyFollowupTrackerFilters($query, $filters, $accessibleUserIds);
+                $query->orderByRaw('follow_time IS NULL, follow_time ASC');
+
+                foreach ($query->get() as $enquiry) {
+                    $sourceType = $enquiry->follow_type;
+                    $typeKey = match ($this->normalizeFollowupType($sourceType)) {
+                        'Call' => 'call',
+                        'Home visit' => 'home_visit',
+                        'Showroom visit' => 'showroom_visit',
+                        default => null,
+                    };
+
+                    if ($typeKey === null) {
+                        continue;
+                    }
+
+                    $groups[$typeKey]['count']++;
+                    $groups[$typeKey]['rows'][] = $this->mapFollowupTrackerRow($enquiry, $sourceType);
+                }
+            } else {
+                $attemptQuery = FollowupAttempt::query()
+                    ->with(['enquiry.customer', 'enquiry.vehicle', 'enquiry.user.manager'])
+                    ->whereHas('enquiry', function ($enquiryQuery) use ($accessibleUserIds, $filters): void {
+                        $enquiryQuery->whereIn('user_id', $accessibleUserIds);
+                        $this->applyFollowupTrackerFilters($enquiryQuery, $filters, $accessibleUserIds);
+                    });
+
+                if ($section === 'today-attempted') {
+                    $attemptQuery->whereDate('attempted_at', $today->toDateString())
+                        ->whereRaw("LOWER(COALESCE(followup_status, '')) IN (?, ?)", ['done', 'not_done']);
+                } elseif ($section === 'total-followed') {
+                    $attemptQuery->whereBetween('attempted_at', [$fromDate, $toDate])
+                        ->whereRaw("LOWER(COALESCE(followup_status, '')) = ?", ['done']);
+                } else {
+                    $attemptQuery->whereBetween('attempted_at', [$fromDate, $toDate])
+                        ->whereRaw("LOWER(COALESCE(followup_status, '')) IN (?, ?)", ['done', 'not_done']);
+                }
+
+                $attempts = $attemptQuery
+                    ->orderByDesc('attempted_at')
+                    ->get();
+
+                if ($section === 'total-followed') {
+                    $attempts = $attempts->unique('enquiry_id')->values();
+                }
+
+                foreach ($attempts as $attempt) {
+                    if (!$attempt->enquiry instanceof Enquiry) {
+                        continue;
+                    }
+
+                    $typeKey = match ($this->normalizeFollowupType($attempt->follow_type)) {
+                        'Call' => 'call',
+                        'Home visit' => 'home_visit',
+                        'Showroom visit' => 'showroom_visit',
+                        default => null,
+                    };
+
+                    if ($typeKey === null) {
+                        continue;
+                    }
+
+                    $groups[$typeKey]['count']++;
+                    $groups[$typeKey]['rows'][] = $this->mapFollowupAttemptTrackerRow($attempt);
+                }
+            }
+        }
+
+        return [
+            'section' => $section,
+            'title' => $sectionConfig['title'],
+            'subtitle' => $sectionConfig['subtitle'],
+            'notice' => $sectionConfig['notice'],
+            'date_label' => $sectionConfig['date_label'],
+            'total_label' => $sectionConfig['total_label'],
+            'requires_date_filter' => $requiresDateFilter,
+            'filter_error' => $filterError,
+            'filters' => $filters,
+            'filter_options' => $this->followupTrackerFilterOptions($accessibleUserIds),
+            'groups' => array_values($groups),
+            'total' => array_sum(array_map(fn(array $group): int => (int) $group['count'], $groups)),
+        ];
+    }
+
+    private function applyFollowupTrackerFilters($query, array $filters, array $accessibleUserIds): void
+    {
+        $dealerId = (int) ($filters['dealer_id'] ?: 0);
+        if ($dealerId > 0 && in_array($dealerId, $accessibleUserIds, true)) {
+            $dealer = User::query()->find($dealerId);
+            if ($dealer instanceof User) {
+                $dealerUserIds = array_values(array_intersect(
+                    $accessibleUserIds,
+                    $this->resolveUserAndDescendantIds($dealer)
+                ));
+
+                empty($dealerUserIds)
+                    ? $query->whereRaw('1 = 0')
+                    : $query->whereIn('user_id', $dealerUserIds);
+            }
+        }
+
+        $salesConsultantId = (int) ($filters['sc_id'] ?: 0);
+        if ($salesConsultantId > 0 && in_array($salesConsultantId, $accessibleUserIds, true)) {
+            $query->where('user_id', $salesConsultantId);
+        }
+
+        if ($filters['model'] !== '') {
+            $model = strtolower($filters['model']);
+            $query->whereHas('vehicle', function ($vehicleQuery) use ($model): void {
+                $vehicleQuery->whereRaw('LOWER(COALESCE(model, \'\')) = ?', [$model]);
+            });
+        }
+    }
+
+    private function followupTrackerFilterOptions(array $accessibleUserIds): array
+    {
+        return [
+            'area_managers' => User::query()
+                ->whereIn('id', $accessibleUserIds)
+                ->where('role', User::ROLE_AREA_MANAGER)
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn(User $user): array => ['id' => (int) $user->id, 'name' => $user->name])
+                ->values()
+                ->all(),
+            'sales_consultants' => User::query()
+                ->whereIn('id', $accessibleUserIds)
+                ->where('role', User::ROLE_SALES_CONSULTANT)
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn(User $user): array => ['id' => (int) $user->id, 'name' => $user->name])
+                ->values()
+                ->all(),
+            'models' => Vehicle::query()
+                ->whereNotNull('model')
+                ->where('model', '<>', '')
+                ->distinct()
+                ->orderBy('model')
+                ->pluck('model')
+                ->values()
+                ->all(),
+        ];
+    }
+
+    private function mapFollowupTrackerRow(Enquiry $enquiry, ?string $sourceType): array
+    {
+        $customer = $enquiry->customer;
+        $vehicle = $enquiry->vehicle;
+        $owner = $enquiry->user;
+        $mobiles = is_array($customer?->mobile_numbers) ? $customer->mobile_numbers : [];
+
+        return [
+            'id' => (int) $enquiry->id,
+            'customer_name' => trim(($customer?->title ? $customer->title . '. ' : '') . ($customer?->name ?? 'Unknown')),
+            'primary_phone' => count($mobiles) ? (string) $mobiles[0] : 'N/A',
+            'vehicle_name' => trim(($vehicle?->model ?? '') . ' ' . ($vehicle?->variant ?? '')) ?: 'N/A',
+            'model' => $vehicle?->model ?: 'N/A',
+            'follow_type' => $this->normalizeFollowupType($sourceType) ?: ($sourceType ?: 'Not specified'),
+            'follow_date' => $this->formatTrackerDate($enquiry->follow_date),
+            'follow_time' => !empty($enquiry->follow_time) ? substr((string) $enquiry->follow_time, 0, 5) : '-',
+            'attempted_at' => $this->formatTrackerDateTime($enquiry->followup_marked_at),
+            'status' => match (strtolower(trim((string) $enquiry->followup_status))) {
+                'done' => 'Done',
+                'not_done' => 'Not Done',
+                default => 'Pending',
+            },
+            'sales_consultant' => $owner?->name ?: 'Unassigned',
+            'area_manager' => $owner?->manager?->name ?: 'Not assigned',
+            'url' => route('followup.show', $enquiry->id),
+        ];
+    }
+
+    private function mapFollowupAttemptTrackerRow(FollowupAttempt $attempt): array
+    {
+        $enquiry = $attempt->enquiry;
+        $customer = $enquiry?->customer;
+        $vehicle = $enquiry?->vehicle;
+        $owner = $enquiry?->user;
+        $mobiles = is_array($customer?->mobile_numbers) ? $customer->mobile_numbers : [];
+
+        return [
+            'id' => (int) $attempt->enquiry_id,
+            'customer_name' => trim(($customer?->title ? $customer->title . '. ' : '') . ($customer?->name ?? 'Unknown')),
+            'primary_phone' => count($mobiles) ? (string) $mobiles[0] : 'N/A',
+            'vehicle_name' => trim(($vehicle?->model ?? '') . ' ' . ($vehicle?->variant ?? '')) ?: 'N/A',
+            'model' => $vehicle?->model ?: 'N/A',
+            'follow_type' => $this->normalizeFollowupType($attempt->follow_type) ?: ($attempt->follow_type ?: 'Not specified'),
+            'follow_date' => $this->formatTrackerDate($enquiry?->follow_date),
+            'follow_time' => !empty($enquiry?->follow_time) ? substr((string) $enquiry->follow_time, 0, 5) : '-',
+            'attempted_at' => $this->formatTrackerDateTime($attempt->attempted_at),
+            'status' => match (strtolower(trim((string) $attempt->followup_status))) {
+                'done' => 'Done',
+                'not_done' => 'Not Done',
+                default => 'Pending',
+            },
+            'sales_consultant' => $owner?->name ?: 'Unassigned',
+            'area_manager' => $owner?->manager?->name ?: 'Not assigned',
+            'url' => route('followup.show', $attempt->enquiry_id),
+        ];
+    }
+
+    private function formatTrackerDate($value): string
+    {
+        if (empty($value)) {
+            return '-';
+        }
+
+        try {
+            return Carbon::parse((string) $value)->format('d M Y');
+        } catch (\Throwable $exception) {
+            return '-';
+        }
+    }
+
+    private function formatTrackerDateTime($value): string
+    {
+        if (empty($value)) {
+            return '-';
+        }
+
+        try {
+            return Carbon::parse((string) $value)->format('d M Y h:i A');
+        } catch (\Throwable $exception) {
+            return '-';
+        }
+    }
+
+    private function resolveUserAndDescendantIds(User $root): array
+    {
+        $resolvedIds = [(int) $root->id];
+        $frontier = [(int) $root->id];
+
+        while (!empty($frontier)) {
+            $childIds = User::query()
+                ->whereIn('manager_id', $frontier)
+                ->pluck('id')
+                ->map(fn($id) => (int) $id)
+                ->values()
+                ->all();
+
+            $next = array_values(array_diff($childIds, $resolvedIds));
+            if (empty($next)) {
+                break;
+            }
+
+            $resolvedIds = array_values(array_unique(array_merge($resolvedIds, $next)));
+            $frontier = $next;
+        }
+
+        return $resolvedIds;
     }
 
     private function buildFollowupEscalations(User $viewer): array
@@ -1213,7 +1577,9 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
                 'enquiries.followup_result',
                 'enquiries.followup_lead_temperature',
                 'enquiries.follow_type',
+                'enquiries.follow_date',
                 'enquiries.followup_status',
+                'enquiries.followup_marked_at',
                 'enquiries.followup_customer_comment',
                 'enquiries.followup_lost_to',
                 'enquiries.followup_lost_competition_brand',
@@ -1222,11 +1588,51 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
                 'enquiries.followup_lost_reject_reasons',
                 'enquiries.followup_lost_reject_other_text',
                 'enquiries.created_at',
+                'customers.title as customer_title',
+                'customers.name as customer_name',
+                'customers.mobile_numbers as customer_mobile_numbers',
+                'customers.address1 as customer_address1',
+                'customers.address2 as customer_address2',
                 'customers.district as customer_district',
                 'customers.location as customer_location',
+                'customers.state as customer_state',
                 'vehicles.model as vehicle_model',
+                'vehicles.engine_type as vehicle_engine_type',
+                'vehicles.variant as vehicle_variant',
                 'prospect_sheets.lead_status as prospect_lead_status',
                 'prospect_sheets.current_step as prospect_current_step',
+                'prospect_sheets.customer_type as prospect_customer_type',
+                'prospect_sheets.corporate_name as prospect_corporate_name',
+                'prospect_sheets.profession as prospect_profession',
+                'prospect_sheets.date_of_birth as prospect_date_of_birth',
+                'prospect_sheets.interested_vehicle_color as prospect_interested_vehicle_color',
+                'prospect_sheets.quote_taken as prospect_quote_taken',
+                'prospect_sheets.quote_date as prospect_quote_date',
+                'prospect_sheets.test_drive_given as prospect_test_drive_given',
+                'prospect_sheets.test_drive_date as prospect_test_drive_date',
+                'prospect_sheets.test_drive_not_given_reason as prospect_test_drive_not_given_reason',
+                'prospect_sheets.purchase_mode as prospect_purchase_mode',
+                'prospect_sheets.interested_in_competition as prospect_interested_in_competition',
+                'prospect_sheets.competition_brand as prospect_competition_brand',
+                'prospect_sheets.competition_model as prospect_competition_model',
+                'prospect_sheets.first_time_buyer as prospect_first_time_buyer',
+                'prospect_sheets.interested_in_exchange as prospect_interested_in_exchange',
+                'prospect_sheets.exchange_vehicle_brand as prospect_exchange_vehicle_brand',
+                'prospect_sheets.exchange_vehicle_model as prospect_exchange_vehicle_model',
+                'prospect_sheets.exchange_manufacture_year as prospect_exchange_manufacture_year',
+                'prospect_sheets.exchange_color as prospect_exchange_color',
+                'prospect_sheets.exchange_mileage_km as prospect_exchange_mileage_km',
+                'prospect_sheets.exchange_registration_no as prospect_exchange_registration_no',
+                'prospect_sheets.exchange_expected_price as prospect_exchange_expected_price',
+                'prospect_sheets.exchange_quoted_price as prospect_exchange_quoted_price',
+                'prospect_sheets.exchange_price_difference as prospect_exchange_price_difference',
+                'prospect_sheets.offer_unit_price as prospect_offer_unit_price',
+                'prospect_sheets.offer_unit_price_discount as prospect_offer_unit_price_discount',
+                'prospect_sheets.offer_vat_amount as prospect_offer_vat_amount',
+                'prospect_sheets.offer_vat_discount as prospect_offer_vat_discount',
+                'prospect_sheets.offer_total_cost as prospect_offer_total_cost',
+                'prospect_sheets.offer_total_discount as prospect_offer_total_discount',
+                'prospect_sheets.offer_final_price as prospect_offer_final_price',
                 'prospect_sheets.source_of_information as prospect_source_of_information',
                 'bookings.id as booking_id',
                 'bookings.created_at as booking_created_at',
@@ -1592,9 +1998,25 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
         $topUsers = array_slice($sortedByUser, 0, 10);
         arsort($districtTotals);
         $districtRows = [];
+        $provinceTotals = [];
         foreach ($districtTotals as $district => $total) {
             $districtRows[] = [
                 'district' => (string) $district,
+                'leads' => (int) $total,
+            ];
+
+            $province = User::provinceForDistrict((string) $district) ?? 'N/A';
+            if (!array_key_exists($province, $provinceTotals)) {
+                $provinceTotals[$province] = 0;
+            }
+            $provinceTotals[$province] += (int) $total;
+        }
+
+        arsort($provinceTotals);
+        $provinceRows = [];
+        foreach ($provinceTotals as $province => $total) {
+            $provinceRows[] = [
+                'province' => (string) $province,
                 'leads' => (int) $total,
             ];
         }
@@ -1722,6 +2144,10 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
                     'labels' => array_map(fn(array $row): string => $row['district'], $districtRows),
                     'values' => array_map(fn(array $row): int => (int) $row['leads'], $districtRows),
                 ],
+                'province_totals' => [
+                    'labels' => array_map(fn(array $row): string => $row['province'], $provinceRows),
+                    'values' => array_map(fn(array $row): int => (int) $row['leads'], $provinceRows),
+                ],
             ],
             'lost_analytics' => $lostAnalytics,
             'closed_analytics' => $closedAnalytics,
@@ -1730,6 +2156,7 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
             'by_user' => $byUser,
             'by_role' => $byRoleRows,
             'by_district' => $districtRows,
+            'by_province' => $provinceRows,
             'current_hierarchy' => $currentHierarchy,
         ];
     }
@@ -1750,8 +2177,44 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
             'sales_consultant' => [],
             'area_manager' => [],
             'lead_state' => [],
+            'age_group' => [],
+            'old_vehicle_brand' => [],
+            'old_vehicle_model' => [],
+            'color' => [],
+            'competition_model' => [],
+            'exchange_value_difference' => [],
+            'no_test_drive_reason' => [],
+            'last_followup_discipline' => [],
+            'delayed_followup_count' => [],
+            'dealer_today_followups' => [],
+            'dealer_delayed_followups' => [],
+            'sc_today_followups' => [],
+            'sc_delayed_followups' => [],
+            'successful_home_visit_count' => [],
+            'active_aging' => [],
+            'quote_given' => [],
+            'call_followup_count' => [],
+            'successful_call_followup_count' => [],
+            'call_status' => [],
+            'time_since_last_spoken' => [],
+            'city' => [],
+            'ro' => [],
         ];
         $monthOrder = [];
+        $today = Carbon::now('Asia/Colombo')->startOfDay();
+        $activeEnquiryIds = $activeRows
+            ->pluck('id')
+            ->map(fn($id) => (int) $id)
+            ->filter()
+            ->values()
+            ->all();
+        $attemptsByEnquiryId = empty($activeEnquiryIds)
+            ? collect()
+            : FollowupAttempt::query()
+                ->whereIn('enquiry_id', $activeEnquiryIds)
+                ->orderBy('attempted_at')
+                ->get(['enquiry_id', 'follow_type', 'followup_status', 'attempted_at'])
+                ->groupBy(fn(FollowupAttempt $attempt): int => (int) $attempt->enquiry_id);
 
         foreach ($activeRows as $enquiry) {
             $createdAt = $this->analyticsDate($enquiry->created_at);
@@ -1778,19 +2241,102 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
             $this->addActiveAggregate($groups['sales_consultant'], $owner instanceof User ? $owner->name : 'Unassigned');
             $areaManager = $this->resolveAreaManagerForAnalytics($owner, $usersById);
             $this->addActiveAggregate($groups['area_manager'], $areaManager instanceof User ? $areaManager->name : 'Unassigned');
+            $headOfSales = $areaManager instanceof User ? $this->findHierarchyRecipient($areaManager, User::ROLE_HEAD_OF_SALES) : null;
+
+            $attempts = $attemptsByEnquiryId->get((int) $enquiry->id, collect());
+            $callAttempts = $attempts->filter(fn(FollowupAttempt $attempt): bool => $this->normalizeFollowupType($attempt->follow_type) === 'Call');
+            $successfulCallAttemptCount = $callAttempts
+                ->filter(fn(FollowupAttempt $attempt): bool => strtolower(trim((string) $attempt->followup_status)) === 'done')
+                ->count();
+            $successfulHomeVisitCount = $attempts
+                ->filter(fn(FollowupAttempt $attempt): bool => $this->normalizeFollowupType($attempt->follow_type) === 'Home visit'
+                    && strtolower(trim((string) $attempt->followup_status)) === 'done')
+                ->count();
+
+            $this->addActiveAggregate($groups['age_group'], $this->ageGroupBucket($enquiry->prospect_date_of_birth ?? null));
+            $this->addActiveCompositeAggregate($groups['old_vehicle_brand'], $this->displayAnalyticsLabel($enquiry->prospect_exchange_vehicle_brand ?? null, 'NA'), $this->displayAnalyticsLabel($enquiry->prospect_exchange_manufacture_year ?? null, 'NA'));
+            $this->addActiveCompositeAggregate($groups['old_vehicle_model'], $this->displayAnalyticsLabel($enquiry->prospect_exchange_vehicle_model ?? null, 'NA'), $this->displayAnalyticsLabel($enquiry->prospect_exchange_manufacture_year ?? null, 'NA'));
+            $this->addActiveAggregate($groups['color'], $this->displayAnalyticsLabel($enquiry->prospect_interested_vehicle_color ?? null, 'NA'));
+            $this->addActiveAggregate($groups['competition_model'], $this->displayAnalyticsLabel($enquiry->prospect_competition_model ?? null, 'NA'));
+            $this->addActiveAggregate($groups['exchange_value_difference'], $this->exchangeDifferenceBucket($enquiry->prospect_exchange_price_difference ?? null));
+            $this->addActiveAggregate($groups['no_test_drive_reason'], $this->displayAnalyticsLabel($enquiry->prospect_test_drive_not_given_reason ?? null, 'NA'));
+            $this->addActiveAggregate($groups['last_followup_discipline'], $this->lastFollowupDisciplineBucket($enquiry, $attempts));
+            $this->addActiveAggregate($groups['delayed_followup_count'], $this->delayedFollowupCountBucket($enquiry, $attempts));
+            $this->addActiveAggregate($groups['successful_home_visit_count'], $this->visitCountBucket($successfulHomeVisitCount));
+            $this->addActiveAggregate($groups['active_aging'], $this->activeAgingBucket($enquiry));
+            $this->addActiveAggregate($groups['quote_given'], $this->yesNoNaLabel($enquiry->prospect_quote_taken ?? null));
+            $this->addActiveAggregate($groups['call_followup_count'], $this->followupCountBucket($callAttempts->count()));
+            $this->addActiveAggregate($groups['successful_call_followup_count'], $this->followupCountBucket($successfulCallAttemptCount, true));
+            $this->addActiveAggregate($groups['time_since_last_spoken'], $this->activeTimeSinceLastSpokenBucket($attempts));
+            $this->addActiveAggregate($groups['city'], $this->displayAnalyticsLabel($enquiry->customer_location ?: $enquiry->customer_district, 'NA'));
+            $this->addActiveAggregate($groups['ro'], $headOfSales?->name ?? 'Sales Head');
+
+            foreach ($callAttempts as $callAttempt) {
+                $this->addActiveAggregate(
+                    $groups['call_status'],
+                    strtolower(trim((string) $callAttempt->followup_status)) === 'done' ? 'Spoke To Customer' : 'Busy'
+                );
+            }
+
+            if (!empty($enquiry->follow_date)) {
+                try {
+                    $followDate = Carbon::parse((string) $enquiry->follow_date)->startOfDay();
+                    $isDone = strtolower(trim((string) $enquiry->followup_status)) === 'done';
+                    if ($followDate->equalTo($today)) {
+                        $this->addActiveAggregate($groups['dealer_today_followups'], $areaManager instanceof User ? $areaManager->name : 'Unassigned');
+                        $this->addActiveAggregate($groups['sc_today_followups'], $owner instanceof User ? $owner->name : 'Unassigned');
+                    }
+                    if (!$isDone && $followDate->lessThan($today)) {
+                        $this->addActiveAggregate($groups['dealer_delayed_followups'], $areaManager instanceof User ? $areaManager->name : 'Unassigned');
+                        $this->addActiveAggregate($groups['sc_delayed_followups'], $owner instanceof User ? $owner->name : 'Unassigned');
+                    }
+                } catch (\Throwable $exception) {
+                    // Ignore invalid dates for date-bound active follow-up reports.
+                }
+            }
         }
+
+        $chartTabs = [
+            ['key' => 'registration', 'label' => 'EPR Vs Registered', 'title' => 'EPR Vs Registered', 'metric' => 'count', 'rows' => $this->formatActiveRegistrationRows($groups['registration'], $totalActive)],
+            ['key' => 'month', 'label' => 'Month Wise', 'title' => 'Month Wise', 'metric' => 'count', 'rows' => $this->formatActiveMonthRows($groups['month'], $monthOrder, $totalActive)],
+            ['key' => 'model', 'label' => 'Model Wise', 'title' => 'Model Wise', 'metric' => 'count', 'rows' => $this->formatActiveAggregateRows($groups['model'], $totalActive, 12)],
+            ['key' => 'lead_source', 'label' => 'Lead Source Wise', 'title' => 'Lead Source Wise', 'metric' => 'count', 'rows' => $this->formatActiveAggregateRows($groups['lead_source'], $totalActive, 12)],
+            ['key' => 'source_information', 'label' => 'Source Of Information Wise', 'title' => 'Source Of Information Wise', 'metric' => 'count', 'rows' => $this->formatActiveAggregateRows($groups['source_information'], $totalActive, 12)],
+            ['key' => 'sales_consultant', 'label' => 'Sales Consultant Wise', 'title' => 'Sales Consultant Wise', 'metric' => 'count', 'rows' => $this->formatActiveAggregateRows($groups['sales_consultant'], $totalActive, 12)],
+            ['key' => 'area_manager', 'label' => 'Area Manager Wise', 'title' => 'Area Manager Wise', 'metric' => 'count', 'rows' => $this->formatActiveAggregateRows($groups['area_manager'], $totalActive, 12)],
+            ['key' => 'lead_state', 'label' => 'Lead State Wise', 'title' => 'Lead State Wise', 'metric' => 'count', 'rows' => $this->formatActiveAggregateRows($groups['lead_state'], $totalActive, 12)],
+        ];
 
         return [
             'total' => $totalActive,
-            'tabs' => [
-                ['key' => 'registration', 'label' => 'EPR Vs Registered', 'title' => 'EPR Vs Registered', 'metric' => 'count', 'rows' => $this->formatActiveRegistrationRows($groups['registration'], $totalActive)],
-                ['key' => 'month', 'label' => 'Month Wise', 'title' => 'Month Wise', 'metric' => 'count', 'rows' => $this->formatActiveMonthRows($groups['month'], $monthOrder, $totalActive)],
-                ['key' => 'model', 'label' => 'Model Wise', 'title' => 'Model Wise', 'metric' => 'count', 'rows' => $this->formatActiveAggregateRows($groups['model'], $totalActive, 12)],
-                ['key' => 'lead_source', 'label' => 'Lead Source Wise', 'title' => 'Lead Source Wise', 'metric' => 'count', 'rows' => $this->formatActiveAggregateRows($groups['lead_source'], $totalActive, 12)],
-                ['key' => 'source_information', 'label' => 'Source Of Information Wise', 'title' => 'Source Of Information Wise', 'metric' => 'count', 'rows' => $this->formatActiveAggregateRows($groups['source_information'], $totalActive, 12)],
-                ['key' => 'sales_consultant', 'label' => 'Sales Consultant Wise', 'title' => 'Sales Consultant Wise', 'metric' => 'count', 'rows' => $this->formatActiveAggregateRows($groups['sales_consultant'], $totalActive, 12)],
-                ['key' => 'area_manager', 'label' => 'Area Manager Wise', 'title' => 'Area Manager Wise', 'metric' => 'count', 'rows' => $this->formatActiveAggregateRows($groups['area_manager'], $totalActive, 12)],
-                ['key' => 'lead_state', 'label' => 'Lead State Wise', 'title' => 'Lead State Wise', 'metric' => 'count', 'rows' => $this->formatActiveAggregateRows($groups['lead_state'], $totalActive, 12)],
+            'tabs' => $chartTabs,
+            'export_tabs' => [
+                ['title' => 'Age Group Wise', 'export_label' => 'age_group', 'columns' => $this->activeContributionColumns('age_group'), 'rows' => $this->formatActiveBucketRows($groups['age_group'], $totalActive, ['0 - 19', '20 - 25', '26 - 30', '31 - 35', '36 - 40', '41 - 45', '46 - 50', '51 - 55', '56 - 60', '61 - 65', '66 - 70', '71 - 75', '76 - 80', '81 - 85', '86 - 90', '91 - 95', '96 - 100', 'NA']), 'total_row' => $this->activeContributionTotalRow($totalActive)],
+                ['title' => 'Old Vehicle Detail:"Brand"', 'export_label' => 'old_vehicle_brand_name', 'columns' => $this->activeDetailColumns('old_vehicle_brand_name'), 'rows' => $this->formatActiveCompositeRows($groups['old_vehicle_brand'], 'old_vehicle_brand_name', 50), 'total_row' => $this->activeDetailTotalRow($totalActive)],
+                ['title' => 'Old Vehicle Detail:"Model"', 'export_label' => 'old_vehicle_product_name', 'columns' => $this->activeDetailColumns('old_vehicle_product_name'), 'rows' => $this->formatActiveCompositeRows($groups['old_vehicle_model'], 'old_vehicle_product_name', 50), 'total_row' => $this->activeDetailTotalRow($totalActive)],
+                ['title' => 'Color Wise', 'export_label' => 'enquired_color', 'columns' => $this->activeContributionColumns('enquired_color'), 'rows' => $this->formatActiveAggregateRows($groups['color'], $totalActive, 50), 'total_row' => $this->activeContributionTotalRow($totalActive)],
+                ['title' => 'Interested in Competition Model', 'export_label' => 'lead_interested_competition_model_name', 'columns' => $this->activeContributionColumns('lead_interested_competition_model_name'), 'rows' => $this->formatActiveAggregateRows($groups['competition_model'], $totalActive, 50), 'total_row' => $this->activeContributionTotalRow($totalActive)],
+                ['title' => 'Exchange Value Difference', 'export_label' => 'exchange_groups', 'columns' => $this->activeContributionColumns('exchange_groups'), 'rows' => $this->formatActiveBucketRows($groups['exchange_value_difference'], $totalActive, ['(-) <1000', '(-)10000-5001', '(-)5000-1', '0-5000', '5001-10000', '10001-20000', '>20000', 'NA']), 'total_row' => $this->activeContributionTotalRow($totalActive)],
+                ['title' => "Reason For 'NO' Test Drive", 'export_label' => 'reason_for_not_given', 'columns' => $this->activeContributionColumns('reason_for_not_given'), 'rows' => $this->formatActiveAggregateRows($groups['no_test_drive_reason'], $totalActive, 50), 'total_row' => $this->activeContributionTotalRow($totalActive)],
+                ['title' => 'Analysis of Last Completed Follow Up', 'export_label' => 'Last_Followup_Done', 'columns' => $this->activeContributionColumns('Last_Followup_Done'), 'rows' => $this->formatActiveBucketRows($groups['last_followup_discipline'], $totalActive, ['On Time', '1 day delay', '2 days delay', '3 days delay', '>3 days delay', 'No Follow Ups']), 'total_row' => $this->activeContributionTotalRow($totalActive)],
+                ['title' => 'Delay Analysis of All Follow Ups Completed', 'export_label' => 'No_of_Delayed_Followups', 'columns' => $this->activeContributionColumns('No_of_Delayed_Followups'), 'rows' => $this->formatActiveBucketRows($groups['delayed_followup_count'], $totalActive, ['0', '1', '2', '3', '4', '5', '>5', 'No Follow Up Done']), 'total_row' => $this->activeContributionTotalRow($totalActive)],
+                ['title' => 'Area Manager Wise Todays Follow Ups', 'export_label' => 'area_manager_name', 'columns' => $this->activeCountColumns('area_manager_name'), 'rows' => $this->formatActiveCountRows($groups['dealer_today_followups'], 50), 'total_row' => $this->activeCountTotalRow($totalActive)],
+                ['title' => 'Area Manager Wise No of Delayed Follow Ups', 'export_label' => 'area_manager_name', 'columns' => $this->activeCountColumns('area_manager_name'), 'rows' => $this->formatActiveCountRows($groups['dealer_delayed_followups'], 50), 'total_row' => $this->activeCountTotalRow($totalActive)],
+                ['title' => 'SC Wise Todays Follow Ups', 'export_label' => 'assigned_to_name', 'columns' => $this->activeCountColumns('assigned_to_name'), 'rows' => $this->formatActiveCountRows($groups['sc_today_followups'], 50), 'total_row' => $this->activeCountTotalRow($totalActive)],
+                ['title' => 'SC Wise No of Delayed Follow Ups', 'export_label' => 'assigned_to_name', 'columns' => $this->activeCountColumns('assigned_to_name'), 'rows' => $this->formatActiveCountRows($groups['sc_delayed_followups'], 50), 'total_row' => $this->activeCountTotalRow($totalActive)],
+                ['title' => 'No Of Successful Home Visits', 'export_label' => 'No_Of_Home_Visits_Done', 'columns' => $this->activeContributionColumns('No_Of_Home_Visits_Done'), 'rows' => $this->formatActiveBucketRows($groups['successful_home_visit_count'], $totalActive, ['0', '1', '2', '>2']), 'total_row' => $this->activeContributionTotalRow($totalActive)],
+                ['title' => 'Lead State Wise', 'export_label' => 'lead_state', 'columns' => $this->activeContributionColumns('lead_state'), 'rows' => $this->formatActiveAggregateRows($groups['lead_state'], $totalActive, 50), 'total_row' => $this->activeContributionTotalRow($totalActive)],
+                ['title' => 'Aging of Leads', 'export_label' => 'aging_of_leads', 'columns' => $this->activeCountColumns('aging_of_leads'), 'rows' => $this->formatActiveBucketCountRows($groups['active_aging'], ['0-5 Days', '6-10 Days', '11-15 Days', '16-20 Days', '21-30 Days', '31-60 Days', '> 60 Days']), 'total_row' => $this->activeCountTotalRow($totalActive)],
+                ['title' => 'Price Quote Given', 'export_label' => 'Price_Quote_Given', 'columns' => $this->activeContributionColumns('Price_Quote_Given'), 'rows' => $this->formatActiveBucketRows($groups['quote_given'], $totalActive, ['Yes', 'No', 'NA']), 'total_row' => $this->activeContributionTotalRow($totalActive)],
+                ['title' => 'No of Call Follow Ups Completed', 'export_label' => 'No_of_Call_FollowUps', 'columns' => $this->activeContributionColumns('No_of_Call_FollowUps'), 'rows' => $this->formatActiveBucketRows($groups['call_followup_count'], $totalActive, ['0', '1', '2', '3', '4', '5', '6-9', '>= 10']), 'total_row' => $this->activeContributionTotalRow($totalActive)],
+                ['title' => 'No of Successful Call Follow Ups', 'export_label' => 'No_Of_Successful_Call_Followups', 'columns' => $this->activeContributionColumns('No_Of_Successful_Call_Followups'), 'rows' => $this->formatActiveBucketRows($groups['successful_call_followup_count'], $totalActive, ['0', '1', '2', '3', '4', '5', '>5', '>= 10']), 'total_row' => $this->activeContributionTotalRow($totalActive)],
+                ['title' => 'Status Of Call Follow Up', 'export_label' => 'Status', 'columns' => $this->activeCallStatusColumns(), 'rows' => $this->formatActiveCallStatusRows($groups['call_status'], $totalActive), 'total_row' => null],
+                ['title' => 'Time Since Last Spoken With Customer', 'export_label' => 'Time_Interval', 'columns' => $this->activeCountColumns('Time_Interval'), 'rows' => $this->formatActiveBucketCountRows($groups['time_since_last_spoken'], ['-', '<5 days', '5-7 Days', '8-10 Days', '11-15 Days', '16-20 Days', '21-30 Days', '>30 Days']), 'total_row' => $this->activeCountTotalRow($totalActive)],
+                ['title' => 'City Wise', 'export_label' => 'customer_city_name', 'columns' => $this->activeContributionColumns('customer_city_name'), 'rows' => $this->formatActiveAggregateRows($groups['city'], $totalActive, 50), 'total_row' => $this->activeContributionTotalRow($totalActive)],
+                ['title' => 'Source Wise', 'export_label' => 'lead_source', 'columns' => $this->activeContributionColumns('lead_source'), 'rows' => $this->formatActiveAggregateRows($groups['lead_source'], $totalActive, 50), 'total_row' => $this->activeContributionTotalRow($totalActive)],
+                ['title' => 'SC Wise', 'export_label' => 'assigned_to_name', 'columns' => $this->activeContributionColumns('assigned_to_name'), 'rows' => $this->formatActiveAggregateRows($groups['sales_consultant'], $totalActive, 50), 'total_row' => $this->activeContributionTotalRow($totalActive)],
+                ['title' => 'Area Manager Wise', 'export_label' => 'area_manager_name', 'columns' => $this->activeContributionColumns('area_manager_name'), 'rows' => $this->formatActiveAggregateRows($groups['area_manager'], $totalActive, 50), 'total_row' => $this->activeContributionTotalRow($totalActive)],
+                ['title' => 'RO Wise', 'export_label' => 'RO_Name', 'columns' => $this->activeContributionColumns('RO_Name'), 'rows' => $this->formatActiveAggregateRows($groups['ro'], $totalActive, 50), 'total_row' => $this->activeContributionTotalRow($totalActive)],
             ],
         ];
     }
@@ -1799,6 +2345,14 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
     {
         $label = $this->displayAnalyticsLabel($label, 'Not specified');
         $groups[$label] = ($groups[$label] ?? 0) + 1;
+    }
+
+    private function addActiveCompositeAggregate(array &$groups, ?string $firstValue, ?string $secondValue): void
+    {
+        $firstValue = $this->displayAnalyticsLabel($firstValue, 'NA');
+        $secondValue = $this->displayAnalyticsLabel($secondValue, 'NA');
+        $key = $firstValue . '||' . $secondValue;
+        $groups[$key] = ($groups[$key] ?? 0) + 1;
     }
 
     private function formatActiveAggregateRows(array $groups, int $totalActive, int $limit): array
@@ -1814,6 +2368,201 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
             array_keys(array_slice($groups, 0, $limit, true)),
             array_values(array_slice($groups, 0, $limit, true))
         ));
+    }
+
+    private function formatActiveBucketRows(array $groups, int $totalActive, array $order): array
+    {
+        return array_map(
+            fn(string $label): array => [
+                'label' => $label,
+                'count' => (int) ($groups[$label] ?? 0),
+                'contribution' => $totalActive > 0 ? round(((int) ($groups[$label] ?? 0) / $totalActive) * 100, 2) : 0,
+            ],
+            $order
+        );
+    }
+
+    private function formatActiveBucketCountRows(array $groups, array $order): array
+    {
+        return array_map(
+            fn(string $label): array => [
+                'label' => $label,
+                'count' => (int) ($groups[$label] ?? 0),
+            ],
+            $order
+        );
+    }
+
+    private function formatActiveCountRows(array $groups, int $limit): array
+    {
+        arsort($groups);
+
+        return array_values(array_map(
+            fn(string $label, int $count): array => [
+                'label' => $label,
+                'count' => $count,
+            ],
+            array_keys(array_slice($groups, 0, $limit, true)),
+            array_values(array_slice($groups, 0, $limit, true))
+        ));
+    }
+
+    private function formatActiveCompositeRows(array $groups, string $firstColumnKey, int $limit): array
+    {
+        arsort($groups);
+
+        return array_values(array_map(function (string $key, int $count) use ($firstColumnKey): array {
+            [$firstValue, $modelYear] = array_pad(explode('||', $key, 2), 2, 'NA');
+
+            return [
+                $firstColumnKey => $firstValue,
+                'Model_Year' => $modelYear,
+                'count' => $count,
+            ];
+        }, array_keys(array_slice($groups, 0, $limit, true)), array_values(array_slice($groups, 0, $limit, true))));
+    }
+
+    private function activeContributionColumns(string $firstColumn): array
+    {
+        return [
+            ['key' => 'label', 'heading' => $firstColumn],
+            ['key' => 'count', 'heading' => 'No_of_Leads'],
+            ['key' => 'contribution', 'heading' => 'Contribution'],
+        ];
+    }
+
+    private function activeCountColumns(string $firstColumn): array
+    {
+        return [
+            ['key' => 'label', 'heading' => $firstColumn],
+            ['key' => 'count', 'heading' => 'No_of_Leads'],
+        ];
+    }
+
+    private function activeDetailColumns(string $firstColumn): array
+    {
+        return [
+            ['key' => $firstColumn, 'heading' => $firstColumn],
+            ['key' => 'Model_Year', 'heading' => 'Model_Year'],
+            ['key' => 'count', 'heading' => 'No_Of_Leads'],
+        ];
+    }
+
+    private function activeCallStatusColumns(): array
+    {
+        return [
+            ['key' => 'label', 'heading' => 'Status'],
+            ['key' => 'lead_count', 'heading' => 'No_Of_Leads'],
+            ['key' => 'time_count', 'heading' => 'No_Of_Times'],
+            ['key' => 'avg_per_lead', 'heading' => 'Avg_No_Per_Lead'],
+        ];
+    }
+
+    private function activeContributionTotalRow(int $totalActive): array
+    {
+        return [
+            'label' => 'Total',
+            'count' => $totalActive,
+            'contribution' => $totalActive > 0 ? '100.00%' : '0.00%',
+        ];
+    }
+
+    private function activeCountTotalRow(int $totalActive): array
+    {
+        return [
+            'label' => 'Total',
+            'count' => $totalActive,
+        ];
+    }
+
+    private function activeDetailTotalRow(int $totalActive): array
+    {
+        return [
+            'Model_Year' => '',
+            'count' => $totalActive,
+        ];
+    }
+
+    private function formatActiveCallStatusRows(array $groups, int $totalActive): array
+    {
+        arsort($groups);
+
+        return array_values(array_map(
+            fn(string $label, int $count): array => [
+                'label' => $label,
+                'lead_count' => $totalActive,
+                'time_count' => $count,
+                'avg_per_lead' => $totalActive > 0 ? (string) max(1, (int) round($count / $totalActive)) : '0',
+            ],
+            array_keys($groups),
+            array_values($groups)
+        ));
+    }
+
+    private function activeAgingBucket(Enquiry $enquiry): string
+    {
+        if (empty($enquiry->created_at)) {
+            return '> 60 Days';
+        }
+
+        try {
+            $createdAt = Carbon::parse((string) $enquiry->created_at)->startOfDay();
+            $today = Carbon::now('Asia/Colombo')->startOfDay();
+        } catch (\Throwable $exception) {
+            return '> 60 Days';
+        }
+
+        $days = max(0, (int) $createdAt->diffInDays($today, false));
+
+        return match (true) {
+            $days <= 5 => '0-5 Days',
+            $days <= 10 => '6-10 Days',
+            $days <= 15 => '11-15 Days',
+            $days <= 20 => '16-20 Days',
+            $days <= 30 => '21-30 Days',
+            $days <= 60 => '31-60 Days',
+            default => '> 60 Days',
+        };
+    }
+
+    private function yesNoNaLabel($value): string
+    {
+        return match (strtolower(trim((string) $value))) {
+            'yes', 'y', '1', 'true' => 'Yes',
+            'no', 'n', '0', 'false' => 'No',
+            default => 'NA',
+        };
+    }
+
+    private function activeTimeSinceLastSpokenBucket(Collection $attempts): string
+    {
+        $doneAttempts = $attempts
+            ->filter(fn(FollowupAttempt $attempt): bool => strtolower(trim((string) $attempt->followup_status)) === 'done'
+                && !empty($attempt->attempted_at))
+            ->values();
+
+        if ($doneAttempts->isEmpty()) {
+            return '-';
+        }
+
+        try {
+            $lastSpokenAt = Carbon::parse((string) $doneAttempts->last()?->attempted_at)->startOfDay();
+            $today = Carbon::now('Asia/Colombo')->startOfDay();
+        } catch (\Throwable $exception) {
+            return '-';
+        }
+
+        $days = max(0, (int) $lastSpokenAt->diffInDays($today, false));
+
+        return match (true) {
+            $days < 5 => '<5 days',
+            $days <= 7 => '5-7 Days',
+            $days <= 10 => '8-10 Days',
+            $days <= 15 => '11-15 Days',
+            $days <= 20 => '16-20 Days',
+            $days <= 30 => '21-30 Days',
+            default => '>30 Days',
+        };
     }
 
     private function formatActiveRegistrationRows(array $groups, int $totalActive): array
@@ -2042,9 +2791,41 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
             'reasons_co_dealer' => [],
             'lead_status' => [],
             'month_wise_enquired' => [],
+            'days_to_lost' => [],
+            'followup_count' => [],
+            'call_followup_count' => [],
+            'successful_call_followup_count' => [],
+            'successful_home_visit_count' => [],
+            'successful_showroom_visit_count' => [],
+            'last_followup_discipline' => [],
+            'delayed_followup_count' => [],
+            'lost_to_today_interval' => [],
+            'lost_followup_type' => [],
+            'lead_aging' => [],
+            'profession' => [],
+            'customer_type' => [],
+            'age_group' => [],
+            'competition_model' => [],
+            'exchange_value_difference' => [],
+            'district' => [],
+            'province' => [],
         ];
 
         $monthOrder = [];
+        $lostEnquiryIds = $lostRows
+            ->pluck('id')
+            ->map(fn($id) => (int) $id)
+            ->filter()
+            ->values()
+            ->all();
+        $attemptsByEnquiryId = empty($lostEnquiryIds)
+            ? collect()
+            : FollowupAttempt::query()
+                ->whereIn('enquiry_id', $lostEnquiryIds)
+                ->orderBy('attempted_at')
+                ->get(['enquiry_id', 'follow_type', 'followup_status', 'attempted_at'])
+                ->groupBy(fn(FollowupAttempt $attempt): int => (int) $attempt->enquiry_id);
+        $lostDataRows = [];
 
         foreach ($lostRows as $enquiry) {
             $lostTo = strtolower(trim((string) $enquiry->followup_lost_to));
@@ -2078,6 +2859,60 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
             $this->addLostAggregate($groups['month'], $monthKey);
             $this->addLostAggregate($groups['month_wise_enquired'], $monthKey);
 
+            $attempts = $attemptsByEnquiryId->get((int) $enquiry->id, collect());
+            $attemptCount = $attempts->count();
+            if ($attemptCount === 0 && !empty($enquiry->followup_marked_at)) {
+                $attemptCount = 1;
+            }
+
+            $callAttemptCount = $attempts
+                ->filter(fn(FollowupAttempt $attempt): bool => $this->normalizeFollowupType($attempt->follow_type) === 'Call')
+                ->count();
+            $successfulCallAttemptCount = $attempts
+                ->filter(fn(FollowupAttempt $attempt): bool => $this->normalizeFollowupType($attempt->follow_type) === 'Call'
+                    && strtolower(trim((string) $attempt->followup_status)) === 'done')
+                ->count();
+            $successfulHomeVisitCount = $attempts
+                ->filter(fn(FollowupAttempt $attempt): bool => $this->normalizeFollowupType($attempt->follow_type) === 'Home visit'
+                    && strtolower(trim((string) $attempt->followup_status)) === 'done')
+                ->count();
+            $successfulShowroomVisitCount = $attempts
+                ->filter(fn(FollowupAttempt $attempt): bool => $this->normalizeFollowupType($attempt->follow_type) === 'Showroom visit'
+                    && strtolower(trim((string) $attempt->followup_status)) === 'done')
+                ->count();
+
+            if ($attempts->isEmpty() && $this->normalizeFollowupType($enquiry->follow_type) === 'Call' && !empty($enquiry->followup_marked_at)) {
+                $callAttemptCount = 1;
+                $successfulCallAttemptCount = strtolower(trim((string) $enquiry->followup_status)) === 'done' ? 1 : 0;
+            }
+            if ($attempts->isEmpty() && $this->normalizeFollowupType($enquiry->follow_type) === 'Home visit' && !empty($enquiry->followup_marked_at)) {
+                $successfulHomeVisitCount = strtolower(trim((string) $enquiry->followup_status)) === 'done' ? 1 : 0;
+            }
+            if ($attempts->isEmpty() && $this->normalizeFollowupType($enquiry->follow_type) === 'Showroom visit' && !empty($enquiry->followup_marked_at)) {
+                $successfulShowroomVisitCount = strtolower(trim((string) $enquiry->followup_status)) === 'done' ? 1 : 0;
+            }
+
+            $this->addLostAggregate($groups['days_to_lost'], $this->daysToLostBucket($enquiry));
+            $this->addLostAggregate($groups['followup_count'], $this->followupCountBucket($attemptCount));
+            $this->addLostAggregate($groups['call_followup_count'], $this->followupCountBucket($callAttemptCount));
+            $this->addLostAggregate($groups['successful_call_followup_count'], $this->followupCountBucket($successfulCallAttemptCount, true));
+            $this->addLostAggregate($groups['successful_home_visit_count'], $this->visitCountBucket($successfulHomeVisitCount));
+            $this->addLostAggregate($groups['successful_showroom_visit_count'], $this->visitCountBucket($successfulShowroomVisitCount));
+            $this->addLostAggregate($groups['last_followup_discipline'], $this->lastFollowupDisciplineBucket($enquiry, $attempts));
+            $this->addLostAggregate($groups['delayed_followup_count'], $this->delayedFollowupCountBucket($enquiry, $attempts));
+            $this->addLostAggregate($groups['lost_to_today_interval'], $this->lostToTodayIntervalBucket($enquiry));
+            $this->addLostAggregate($groups['lost_followup_type'], $this->lostFollowupTypeLabel($enquiry));
+            $this->addLostAggregate($groups['lead_aging'], $this->leadAgingBucket($enquiry));
+            $this->addLostAggregate($groups['profession'], $this->professionAnalyticsLabel($enquiry->prospect_profession ?? null));
+            $this->addLostAggregate($groups['customer_type'], $this->customerTypeAnalyticsLabel($enquiry->prospect_customer_type ?? null));
+            $this->addLostAggregate($groups['age_group'], $this->ageGroupBucket($enquiry->prospect_date_of_birth ?? null));
+            $this->addLostAggregate($groups['competition_model'], $this->displayAnalyticsLabel($enquiry->prospect_competition_model ?? null, 'NA'));
+            $this->addLostAggregate($groups['exchange_value_difference'], $this->exchangeDifferenceBucket($enquiry->prospect_exchange_price_difference ?? null));
+            $districtLabel = $this->districtAnalyticsLabel($enquiry->customer_district ?? null);
+            $this->addLostAggregate($groups['district'], $districtLabel);
+            $this->addLostAggregate($groups['province'], $this->provinceAnalyticsLabel($districtLabel));
+            $lostDataRows[] = $this->mapLostDataExportRow($enquiry, $owner, $areaManager, $attempts);
+
             $reasons = $this->formatLostRejectReasons($enquiry->followup_lost_reject_reasons, $enquiry->followup_lost_reject_other_text);
             foreach ($reasons as $reason) {
                 if ($lostTo === 'competitor') {
@@ -2093,6 +2928,8 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
 
         return [
             'total' => $totalLost,
+            'lost_data_headers' => $this->lostDataExportHeaders(),
+            'lost_data_rows' => $lostDataRows,
             'tabs' => [
                 ['key' => 'lost_to', 'label' => 'Lost To', 'title' => 'Lost To', 'rows' => $this->formatLostAggregateRows($groups['lost_to'], $totalLost, 12)],
                 ['key' => 'lead_source', 'label' => 'Lead Source', 'title' => 'Lead Source', 'rows' => $this->formatLostAggregateRows($groups['lead_source'], $totalLost, 12)],
@@ -2108,6 +2945,24 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
                 ['key' => 'reasons_co_dealer', 'label' => 'Reasons-Co-Dealer', 'title' => 'Reasons-Co-Dealer', 'rows' => $this->formatLostAggregateRows($groups['reasons_co_dealer'], $totalLost, 12)],
                 ['key' => 'lead_status', 'label' => 'Lead Status', 'title' => 'Lead Status', 'rows' => $this->formatLostAggregateRows($groups['lead_status'], $totalLost, 12)],
                 ['key' => 'month_wise_enquired', 'label' => 'Month Wise Enquired', 'title' => 'Month Wise Enquired', 'rows' => $monthWiseRows],
+                ['key' => 'days_to_lost', 'label' => 'Days To Lost', 'title' => 'No of days from date of inquiry to date of lost', 'rows' => $this->formatLostBucketRows($groups['days_to_lost'], $totalLost, ['1 day', '2-3 days', '4-6 days', '7-10 days', '11-15 days', '16-20 days', '>20 days', 'NA'])],
+                ['key' => 'followup_count', 'label' => 'No of Follow Ups', 'title' => 'No of Follow Ups', 'rows' => $this->formatLostBucketRows($groups['followup_count'], $totalLost, ['0', '1', '2', '3', '4', '5', '6-9', '>= 10'])],
+                ['key' => 'call_followup_count', 'label' => 'No of Calls Follow Ups', 'title' => 'No of Calls Follow Ups', 'rows' => $this->formatLostBucketRows($groups['call_followup_count'], $totalLost, ['0', '1', '2', '3', '4', '5', '6-9', '>= 10'])],
+                ['key' => 'successful_call_followup_count', 'label' => 'No of Successful Calls Follow Ups', 'title' => 'No of Successful Calls Follow Ups', 'rows' => $this->formatLostBucketRows($groups['successful_call_followup_count'], $totalLost, ['0', '1', '2', '3', '4', '5', '>5', '>= 10'])],
+                ['key' => 'successful_home_visit_count', 'label' => 'No of Successful Home Visits', 'title' => 'No of Successful Home Visits', 'export_label' => 'No_Suc_Home_Visits', 'rows' => $this->formatLostBucketRows($groups['successful_home_visit_count'], $totalLost, ['0', '1', '2', '>2'])],
+                ['key' => 'successful_showroom_visit_count', 'label' => 'No of Successful Showroom Visits', 'title' => 'No of Successful Showroom Visits', 'export_label' => 'No_Of_Suc_Showroom_Visits', 'rows' => $this->formatLostBucketRows($groups['successful_showroom_visit_count'], $totalLost, ['0', '1', '2', '>2'])],
+                ['key' => 'last_followup_discipline', 'label' => 'Last Follow up Done: Discipline', 'title' => 'last Follow up Done: Discipline', 'export_label' => 'aging_follow_up', 'rows' => $this->formatLostBucketRows($groups['last_followup_discipline'], $totalLost, ['On Time', '1 day delay', '2 days delay', '3 days delay', '>3 days delay', 'No Follow Ups'])],
+                ['key' => 'delayed_followup_count', 'label' => 'No of Delayed Followups', 'title' => 'No of Delayed Followups', 'export_label' => 'No_of_Delayed_Followups', 'rows' => $this->formatLostBucketRows($groups['delayed_followup_count'], $totalLost, ['0', '1', '2', '3', '4', '5', '>5', 'No Follow Up Done'])],
+                ['key' => 'lost_to_today_interval', 'label' => 'No Of Days Between Lost and Last days', 'title' => 'No Of Days Between Lost and Last days', 'export_label' => 'Time_Interval', 'rows' => $this->formatLostBucketRows($groups['lost_to_today_interval'], $totalLost, ['<5 days', '5-7 Days', '8-10 Days', '11-15 Days', '16-20 Days', '21-30 Days', '>30 Days', 'NA'])],
+                ['key' => 'lost_followup_type', 'label' => 'Lead Lost-Follow up Type', 'title' => 'Lead Lost-Follow up Type', 'export_label' => 'Lead_Lost_Follow_Up_Type', 'rows' => $this->formatLostBucketRows($groups['lost_followup_type'], $totalLost, ['Call', 'Home visit', 'Dealer Visit', 'NA'])],
+                ['key' => 'lead_aging', 'label' => 'Aging Of Leads', 'title' => 'Aging Of Leads', 'export_label' => 'aging', 'rows' => $this->formatLostBucketRows($groups['lead_aging'], $totalLost, ['<= 15 Days', '16-30 Days', '31-60 Days', '> 60 Days', 'NA'])],
+                ['key' => 'profession', 'label' => 'Profession Wise Leads', 'title' => 'Profession Wise Leads', 'export_label' => 'profession', 'rows' => $this->formatLostAggregateRows($groups['profession'], $totalLost, 12)],
+                ['key' => 'customer_type', 'label' => 'Customer Type', 'title' => 'Customer Type', 'export_label' => 'customer_type', 'rows' => $this->formatLostBucketRows($groups['customer_type'], $totalLost, ['Individual', 'Corporate', 'NA'])],
+                ['key' => 'age_group', 'label' => 'Age Group', 'title' => 'Age Group', 'export_label' => 'age_group', 'rows' => $this->formatLostBucketRows($groups['age_group'], $totalLost, ['0 - 19', '20 - 25', '26 - 30', '31 - 35', '36 - 40', '41 - 45', '46 - 50', '51 - 55', '56 - 60', '61 - 65', '66 - 70', '71 - 75', '76 - 80', '81 - 85', '86 - 90', '91 - 95', '96 - 100', 'NA'])],
+                ['key' => 'competition_model', 'label' => 'Interested in Competition Model', 'title' => 'Interested in Competition Model', 'export_label' => 'lead_interested_competition_model_name', 'rows' => $this->formatLostAggregateRows($groups['competition_model'], $totalLost, 20)],
+                ['key' => 'exchange_value_difference', 'label' => 'Difference in Exchange value', 'title' => 'Difference in Exchange value', 'export_label' => 'exchange_groups', 'rows' => $this->formatLostBucketRows($groups['exchange_value_difference'], $totalLost, ['(-) <1000', '(-)10000-5001', '(-)5000-1', '0-5000', '5001-10000', '10001-20000', '>20000', 'NA'])],
+                ['key' => 'district', 'label' => 'District Wise', 'title' => 'District Wise', 'export_label' => 'district', 'rows' => $this->formatLostAggregateRows($groups['district'], $totalLost, 25)],
+                ['key' => 'province', 'label' => 'Province Wise', 'title' => 'Province Wise', 'export_label' => 'province', 'rows' => $this->formatLostAggregateRows($groups['province'], $totalLost, 9)],
             ],
         ];
     }
@@ -2116,6 +2971,637 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
     {
         $label = $this->displayAnalyticsLabel($label, 'Not specified');
         $groups[$label] = ($groups[$label] ?? 0) + 1;
+    }
+
+    private function lostDataExportHeaders(): array
+    {
+        return [
+            'Lead_Status',
+            'State_of_lead',
+            'Epr_Creation_Date',
+            'Date_Of_Enquiry',
+            'No_of_days_from_Enquiry_to_Lost',
+            'Date_Of_Lost',
+            'lead_id',
+            'DMS_ID',
+            'DealershipName',
+            'Dealership_City',
+            'SCName',
+            'assigned_to_name',
+            'created_by_name',
+            'Team_Leader_Name',
+            'SM_Name',
+            'Lost_to',
+            'Competition_Brand',
+            'Competition_Model',
+            'Co_Dealer_Name',
+            'Reason_Lost',
+            'Reason_Closed',
+            'Lead_source',
+            'source_of_information',
+            'Salutation',
+            'FirstName',
+            'LastName',
+            'Address',
+            'Customer_City',
+            'Locality',
+            'MOB1',
+            'MOB2',
+            'Email',
+            'Enquired_Model',
+            'Enquired_EngineType',
+            'Enquired_variant',
+            'Enquired_Color',
+            'CustomerType',
+            'Profession',
+            'DOB',
+            'AgeGroup',
+            'DOA',
+            'Purchase_Mode',
+            'Bank',
+            'Interested_in_competition',
+            'Brand',
+            'Model',
+            'First_Time_Buyer',
+            'Interested_In_Exchange',
+            'Exchange_Brand',
+            'Exchange_Model',
+            'Model_year',
+            'Ownership',
+            'Insurance_validity',
+            'Tyre_replacement',
+            'Color',
+            'Mileage',
+            'Registration_no',
+            'Expected_price',
+            'Quoted_price',
+            'Difference',
+            'Elements_of_price',
+            'Elements_of_price_discount',
+            'Elements_accessories',
+            'Elements_of_accessories_discount',
+            'Elements_scheme',
+            'Elements_scheme_discount',
+            'Total_Cost',
+            'Total_Offer',
+            'Total_Final_Price',
+            'Dealer_Outflow',
+            'Dealer_Savings',
+            'Test_Drive_Given',
+            'Test_drive_given_date',
+            'Reason_for_not_given',
+            'No_of_home_visits',
+            'Last_home_visit_date',
+            'No_of_calls',
+            'No_of_busy_off_out_of_network',
+            'No_of_spoke_to_customer',
+            'No_of_successful_showroom_visit',
+            'Last_showroom_visit_date',
+            'Last_followup_date',
+            'Last_followup_type',
+            'Last_followup_status',
+            'Last_followup_remarks',
+            'Next_scheduled_follow_up_date',
+            'Delayed_Follow_Up',
+            'Last_sucessful_follow_up_date',
+            'Type_of_follow_up',
+            'Remarks',
+        ];
+    }
+
+    private function mapLostDataExportRow(Enquiry $enquiry, ?User $owner, ?User $areaManager, Collection $attempts): array
+    {
+        $mobiles = $this->analyticsMobileNumbers($enquiry->customer_mobile_numbers ?? null);
+        $headOfSales = $areaManager instanceof User ? $this->findHierarchyRecipient($areaManager, User::ROLE_HEAD_OF_SALES) : null;
+        $doneAttempts = $attempts
+            ->filter(fn(FollowupAttempt $attempt): bool => strtolower(trim((string) $attempt->followup_status)) === 'done')
+            ->values();
+        $lastAttempt = $attempts->last();
+        $lastDoneAttempt = $doneAttempts->last();
+        $homeAttempts = $attempts->filter(fn(FollowupAttempt $attempt): bool => $this->normalizeFollowupType($attempt->follow_type) === 'Home visit');
+        $callAttempts = $attempts->filter(fn(FollowupAttempt $attempt): bool => $this->normalizeFollowupType($attempt->follow_type) === 'Call');
+        $showroomDoneAttempts = $doneAttempts->filter(fn(FollowupAttempt $attempt): bool => $this->normalizeFollowupType($attempt->follow_type) === 'Showroom visit');
+        $lostReasons = implode(', ', $this->formatLostRejectReasons($enquiry->followup_lost_reject_reasons, $enquiry->followup_lost_reject_other_text));
+        $lostTo = match (strtolower(trim((string) $enquiry->followup_lost_to))) {
+            'competitor' => 'Competitor',
+            'co_dealer', 'codealer', 'co-dealer' => 'Co-Dealer',
+            default => 'NA',
+        };
+        $customerName = trim((string) ($enquiry->customer_name ?? ''));
+        $nameParts = preg_split('/\s+/', $customerName, 2) ?: [];
+        $address = trim(implode(' ', array_filter([
+            (string) ($enquiry->customer_address1 ?? ''),
+            (string) ($enquiry->customer_address2 ?? ''),
+        ])));
+
+        return [
+            'Lost',
+            $this->displayAnalyticsLabel($enquiry->prospect_lead_status ?: $enquiry->followup_lead_temperature, 'NA'),
+            $this->formatAnalyticsExportDate($enquiry->created_at ?? null),
+            $this->formatAnalyticsExportDate($enquiry->created_at ?? null),
+            $this->daysToLostExportValue($enquiry),
+            $this->formatAnalyticsExportDate($enquiry->followup_marked_at ?? null),
+            (string) ($enquiry->id ?? ''),
+            '',
+            $areaManager?->name ?? 'NA',
+            $this->districtAnalyticsLabel($enquiry->customer_district ?? null),
+            $owner?->name ?? 'Unassigned',
+            $owner?->name ?? 'Unassigned',
+            $owner?->name ?? 'Unassigned',
+            $areaManager?->name ?? 'NA',
+            $headOfSales?->name ?? 'NA',
+            $lostTo,
+            (string) ($enquiry->followup_lost_competition_brand ?? ''),
+            (string) ($enquiry->followup_lost_competition_model ?? ''),
+            (string) ($enquiry->followup_lost_codealer_name ?? ''),
+            $lostReasons,
+            '',
+            (string) ($enquiry->lead_source ?? ''),
+            (string) (($enquiry->prospect_source_of_information ?? '') ?: ($enquiry->enquiry_source_of_information ?? '')),
+            (string) ($enquiry->customer_title ?? ''),
+            $nameParts[0] ?? '',
+            $nameParts[1] ?? '',
+            $address,
+            (string) (($enquiry->customer_location ?? '') ?: ($enquiry->customer_district ?? '')),
+            (string) ($enquiry->customer_state ?? ''),
+            $mobiles[0] ?? '',
+            $mobiles[1] ?? '',
+            '',
+            (string) ($enquiry->vehicle_model ?? ''),
+            (string) ($enquiry->vehicle_engine_type ?? ''),
+            (string) ($enquiry->vehicle_variant ?? ''),
+            (string) ($enquiry->prospect_interested_vehicle_color ?? ''),
+            $this->customerTypeAnalyticsLabel($enquiry->prospect_customer_type ?? null),
+            $this->professionAnalyticsLabel($enquiry->prospect_profession ?? null),
+            $this->formatAnalyticsExportDate($enquiry->prospect_date_of_birth ?? null),
+            $this->ageGroupBucket($enquiry->prospect_date_of_birth ?? null),
+            '',
+            (string) ($enquiry->prospect_purchase_mode ?? ''),
+            '',
+            (string) ($enquiry->prospect_interested_in_competition ?? ''),
+            (string) ($enquiry->prospect_competition_brand ?? ''),
+            (string) ($enquiry->prospect_competition_model ?? ''),
+            (string) ($enquiry->prospect_first_time_buyer ?? ''),
+            (string) ($enquiry->prospect_interested_in_exchange ?? ''),
+            (string) ($enquiry->prospect_exchange_vehicle_brand ?? ''),
+            (string) ($enquiry->prospect_exchange_vehicle_model ?? ''),
+            (string) ($enquiry->prospect_exchange_manufacture_year ?? ''),
+            '',
+            '',
+            '',
+            (string) ($enquiry->prospect_exchange_color ?? ''),
+            (string) ($enquiry->prospect_exchange_mileage_km ?? ''),
+            (string) ($enquiry->prospect_exchange_registration_no ?? ''),
+            $this->formatAnalyticsExportNumber($enquiry->prospect_exchange_expected_price ?? null),
+            $this->formatAnalyticsExportNumber($enquiry->prospect_exchange_quoted_price ?? null),
+            $this->formatAnalyticsExportNumber($enquiry->prospect_exchange_price_difference ?? null),
+            $this->formatAnalyticsExportNumber($enquiry->prospect_offer_unit_price ?? null),
+            $this->formatAnalyticsExportNumber($enquiry->prospect_offer_unit_price_discount ?? null),
+            '',
+            '',
+            '',
+            '',
+            $this->formatAnalyticsExportNumber($enquiry->prospect_offer_total_cost ?? null),
+            $this->formatAnalyticsExportNumber($enquiry->prospect_offer_total_discount ?? null),
+            $this->formatAnalyticsExportNumber($enquiry->prospect_offer_final_price ?? null),
+            '',
+            '',
+            (string) ($enquiry->prospect_test_drive_given ?? ''),
+            $this->formatAnalyticsExportDate($enquiry->prospect_test_drive_date ?? null),
+            (string) ($enquiry->prospect_test_drive_not_given_reason ?? ''),
+            (string) $homeAttempts->count(),
+            $this->formatAnalyticsExportDate($homeAttempts->last()?->attempted_at ?? null),
+            (string) $callAttempts->count(),
+            '',
+            (string) $doneAttempts->filter(fn(FollowupAttempt $attempt): bool => $this->normalizeFollowupType($attempt->follow_type) === 'Call')->count(),
+            (string) $showroomDoneAttempts->count(),
+            $this->formatAnalyticsExportDate($showroomDoneAttempts->last()?->attempted_at ?? null),
+            $this->formatAnalyticsExportDate($lastAttempt?->attempted_at ?? $enquiry->followup_marked_at ?? null),
+            $this->normalizeFollowupType($lastAttempt?->follow_type ?? $enquiry->follow_type ?? null) ?? '',
+            $this->displayAnalyticsLabel($lastAttempt?->followup_status ?? $enquiry->followup_status ?? null, 'NA'),
+            (string) ($enquiry->followup_customer_comment ?? ''),
+            $this->formatAnalyticsExportDate($enquiry->follow_date ?? null),
+            $this->delayedFollowupCountBucket($enquiry, $attempts),
+            $this->formatAnalyticsExportDate($lastDoneAttempt?->attempted_at ?? null),
+            $this->normalizeFollowupType($lastDoneAttempt?->follow_type ?? null) ?? '',
+            (string) ($enquiry->followup_customer_comment ?? ''),
+        ];
+    }
+
+    private function daysToLostBucket(Enquiry $enquiry): string
+    {
+        if (empty($enquiry->created_at) || empty($enquiry->followup_marked_at)) {
+            return 'NA';
+        }
+
+        try {
+            $createdAt = Carbon::parse((string) $enquiry->created_at)->startOfDay();
+            $lostAt = Carbon::parse((string) $enquiry->followup_marked_at)->startOfDay();
+        } catch (\Throwable $exception) {
+            return 'NA';
+        }
+
+        $days = max(1, (int) $createdAt->diffInDays($lostAt, false) + 1);
+
+        return match (true) {
+            $days === 1 => '1 day',
+            $days <= 3 => '2-3 days',
+            $days <= 6 => '4-6 days',
+            $days <= 10 => '7-10 days',
+            $days <= 15 => '11-15 days',
+            $days <= 20 => '16-20 days',
+            default => '>20 days',
+        };
+    }
+
+    private function daysToLostExportValue(Enquiry $enquiry): string
+    {
+        if (empty($enquiry->created_at) || empty($enquiry->followup_marked_at)) {
+            return '';
+        }
+
+        try {
+            $createdAt = Carbon::parse((string) $enquiry->created_at)->startOfDay();
+            $lostAt = Carbon::parse((string) $enquiry->followup_marked_at)->startOfDay();
+        } catch (\Throwable $exception) {
+            return '';
+        }
+
+        return (string) max(0, (int) $createdAt->diffInDays($lostAt, false));
+    }
+
+    private function daysToClosedBucket(Enquiry $enquiry): string
+    {
+        if (empty($enquiry->created_at) || empty($enquiry->followup_marked_at)) {
+            return 'NA';
+        }
+
+        try {
+            $createdAt = Carbon::parse((string) $enquiry->created_at)->startOfDay();
+            $closedAt = Carbon::parse((string) $enquiry->followup_marked_at)->startOfDay();
+        } catch (\Throwable $exception) {
+            return 'NA';
+        }
+
+        $days = max(1, (int) $createdAt->diffInDays($closedAt, false) + 1);
+
+        return match (true) {
+            $days === 1 => '1 day',
+            $days <= 3 => '2-3 days',
+            $days <= 6 => '4-6 days',
+            $days <= 10 => '7-10 days',
+            $days <= 15 => '11-15 days',
+            $days <= 20 => '16-20 days',
+            default => '>20 days',
+        };
+    }
+
+    private function followupCountBucket(int $count, bool $successfulCallBuckets = false): string
+    {
+        if ($count <= 5) {
+            return (string) max(0, $count);
+        }
+
+        if ($count >= 10) {
+            return '>= 10';
+        }
+
+        return $successfulCallBuckets ? '>5' : '6-9';
+    }
+
+    private function visitCountBucket(int $count): string
+    {
+        if ($count <= 2) {
+            return (string) max(0, $count);
+        }
+
+        return '>2';
+    }
+
+    private function lastFollowupDisciplineBucket(Enquiry $enquiry, Collection $attempts): string
+    {
+        $doneAttempts = $attempts
+            ->filter(fn(FollowupAttempt $attempt): bool => strtolower(trim((string) $attempt->followup_status)) === 'done'
+                && !empty($attempt->attempted_at))
+            ->values();
+
+        $lastDoneAt = null;
+        if ($doneAttempts->isNotEmpty()) {
+            $lastDoneAt = $doneAttempts->last()?->attempted_at;
+        } elseif (strtolower(trim((string) $enquiry->followup_status)) === 'done' && !empty($enquiry->followup_marked_at)) {
+            $lastDoneAt = $enquiry->followup_marked_at;
+        }
+
+        if (empty($lastDoneAt)) {
+            return 'No Follow Ups';
+        }
+
+        if (empty($enquiry->follow_date)) {
+            return 'On Time';
+        }
+
+        try {
+            $scheduledAt = Carbon::parse((string) $enquiry->follow_date)->startOfDay();
+            $completedAt = Carbon::parse((string) $lastDoneAt)->startOfDay();
+        } catch (\Throwable $exception) {
+            return 'On Time';
+        }
+
+        $delayDays = (int) $scheduledAt->diffInDays($completedAt, false);
+
+        return match (true) {
+            $delayDays <= 0 => 'On Time',
+            $delayDays === 1 => '1 day delay',
+            $delayDays === 2 => '2 days delay',
+            $delayDays === 3 => '3 days delay',
+            default => '>3 days delay',
+        };
+    }
+
+    private function delayedFollowupCountBucket(Enquiry $enquiry, Collection $attempts): string
+    {
+        $doneAttempts = $attempts
+            ->filter(fn(FollowupAttempt $attempt): bool => strtolower(trim((string) $attempt->followup_status)) === 'done'
+                && !empty($attempt->attempted_at))
+            ->values();
+
+        if ($doneAttempts->isEmpty() && strtolower(trim((string) $enquiry->followup_status)) !== 'done') {
+            return 'No Follow Up Done';
+        }
+
+        if (empty($enquiry->follow_date)) {
+            return '0';
+        }
+
+        try {
+            $scheduledAt = Carbon::parse((string) $enquiry->follow_date)->startOfDay();
+        } catch (\Throwable $exception) {
+            return '0';
+        }
+
+        if ($doneAttempts->isEmpty() && !empty($enquiry->followup_marked_at)) {
+            $doneAttempts = collect([(object) ['attempted_at' => $enquiry->followup_marked_at]]);
+        }
+
+        $delayedCount = $doneAttempts
+            ->filter(function ($attempt) use ($scheduledAt): bool {
+                try {
+                    return Carbon::parse((string) $attempt->attempted_at)->startOfDay()->greaterThan($scheduledAt);
+                } catch (\Throwable $exception) {
+                    return false;
+                }
+            })
+            ->count();
+
+        return $delayedCount > 5 ? '>5' : (string) $delayedCount;
+    }
+
+    private function lostToTodayIntervalBucket(Enquiry $enquiry): string
+    {
+        if (empty($enquiry->followup_marked_at)) {
+            return 'NA';
+        }
+
+        try {
+            $lostAt = Carbon::parse((string) $enquiry->followup_marked_at)->startOfDay();
+            $today = Carbon::now('Asia/Colombo')->startOfDay();
+        } catch (\Throwable $exception) {
+            return 'NA';
+        }
+
+        $days = max(0, (int) $lostAt->diffInDays($today, false));
+
+        return match (true) {
+            $days < 5 => '<5 days',
+            $days <= 7 => '5-7 Days',
+            $days <= 10 => '8-10 Days',
+            $days <= 15 => '11-15 Days',
+            $days <= 20 => '16-20 Days',
+            $days <= 30 => '21-30 Days',
+            default => '>30 Days',
+        };
+    }
+
+    private function lostFollowupTypeLabel(Enquiry $enquiry): string
+    {
+        return match ($this->normalizeFollowupType($enquiry->follow_type)) {
+            'Call' => 'Call',
+            'Home visit' => 'Home visit',
+            'Showroom visit' => 'Dealer Visit',
+            default => 'NA',
+        };
+    }
+
+    private function closedLastSpokenIntervalBucket(Enquiry $enquiry, Collection $attempts): string
+    {
+        $doneAttempts = $attempts
+            ->filter(fn(FollowupAttempt $attempt): bool => strtolower(trim((string) $attempt->followup_status)) === 'done'
+                && !empty($attempt->attempted_at))
+            ->values();
+
+        if ($doneAttempts->isEmpty()) {
+            return 'Never Spoken';
+        }
+
+        if (empty($enquiry->followup_marked_at)) {
+            return 'NA';
+        }
+
+        try {
+            $lastSpokenAt = Carbon::parse((string) $doneAttempts->last()?->attempted_at)->startOfDay();
+            $closedAt = Carbon::parse((string) $enquiry->followup_marked_at)->startOfDay();
+        } catch (\Throwable $exception) {
+            return 'NA';
+        }
+
+        $days = max(0, (int) $lastSpokenAt->diffInDays($closedAt, false));
+
+        return match (true) {
+            $days < 5 => '<5 days',
+            $days <= 7 => '5-7 Days',
+            $days <= 10 => '8-10 Days',
+            $days <= 15 => '11-15 Days',
+            $days <= 20 => '16-20 Days',
+            $days <= 30 => '21-30 Days',
+            default => '>30 Days',
+        };
+    }
+
+    private function closedFollowupTypeLabel(Enquiry $enquiry): string
+    {
+        return match ($this->normalizeFollowupType($enquiry->follow_type)) {
+            'Call' => 'Call',
+            'Home visit' => 'Home visit',
+            'Showroom visit' => 'Dealer Visit',
+            default => 'NA',
+        };
+    }
+
+    private function leadAgingBucket(Enquiry $enquiry): string
+    {
+        if (empty($enquiry->created_at)) {
+            return 'NA';
+        }
+
+        try {
+            $createdAt = Carbon::parse((string) $enquiry->created_at)->startOfDay();
+            $today = Carbon::now('Asia/Colombo')->startOfDay();
+        } catch (\Throwable $exception) {
+            return 'NA';
+        }
+
+        $days = max(0, (int) $createdAt->diffInDays($today, false));
+
+        return match (true) {
+            $days <= 15 => '<= 15 Days',
+            $days <= 30 => '16-30 Days',
+            $days <= 60 => '31-60 Days',
+            default => '> 60 Days',
+        };
+    }
+
+    private function professionAnalyticsLabel($profession): string
+    {
+        $normalized = strtolower(trim((string) $profession));
+
+        return match ($normalized) {
+            'salaried' => 'Salaried',
+            'self_employed' => 'Self Employed',
+            'other' => 'Other',
+            'not_asked' => 'Not Asked',
+            default => 'NA',
+        };
+    }
+
+    private function customerTypeAnalyticsLabel($customerType): string
+    {
+        $normalized = strtolower(trim((string) $customerType));
+
+        return match ($normalized) {
+            'individual' => 'Individual',
+            'corporate' => 'Corporate',
+            default => 'NA',
+        };
+    }
+
+    private function ageGroupBucket($dateOfBirth): string
+    {
+        if (empty($dateOfBirth)) {
+            return 'NA';
+        }
+
+        try {
+            $age = Carbon::parse((string) $dateOfBirth)->age;
+        } catch (\Throwable $exception) {
+            return 'NA';
+        }
+
+        return match (true) {
+            $age <= 19 => '0 - 19',
+            $age <= 25 => '20 - 25',
+            $age <= 30 => '26 - 30',
+            $age <= 35 => '31 - 35',
+            $age <= 40 => '36 - 40',
+            $age <= 45 => '41 - 45',
+            $age <= 50 => '46 - 50',
+            $age <= 55 => '51 - 55',
+            $age <= 60 => '56 - 60',
+            $age <= 65 => '61 - 65',
+            $age <= 70 => '66 - 70',
+            $age <= 75 => '71 - 75',
+            $age <= 80 => '76 - 80',
+            $age <= 85 => '81 - 85',
+            $age <= 90 => '86 - 90',
+            $age <= 95 => '91 - 95',
+            $age <= 100 => '96 - 100',
+            default => 'NA',
+        };
+    }
+
+    private function exchangeDifferenceBucket($difference): string
+    {
+        if ($difference === null || trim((string) $difference) === '') {
+            return 'NA';
+        }
+
+        $value = (float) $difference;
+
+        return match (true) {
+            $value < -10000 => '(-) <1000',
+            $value <= -5001 => '(-)10000-5001',
+            $value <= -1 => '(-)5000-1',
+            $value <= 5000 => '0-5000',
+            $value <= 10000 => '5001-10000',
+            $value <= 20000 => '10001-20000',
+            default => '>20000',
+        };
+    }
+
+    private function districtAnalyticsLabel($district): string
+    {
+        return User::normalizeDistrictName($district) ?? 'NA';
+    }
+
+    private function provinceAnalyticsLabel(?string $district): string
+    {
+        if ($district === null || $district === 'NA') {
+            return 'NA';
+        }
+
+        return User::provinceForDistrict($district) ?? 'NA';
+    }
+
+    private function analyticsMobileNumbers($value): array
+    {
+        if (is_array($value)) {
+            return array_values(array_filter(array_map('strval', $value)));
+        }
+
+        $raw = trim((string) $value);
+        if ($raw === '') {
+            return [];
+        }
+
+        $decoded = json_decode($raw, true);
+        if (is_array($decoded)) {
+            return array_values(array_filter(array_map('strval', $decoded)));
+        }
+
+        return array_values(array_filter(array_map('trim', preg_split('/[,|]/', $raw) ?: [])));
+    }
+
+    private function formatAnalyticsExportDate($value): string
+    {
+        if (empty($value)) {
+            return '';
+        }
+
+        try {
+            return Carbon::parse((string) $value)->format('Y-m-d');
+        } catch (\Throwable $exception) {
+            return '';
+        }
+    }
+
+    private function formatAnalyticsExportNumber($value): string
+    {
+        if ($value === null || trim((string) $value) === '') {
+            return '';
+        }
+
+        return number_format((float) $value, 2, '.', '');
+    }
+
+    private function formatLostBucketRows(array $groups, int $totalLost, array $order): array
+    {
+        return array_map(
+            fn(string $label): array => [
+                'label' => $label,
+                'lost_leads' => (int) ($groups[$label] ?? 0),
+                'contribution' => $totalLost > 0 ? round(((int) ($groups[$label] ?? 0) / $totalLost) * 100, 2) : 0,
+            ],
+            $order
+        );
     }
 
     private function formatLostAggregateRows(array $groups, int $totalLost, int $limit): array
@@ -2175,6 +3661,19 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
         $totalEnquired = $enquiries->count();
 
         $groups = [
+            'days_to_closed' => [],
+            'followup_count' => [],
+            'call_followup_count' => [],
+            'successful_call_followup_count' => [],
+            'successful_home_visit_count' => [],
+            'successful_showroom_visit_count' => [],
+            'last_followup_discipline' => [],
+            'delayed_followup_count' => [],
+            'closed_last_spoken_interval' => [],
+            'closed_followup_type' => [],
+            'lead_aging' => [],
+            'competition_model' => [],
+            'exchange_value_difference' => [],
             'month_closed' => [],
             'model' => [],
             'area_manager' => [],
@@ -2185,6 +3684,19 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
             'reason' => [],
         ];
         $closedMonthOrder = [];
+        $closedEnquiryIds = $closedRows
+            ->pluck('id')
+            ->map(fn($id) => (int) $id)
+            ->filter()
+            ->values()
+            ->all();
+        $attemptsByEnquiryId = empty($closedEnquiryIds)
+            ? collect()
+            : FollowupAttempt::query()
+                ->whereIn('enquiry_id', $closedEnquiryIds)
+                ->orderBy('attempted_at')
+                ->get(['enquiry_id', 'follow_type', 'followup_status', 'attempted_at'])
+                ->groupBy(fn(FollowupAttempt $attempt): int => (int) $attempt->enquiry_id);
 
         foreach ($closedRows as $enquiry) {
             $createdAt = $this->analyticsDate($enquiry->created_at);
@@ -2202,20 +3714,87 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
             $this->addClosedAggregate($groups['sales_consultant'], $owner instanceof User ? $owner->name : 'Unassigned');
             $areaManager = $this->resolveAreaManagerForAnalytics($owner, $usersById);
             $this->addClosedAggregate($groups['area_manager'], $areaManager instanceof User ? $areaManager->name : 'Unassigned');
+
+            $attempts = $attemptsByEnquiryId->get((int) $enquiry->id, collect());
+            $attemptCount = $attempts->count();
+            if ($attemptCount === 0 && !empty($enquiry->followup_marked_at)) {
+                $attemptCount = 1;
+            }
+
+            $callAttemptCount = $attempts
+                ->filter(fn(FollowupAttempt $attempt): bool => $this->normalizeFollowupType($attempt->follow_type) === 'Call')
+                ->count();
+            $successfulCallAttemptCount = $attempts
+                ->filter(fn(FollowupAttempt $attempt): bool => $this->normalizeFollowupType($attempt->follow_type) === 'Call'
+                    && strtolower(trim((string) $attempt->followup_status)) === 'done')
+                ->count();
+            $successfulHomeVisitCount = $attempts
+                ->filter(fn(FollowupAttempt $attempt): bool => $this->normalizeFollowupType($attempt->follow_type) === 'Home visit'
+                    && strtolower(trim((string) $attempt->followup_status)) === 'done')
+                ->count();
+            $successfulShowroomVisitCount = $attempts
+                ->filter(fn(FollowupAttempt $attempt): bool => $this->normalizeFollowupType($attempt->follow_type) === 'Showroom visit'
+                    && strtolower(trim((string) $attempt->followup_status)) === 'done')
+                ->count();
+
+            if ($attempts->isEmpty() && $this->normalizeFollowupType($enquiry->follow_type) === 'Call' && !empty($enquiry->followup_marked_at)) {
+                $callAttemptCount = 1;
+                $successfulCallAttemptCount = strtolower(trim((string) $enquiry->followup_status)) === 'done' ? 1 : 0;
+            }
+            if ($attempts->isEmpty() && $this->normalizeFollowupType($enquiry->follow_type) === 'Home visit' && !empty($enquiry->followup_marked_at)) {
+                $successfulHomeVisitCount = strtolower(trim((string) $enquiry->followup_status)) === 'done' ? 1 : 0;
+            }
+            if ($attempts->isEmpty() && $this->normalizeFollowupType($enquiry->follow_type) === 'Showroom visit' && !empty($enquiry->followup_marked_at)) {
+                $successfulShowroomVisitCount = strtolower(trim((string) $enquiry->followup_status)) === 'done' ? 1 : 0;
+            }
+
+            $this->addClosedAggregate($groups['days_to_closed'], $this->daysToClosedBucket($enquiry));
+            $this->addClosedAggregate($groups['followup_count'], $this->followupCountBucket($attemptCount));
+            $this->addClosedAggregate($groups['call_followup_count'], $this->followupCountBucket($callAttemptCount));
+            $this->addClosedAggregate($groups['successful_call_followup_count'], $this->followupCountBucket($successfulCallAttemptCount, true));
+            $this->addClosedAggregate($groups['successful_home_visit_count'], $this->visitCountBucket($successfulHomeVisitCount));
+            $this->addClosedAggregate($groups['successful_showroom_visit_count'], $this->visitCountBucket($successfulShowroomVisitCount));
+            $this->addClosedAggregate($groups['last_followup_discipline'], $this->lastFollowupDisciplineBucket($enquiry, $attempts));
+            $this->addClosedAggregate($groups['delayed_followup_count'], $this->delayedFollowupCountBucket($enquiry, $attempts));
+            $this->addClosedAggregate($groups['closed_last_spoken_interval'], $this->closedLastSpokenIntervalBucket($enquiry, $attempts));
+            $this->addClosedAggregate($groups['closed_followup_type'], $this->closedFollowupTypeLabel($enquiry));
+            $this->addClosedAggregate($groups['lead_aging'], $this->leadAgingBucket($enquiry));
+            $this->addClosedAggregate($groups['competition_model'], $this->displayAnalyticsLabel($enquiry->prospect_competition_model ?? null, 'NA'));
+            $this->addClosedAggregate($groups['exchange_value_difference'], $this->exchangeDifferenceBucket($enquiry->prospect_exchange_price_difference ?? null));
         }
+
+        $chartTabs = [
+            ['key' => 'month_closed', 'label' => 'Month Wise - Closed', 'title' => 'Month Wise - Closed', 'metric' => 'closed_leads', 'rows' => $this->formatClosedMonthRows($groups['month_closed'], $closedMonthOrder, $totalClosed)],
+            ['key' => 'model', 'label' => 'Model Wise', 'title' => 'Model Wise', 'metric' => 'closed_leads', 'rows' => $this->formatClosedAggregateRows($groups['model'], $totalClosed, 12)],
+            ['key' => 'area_manager', 'label' => 'Area Manager Wise', 'title' => 'Area Manager Wise', 'metric' => 'closed_leads', 'rows' => $this->formatClosedAggregateRows($groups['area_manager'], $totalClosed, 12)],
+            ['key' => 'sales_consultant', 'label' => 'Sales Consultant Wise', 'title' => 'Sales Consultant Wise', 'metric' => 'closed_leads', 'rows' => $this->formatClosedAggregateRows($groups['sales_consultant'], $totalClosed, 12)],
+            ['key' => 'city', 'label' => 'City Wise', 'title' => 'City Wise', 'metric' => 'closed_leads', 'rows' => $this->formatClosedAggregateRows($groups['city'], $totalClosed, 12)],
+            ['key' => 'source', 'label' => 'Source Wise', 'title' => 'Source Wise', 'metric' => 'closed_leads', 'rows' => $this->formatClosedAggregateRows($groups['source'], $totalClosed, 12)],
+            ['key' => 'lead_state', 'label' => 'Lead State Wise', 'title' => 'Lead State Wise', 'metric' => 'closed_leads', 'rows' => $this->formatClosedAggregateRows($groups['lead_state'], $totalClosed, 12)],
+            ['key' => 'reason', 'label' => 'Reason Wise', 'title' => 'Reason Wise', 'metric' => 'closed_leads', 'rows' => $this->formatClosedAggregateRows($groups['reason'], $totalClosed, 12)],
+            ['key' => 'month_enquired', 'label' => 'Month Wise - Enquired', 'title' => 'Month Wise - Enquired', 'metric' => 'enquired_leads', 'total' => $totalEnquired, 'rows' => $this->formatClosedEnquiredMonthRows($enquiries, $totalEnquired)],
+        ];
 
         return [
             'total' => $totalClosed,
-            'tabs' => [
-                ['key' => 'month_closed', 'label' => 'Month Wise - Closed', 'title' => 'Month Wise - Closed', 'metric' => 'closed_leads', 'rows' => $this->formatClosedMonthRows($groups['month_closed'], $closedMonthOrder, $totalClosed)],
-                ['key' => 'model', 'label' => 'Model Wise', 'title' => 'Model Wise', 'metric' => 'closed_leads', 'rows' => $this->formatClosedAggregateRows($groups['model'], $totalClosed, 12)],
-                ['key' => 'area_manager', 'label' => 'Area Manager Wise', 'title' => 'Area Manager Wise', 'metric' => 'closed_leads', 'rows' => $this->formatClosedAggregateRows($groups['area_manager'], $totalClosed, 12)],
-                ['key' => 'sales_consultant', 'label' => 'Sales Consultant Wise', 'title' => 'Sales Consultant Wise', 'metric' => 'closed_leads', 'rows' => $this->formatClosedAggregateRows($groups['sales_consultant'], $totalClosed, 12)],
-                ['key' => 'city', 'label' => 'City Wise', 'title' => 'City Wise', 'metric' => 'closed_leads', 'rows' => $this->formatClosedAggregateRows($groups['city'], $totalClosed, 12)],
-                ['key' => 'source', 'label' => 'Source Wise', 'title' => 'Source Wise', 'metric' => 'closed_leads', 'rows' => $this->formatClosedAggregateRows($groups['source'], $totalClosed, 12)],
-                ['key' => 'lead_state', 'label' => 'Lead State Wise', 'title' => 'Lead State Wise', 'metric' => 'closed_leads', 'rows' => $this->formatClosedAggregateRows($groups['lead_state'], $totalClosed, 12)],
-                ['key' => 'reason', 'label' => 'Reason Wise', 'title' => 'Reason Wise', 'metric' => 'closed_leads', 'rows' => $this->formatClosedAggregateRows($groups['reason'], $totalClosed, 12)],
-                ['key' => 'month_enquired', 'label' => 'Month Wise - Enquired', 'title' => 'Month Wise - Enquired', 'metric' => 'enquired_leads', 'total' => $totalEnquired, 'rows' => $this->formatClosedEnquiredMonthRows($enquiries, $totalEnquired)],
+            'tabs' => $chartTabs,
+            'export_tabs' => [
+                ['key' => 'days_to_closed', 'label' => 'Days To Closed', 'title' => 'No of days from date of Inquiry to date of Closed', 'export_label' => 'No_of_days_from_date_of_inquiry_to_date_of_Closed', 'rows' => $this->formatClosedBucketRows($groups['days_to_closed'], $totalClosed, ['1 day', '2-3 days', '4-6 days', '7-10 days', '11-15 days', '16-20 days', '>20 days', 'NA'])],
+                ['key' => 'followup_count', 'label' => 'No of Follow Ups', 'title' => 'No of Follow Ups', 'export_label' => 'No_of_Follow_Ups', 'rows' => $this->formatClosedBucketRows($groups['followup_count'], $totalClosed, ['0', '1', '2', '3', '4', '5', '6-9', '>= 10'])],
+                ['key' => 'call_followup_count', 'label' => 'No of Call Follow Ups', 'title' => 'No of Call Follow Ups', 'export_label' => 'No_of_Call_FollowUps', 'rows' => $this->formatClosedBucketRows($groups['call_followup_count'], $totalClosed, ['0', '1', '2', '3', '4', '5', '6-9', '>= 10'])],
+                ['key' => 'successful_call_followup_count', 'label' => 'No of Successful call follow ups', 'title' => 'No of Successful call follow ups', 'export_label' => 'No_Of_Successful_Call_Followups', 'rows' => $this->formatClosedBucketRows($groups['successful_call_followup_count'], $totalClosed, ['0', '1', '2', '3', '4', '5', '>5', '>= 10'])],
+                ['key' => 'successful_home_visit_count', 'label' => 'No of Successful Home Visits', 'title' => 'No of Successful Home Visits', 'export_label' => 'No_Suc_Home_Visits', 'rows' => $this->formatClosedBucketRows($groups['successful_home_visit_count'], $totalClosed, ['0', '1', '2', '>2'])],
+                ['key' => 'successful_showroom_visit_count', 'label' => 'No of Successful Showroom Visits', 'title' => 'No of Successful Showroom Visits', 'export_label' => 'No_Of_Suc_Showroom_Visits', 'rows' => $this->formatClosedBucketRows($groups['successful_showroom_visit_count'], $totalClosed, ['0', '1', '2', '>2'])],
+                ['key' => 'last_followup_discipline', 'label' => 'Last Follow Up Done', 'title' => 'Last Follow Up Done', 'export_label' => 'Last_Followup_Done', 'rows' => $this->formatClosedBucketRows($groups['last_followup_discipline'], $totalClosed, ['On Time', '1 day delay', '2 days delay', '3 days delay', '>3 days delay', 'No Follow Ups'])],
+                ['key' => 'delayed_followup_count', 'label' => 'No of Delayed Followups', 'title' => 'No of Delayed Followups', 'export_label' => 'No_of_Delayed_Followups', 'rows' => $this->formatClosedBucketRows($groups['delayed_followup_count'], $totalClosed, ['0', '1', '2', '3', '4', '5', '>5', 'No Follow Up Done'])],
+                ['key' => 'closed_last_spoken_interval', 'label' => 'No of Days Between Closed and Last Spoken', 'title' => 'No of Days Between Closed and Last Spoken', 'export_label' => 'Time_Interval', 'rows' => $this->formatClosedBucketRows($groups['closed_last_spoken_interval'], $totalClosed, ['Never Spoken', '<5 days', '5-7 Days', '8-10 Days', '11-15 Days', '16-20 Days', '21-30 Days', '>30 Days', 'NA'])],
+                ['key' => 'closed_followup_type', 'label' => 'Lead Closed-Follow Up Type', 'title' => 'Lead Closed-Follow Up Type', 'export_label' => 'Lead_Closed_Follow_Up_Type', 'rows' => $this->formatClosedBucketRows($groups['closed_followup_type'], $totalClosed, ['Call', 'Home visit', 'Dealer Visit', 'NA'])],
+                ['key' => 'lead_aging', 'label' => 'Aging of leads', 'title' => 'Aging of leads', 'export_label' => 'aging', 'rows' => $this->formatClosedBucketRows($groups['lead_aging'], $totalClosed, ['<= 15 Days', '16-30 Days', '31-60 Days', '> 60 Days', 'NA'])],
+                ['key' => 'competition_model', 'label' => 'Interested In Competition Model', 'title' => 'Interested In Competition Model', 'export_label' => 'lead_interested_competition_model_name', 'rows' => $this->formatClosedAggregateRows($groups['competition_model'], $totalClosed, 50)],
+                ['key' => 'exchange_value_difference', 'label' => 'Difference In Exchange Value', 'title' => 'Difference In Exchange Value', 'export_label' => 'exchange_groups', 'rows' => $this->formatClosedBucketRows($groups['exchange_value_difference'], $totalClosed, ['(-) <1000', '(-)10000-5001', '(-)5000-1', '0-5000', '5001-10000', '10001-20000', '>20000', 'NA'])],
+                ['key' => 'customer_city', 'label' => 'Customer City Wise', 'title' => 'Customer City Wise', 'export_label' => 'customer_city_name', 'columns' => $this->closedComparisonColumns('customer_city_name'), 'rows' => $this->formatClosedComparisonRows($groups['city'], 50), 'total_row' => $this->closedComparisonTotalRow($totalClosed)],
+                ['key' => 'area_manager', 'label' => 'Area Manager Wise', 'title' => 'Area Manager Wise', 'export_label' => 'area_manager_name', 'columns' => $this->closedComparisonColumns('area_manager_name'), 'rows' => $this->formatClosedComparisonRows($groups['area_manager'], 50), 'total_row' => $this->closedComparisonTotalRow($totalClosed)],
+                ['key' => 'sc', 'label' => 'SC Wise', 'title' => 'SC Wise', 'export_label' => 'assigned_to_name', 'columns' => $this->closedComparisonColumns('assigned_to_name'), 'rows' => $this->formatClosedComparisonRows($groups['sales_consultant'], 50), 'total_row' => $this->closedComparisonTotalRow($totalClosed)],
             ],
         ];
     }
@@ -2254,6 +3833,60 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
             array_keys($groups),
             array_values($groups)
         ));
+    }
+
+    private function formatClosedBucketRows(array $groups, int $totalClosed, array $order): array
+    {
+        return array_map(
+            fn(string $label): array => [
+                'label' => $label,
+                'closed_leads' => (int) ($groups[$label] ?? 0),
+                'contribution' => $totalClosed > 0 ? round(((int) ($groups[$label] ?? 0) / $totalClosed) * 100, 2) : 0,
+            ],
+            $order
+        );
+    }
+
+    private function closedComparisonColumns(string $firstColumn): array
+    {
+        return [
+            ['key' => 'label', 'heading' => $firstColumn],
+            ['key' => 'count', 'heading' => 'Count'],
+            ['key' => 'lmtd_percentage', 'heading' => 'LMTD_Percentage'],
+            ['key' => 'lmtd', 'heading' => 'LMTD'],
+            ['key' => 'lymtd_percentage', 'heading' => 'LYMTD_Percentage'],
+            ['key' => 'lymtd', 'heading' => 'LYMTD'],
+        ];
+    }
+
+    private function formatClosedComparisonRows(array $groups, int $limit): array
+    {
+        arsort($groups);
+
+        return array_values(array_map(
+            fn(string $label, int $count): array => [
+                'label' => $label,
+                'count' => $count,
+                'lmtd_percentage' => 'NA',
+                'lmtd' => 'NA',
+                'lymtd_percentage' => 'NA',
+                'lymtd' => 'NA',
+            ],
+            array_keys(array_slice($groups, 0, $limit, true)),
+            array_values(array_slice($groups, 0, $limit, true))
+        ));
+    }
+
+    private function closedComparisonTotalRow(int $totalClosed): array
+    {
+        return [
+            'label' => 'Total',
+            'count' => $totalClosed,
+            'lmtd_percentage' => 'NA',
+            'lmtd' => 'NA',
+            'lymtd_percentage' => 'NA',
+            'lymtd' => 'NA',
+        ];
     }
 
     private function formatClosedEnquiredMonthRows(Collection $enquiries, int $totalEnquired): array

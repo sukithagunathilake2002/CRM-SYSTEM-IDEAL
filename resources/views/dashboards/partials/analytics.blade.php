@@ -218,6 +218,79 @@
         <canvas id="activeAnalyticsChart" aria-label="Active analytics chart"></canvas>
         <p class="lost-analytics-empty" id="activeAnalyticsEmpty" hidden>No active lead data available for this parameter.</p>
     </div>
+
+    <div class="lost-analytics-table-grid" aria-label="Active analytics export tables">
+        @foreach(($activeAnalytics['export_tabs'] ?? []) as $index => $tab)
+            @php
+                $tableId = 'activeAnalyticsExportTable' . $index;
+                $firstColumnKey = trim((string) ($tab['export_label'] ?? ''), '_');
+                if ($firstColumnKey === '') {
+                    $firstColumnKey = trim((string) preg_replace('/[^A-Za-z0-9]+/', '_', (string) ($tab['title'] ?? $tab['label'] ?? 'Active Analytics')), '_');
+                }
+                $firstColumnKey = $firstColumnKey !== '' ? $firstColumnKey : 'Active_Analytics';
+                $activeTableRowCount = count($tab['rows'] ?? []);
+                $activeColumns = $tab['columns'] ?? [
+                    ['key' => 'label', 'heading' => $firstColumnKey],
+                    ['key' => 'count', 'heading' => 'No_of_Leads'],
+                    ['key' => 'contribution', 'heading' => 'Contribution'],
+                ];
+                $activeTotalRow = $tab['total_row'] ?? null;
+            @endphp
+            <section class="lost-analytics-table-panel" data-lost-export-panel>
+                <div class="lost-analytics-table-head">
+                    <h3>{{ $tab['title'] ?? $tab['label'] ?? 'Active Analytics' }}</h3>
+                    <div class="lost-analytics-export-actions">
+                        <button type="button" class="btn-link alt lost-export-btn" data-export-table="{{ $tableId }}" data-export-format="excel">Excel</button>
+                        <button type="button" class="btn-link alt lost-export-btn" data-export-table="{{ $tableId }}" data-export-format="csv">CSV</button>
+                        <button type="button" class="btn-link lost-export-toggle" data-lost-table-toggle>show</button>
+                    </div>
+                </div>
+                <div class="lost-analytics-table-body" hidden>
+                    <div class="analytics-table-wrap">
+                        <table class="analytics-table lost-analytics-export-table" id="{{ $tableId }}" data-export-name="{{ $firstColumnKey }}">
+                            <thead>
+                                <tr>
+                                    @foreach($activeColumns as $column)
+                                        <th>{{ $column['heading'] ?? $column['key'] ?? '' }}</th>
+                                    @endforeach
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse(($tab['rows'] ?? []) as $row)
+                                    <tr>
+                                        @foreach($activeColumns as $column)
+                                            @php
+                                                $columnKey = $column['key'] ?? '';
+                                                $cellValue = $row[$columnKey] ?? '';
+                                                if ($columnKey === 'contribution' && is_numeric($cellValue)) {
+                                                    $cellValue = number_format((float) $cellValue, 2) . '%';
+                                                }
+                                            @endphp
+                                            <td>{{ $cellValue }}</td>
+                                        @endforeach
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="{{ max(count($activeColumns), 1) }}">No active analytics data available.</td>
+                                    </tr>
+                                @endforelse
+                                @if(is_array($activeTotalRow))
+                                    <tr class="lost-analytics-total-row">
+                                        @foreach($activeColumns as $column)
+                                            <td>{{ $activeTotalRow[$column['key'] ?? ''] ?? '' }}</td>
+                                        @endforeach
+                                    </tr>
+                                @endif
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="lost-analytics-table-foot">
+                        Showing {{ $activeTableRowCount > 0 ? 1 : 0 }} to {{ $activeTableRowCount }} of {{ $activeTableRowCount }} entries
+                    </p>
+                </div>
+            </section>
+        @endforeach
+    </div>
 </section>
 @endif
 
@@ -288,6 +361,111 @@
         <canvas id="lostAnalyticsChart" aria-label="Lost analytics chart"></canvas>
         <p class="lost-analytics-empty" id="lostAnalyticsEmpty" hidden>No lost lead data available for this parameter.</p>
     </div>
+
+    <div class="lost-analytics-table-grid" aria-label="Lost analytics export tables">
+        @php
+            $lostDataHeaders = $lostAnalytics['lost_data_headers'] ?? [];
+            $lostDataRows = $lostAnalytics['lost_data_rows'] ?? [];
+            $lostDataTableId = 'lostAnalyticsAllLostDataTable';
+            $lostDataRowCount = count($lostDataRows);
+        @endphp
+        <section class="lost-analytics-table-panel lost-analytics-table-panel-wide" data-lost-export-panel>
+            <div class="lost-analytics-table-head">
+                <h3>All Lost Data</h3>
+                <div class="lost-analytics-export-actions">
+                    <button type="button" class="btn-link alt lost-export-btn" data-export-table="{{ $lostDataTableId }}" data-export-format="excel">Excel</button>
+                    <button type="button" class="btn-link alt lost-export-btn" data-export-table="{{ $lostDataTableId }}" data-export-format="csv">CSV</button>
+                    <button type="button" class="btn-link lost-export-toggle" data-lost-table-toggle>show</button>
+                </div>
+            </div>
+            <div class="lost-analytics-table-body" hidden>
+                <div class="analytics-table-wrap">
+                    <table class="analytics-table lost-analytics-export-table lost-data-export-table" id="{{ $lostDataTableId }}" data-export-name="All_Lost_Data">
+                        <thead>
+                            <tr>
+                                @foreach($lostDataHeaders as $header)
+                                    <th>{{ $header }}</th>
+                                @endforeach
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($lostDataRows as $row)
+                                <tr>
+                                    @foreach($row as $cell)
+                                        <td>{{ $cell }}</td>
+                                    @endforeach
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="{{ max(count($lostDataHeaders), 1) }}">No lost data available.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+                <p class="lost-analytics-table-foot">
+                    Showing {{ $lostDataRowCount > 0 ? 1 : 0 }} to {{ $lostDataRowCount }} of {{ $lostDataRowCount }} entries
+                </p>
+            </div>
+        </section>
+
+        @foreach(($lostAnalytics['tabs'] ?? []) as $index => $tab)
+            @php
+                $tableId = 'lostAnalyticsExportTable' . $index;
+                $firstColumnKey = trim((string) ($tab['export_label'] ?? ''), '_');
+                if ($firstColumnKey === '') {
+                    $firstColumnKey = trim((string) preg_replace('/[^A-Za-z0-9]+/', '_', (string) ($tab['title'] ?? $tab['label'] ?? 'Lost Analytics')), '_');
+                }
+                $firstColumnKey = $firstColumnKey !== '' ? $firstColumnKey : 'Lost_Analytics';
+                $totalLostRows = (int) ($lostAnalytics['total'] ?? 0);
+                $lostTableRowCount = count($tab['rows'] ?? []);
+            @endphp
+            <section class="lost-analytics-table-panel" data-lost-export-panel>
+                <div class="lost-analytics-table-head">
+                    <h3>{{ $tab['title'] ?? $tab['label'] ?? 'Lost Analytics' }}</h3>
+                    <div class="lost-analytics-export-actions">
+                        <button type="button" class="btn-link alt lost-export-btn" data-export-table="{{ $tableId }}" data-export-format="excel">Excel</button>
+                        <button type="button" class="btn-link alt lost-export-btn" data-export-table="{{ $tableId }}" data-export-format="csv">CSV</button>
+                        <button type="button" class="btn-link lost-export-toggle" data-lost-table-toggle>show</button>
+                    </div>
+                </div>
+                <div class="lost-analytics-table-body" hidden>
+                    <div class="analytics-table-wrap">
+                        <table class="analytics-table lost-analytics-export-table" id="{{ $tableId }}" data-export-name="{{ $firstColumnKey }}">
+                            <thead>
+                                <tr>
+                                    <th>{{ $firstColumnKey }}</th>
+                                    <th>No_of_Lost_Leads</th>
+                                    <th>Contribution</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse(($tab['rows'] ?? []) as $row)
+                                    <tr>
+                                        <td>{{ $row['label'] ?? '-' }}</td>
+                                        <td>{{ (int) ($row['lost_leads'] ?? 0) }}</td>
+                                        <td>{{ number_format((float) ($row['contribution'] ?? 0), 2) }}%</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="3">No lost analytics data available.</td>
+                                    </tr>
+                                @endforelse
+                                <tr class="lost-analytics-total-row">
+                                    <td>Total</td>
+                                    <td>{{ $totalLostRows }}</td>
+                                    <td>{{ $totalLostRows > 0 ? '100.00%' : '0.00%' }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="lost-analytics-table-foot">
+                        Showing {{ $lostTableRowCount > 0 ? 1 : 0 }} to {{ $lostTableRowCount }} of {{ $lostTableRowCount }} entries
+                    </p>
+                </div>
+            </section>
+        @endforeach
+    </div>
 </section>
 @endif
 
@@ -325,6 +503,82 @@
         </div>
         <canvas id="closedAnalyticsChart" aria-label="Closed lead analytics chart"></canvas>
         <p class="lost-analytics-empty" id="closedAnalyticsEmpty" hidden>No closed lead data available for this parameter.</p>
+    </div>
+
+    <div class="lost-analytics-table-grid" aria-label="Closed lead analytics export tables">
+        @foreach(($closedAnalytics['export_tabs'] ?? []) as $index => $tab)
+            @php
+                $tableId = 'closedAnalyticsExportTable' . $index;
+                $firstColumnKey = trim((string) ($tab['export_label'] ?? ''), '_');
+                if ($firstColumnKey === '') {
+                    $firstColumnKey = trim((string) preg_replace('/[^A-Za-z0-9]+/', '_', (string) ($tab['title'] ?? $tab['label'] ?? 'Closed Lead Analytics')), '_');
+                }
+                $firstColumnKey = $firstColumnKey !== '' ? $firstColumnKey : 'Closed_Lead_Analytics';
+                $totalClosedRows = (int) ($closedAnalytics['total'] ?? 0);
+                $closedTableRowCount = count($tab['rows'] ?? []);
+                $closedColumns = $tab['columns'] ?? [
+                    ['key' => 'label', 'heading' => $firstColumnKey],
+                    ['key' => 'closed_leads', 'heading' => 'No_of_Closed_Leads'],
+                    ['key' => 'contribution', 'heading' => 'Contribution'],
+                ];
+                $closedTotalRow = $tab['total_row'] ?? [
+                    'label' => 'Total',
+                    'closed_leads' => $totalClosedRows,
+                    'contribution' => $totalClosedRows > 0 ? '100.00%' : '0.00%',
+                ];
+            @endphp
+            <section class="lost-analytics-table-panel" data-lost-export-panel>
+                <div class="lost-analytics-table-head">
+                    <h3>{{ $tab['title'] ?? $tab['label'] ?? 'Closed Lead Analytics' }}</h3>
+                    <div class="lost-analytics-export-actions">
+                        <button type="button" class="btn-link alt lost-export-btn" data-export-table="{{ $tableId }}" data-export-format="excel">Excel</button>
+                        <button type="button" class="btn-link alt lost-export-btn" data-export-table="{{ $tableId }}" data-export-format="csv">CSV</button>
+                        <button type="button" class="btn-link lost-export-toggle" data-lost-table-toggle>show</button>
+                    </div>
+                </div>
+                <div class="lost-analytics-table-body" hidden>
+                    <div class="analytics-table-wrap">
+                        <table class="analytics-table lost-analytics-export-table" id="{{ $tableId }}" data-export-name="{{ $firstColumnKey }}">
+                            <thead>
+                                <tr>
+                                    @foreach($closedColumns as $column)
+                                        <th>{{ $column['heading'] ?? $column['key'] ?? '' }}</th>
+                                    @endforeach
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse(($tab['rows'] ?? []) as $row)
+                                    <tr>
+                                        @foreach($closedColumns as $column)
+                                            @php
+                                                $columnKey = $column['key'] ?? '';
+                                                $cellValue = $row[$columnKey] ?? '';
+                                                if ($columnKey === 'contribution' && is_numeric($cellValue)) {
+                                                    $cellValue = number_format((float) $cellValue, 2) . '%';
+                                                }
+                                            @endphp
+                                            <td>{{ $cellValue }}</td>
+                                        @endforeach
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="{{ max(count($closedColumns), 1) }}">No closed lead analytics data available.</td>
+                                    </tr>
+                                @endforelse
+                                <tr class="lost-analytics-total-row">
+                                    @foreach($closedColumns as $column)
+                                        <td>{{ $closedTotalRow[$column['key'] ?? ''] ?? '' }}</td>
+                                    @endforeach
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="lost-analytics-table-foot">
+                        Showing {{ $closedTableRowCount > 0 ? 1 : 0 }} to {{ $closedTableRowCount }} of {{ $closedTableRowCount }} entries
+                    </p>
+                </div>
+            </section>
+        @endforeach
     </div>
 </section>
 @endif
@@ -459,6 +713,121 @@
     </div>
 </section>
 @endif
+
+<style>
+    .lost-analytics-table-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 18px;
+    }
+
+    .lost-analytics-table-panel {
+        overflow: hidden;
+        border: 1px solid #d5dde8;
+        border-radius: 6px;
+        background: #ffffff;
+    }
+
+    .lost-analytics-table-panel-wide {
+        grid-column: 1 / -1;
+    }
+
+    .lost-analytics-table-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        min-height: 34px;
+        padding: 6px 8px;
+        border-bottom: 1px solid #d5dde8;
+    }
+
+    .lost-analytics-table-head h3 {
+        margin: 0;
+        color: #526b8f;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .lost-analytics-export-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        flex-shrink: 0;
+    }
+
+    .lost-analytics-export-actions .btn-link {
+        min-height: 24px;
+        padding: 3px 8px;
+        border-radius: 3px;
+        font-size: 12px;
+    }
+
+    .lost-analytics-table-body {
+        padding: 0 8px 6px;
+    }
+
+    .lost-analytics-export-table th {
+        background: #7ec9bf;
+        color: #111827;
+        font-size: 12px;
+        white-space: nowrap;
+    }
+
+    .lost-analytics-export-table td {
+        font-size: 12px;
+        white-space: nowrap;
+    }
+
+    .lost-analytics-export-table td:first-child {
+        color: #0000ee;
+    }
+
+    .lost-data-export-table th,
+    .lost-data-export-table td {
+        max-width: 220px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .lost-analytics-total-row td {
+        font-weight: 800;
+    }
+
+    .lost-analytics-table-foot {
+        margin: 4px 0 0;
+        color: #526b8f;
+        font-size: 12px;
+    }
+
+    html.theme-dark .lost-analytics-table-panel {
+        border-color: #334155;
+        background: #111827;
+    }
+
+    html.theme-dark .lost-analytics-table-head {
+        border-color: #334155;
+    }
+
+    html.theme-dark .lost-analytics-table-head h3,
+    html.theme-dark .lost-analytics-table-foot {
+        color: #cbd5e1;
+    }
+
+    @media (max-width: 960px) {
+        .lost-analytics-table-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .lost-analytics-table-head {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+    }
+</style>
 
 @once
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
@@ -599,6 +968,88 @@
         });
 
         applyTableFilter();
+    })();
+
+    (() => {
+        const exportButtons = Array.from(document.querySelectorAll('[data-export-table][data-export-format]'));
+        const toggleButtons = Array.from(document.querySelectorAll('[data-lost-table-toggle]'));
+        if (!exportButtons.length && !toggleButtons.length) {
+            return;
+        }
+
+        const normalizeFileName = (value) => {
+            const cleaned = String(value || 'lost_analytics')
+                .trim()
+                .replace(/[^A-Za-z0-9_-]+/g, '_')
+                .replace(/^_+|_+$/g, '');
+            return cleaned || 'lost_analytics';
+        };
+
+        const downloadBlob = (content, fileName, type) => {
+            const blob = new Blob([content], { type });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
+        };
+
+        const cellText = (cell) => String(cell.textContent || '').trim();
+        const csvEscape = (value) => {
+            const text = String(value ?? '');
+            return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+        };
+
+        const exportCsv = (table, fileName) => {
+            const rows = Array.from(table.querySelectorAll('tr'))
+                .map((row) => Array.from(row.children).map((cell) => csvEscape(cellText(cell))).join(','))
+                .join('\r\n');
+            downloadBlob(rows, `${fileName}.csv`, 'text/csv;charset=utf-8;');
+        };
+
+        const exportExcel = (table, fileName) => {
+            const worksheet = `
+                <html>
+                    <head><meta charset="UTF-8"></head>
+                    <body>${table.outerHTML}</body>
+                </html>
+            `;
+            downloadBlob(worksheet, `${fileName}.xls`, 'application/vnd.ms-excel;charset=utf-8;');
+        };
+
+        exportButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                const table = document.getElementById(button.dataset.exportTable || '');
+                if (!table) {
+                    return;
+                }
+
+                const baseName = normalizeFileName(table.dataset.exportName);
+                const format = button.dataset.exportFormat;
+                if (format === 'excel') {
+                    exportExcel(table, baseName);
+                    return;
+                }
+
+                exportCsv(table, baseName);
+            });
+        });
+
+        toggleButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                const panel = button.closest('[data-lost-export-panel]');
+                const body = panel?.querySelector('.lost-analytics-table-body');
+                if (!body) {
+                    return;
+                }
+
+                body.hidden = !body.hidden;
+                button.textContent = body.hidden ? 'show' : 'hide';
+            });
+        });
     })();
 
     (() => {

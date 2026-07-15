@@ -22,6 +22,7 @@ class Enquiry extends Model
         'follow_time',
         'followup_status',
         'followup_marked_at',
+        'followup_attempted_type',
         'followup_visit_date',
         'followup_met_whom',
         'followup_picture_1',
@@ -112,5 +113,10 @@ class Enquiry extends Model
     public function delivery()
     {
         return $this->hasOne(Delivery::class);
+    }
+
+    public function followupAttempts()
+    {
+        return $this->hasMany(FollowupAttempt::class);
     }
 }
