@@ -14,33 +14,23 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         // Log the request for debugging
-        Log::info('Login attempt', ['email' => $request->email, 'role' => $request->role]);
+        Log::info('Login attempt', ['email' => $request->email]);
 
-        // Validate the request
+        // Validate the request - NO ROLE REQUIRED
         $validated = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
-            'role' => ['nullable', 'string'],
         ]);
 
-        // Prepare credentials
+        // Prepare credentials - NO ROLE
         $credentials = [
             'email' => $validated['email'],
             'password' => $validated['password'],
         ];
 
-        // If role is provided, add it to credentials
-        if (!empty($validated['role'])) {
-            $role = User::roleFromSlug($validated['role']);
-            if ($role) {
-                $credentials['role'] = $role;
-                Log::info('Using role', ['role' => $role]);
-            }
-        }
+        Log::info('Attempting login with credentials', ['email' => $credentials['email']]);
 
-        Log::info('Attempting login with credentials', ['email' => $credentials['email'], 'role' => $credentials['role'] ?? 'none']);
-
-        // Attempt login
+        // Attempt login - system will find user by email and password only
         if (!Auth::attempt($credentials)) {
             Log::warning('Login failed', ['email' => $credentials['email']]);
             return response()->json([
@@ -50,7 +40,7 @@ class AuthController extends Controller
 
         // Get the authenticated user
         $user = Auth::user();
-        Log::info('Login successful', ['user_id' => $user->id, 'email' => $user->email]);
+        Log::info('Login successful', ['user_id' => $user->id, 'email' => $user->email, 'role' => $user->role]);
 
         // Create a token for the user using Sanctum
         $token = $user->createToken('mobile-app')->plainTextToken;
