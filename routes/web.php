@@ -68,6 +68,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard/followup-summary', [DashboardController::class, 'followupSummary'])
         ->name('dashboard.followup_summary');
 
+    Route::get('/dashboard/followup-tracker', [DashboardController::class, 'followupTracker'])
+        ->name('dashboard.followup_tracker');
+
+    Route::get('/dashboard/followup-tracker/{section}', [DashboardController::class, 'followupTrackerSection'])
+        ->whereIn('section', ['today-due', 'today-attempted', 'total-followed', 'total-attempted'])
+        ->name('dashboard.followup_tracker.section');
+
     Route::get('/dashboard/analytics/{section}', [DashboardController::class, 'analyticsDetail'])
         ->name('dashboard.analytics.detail');
 

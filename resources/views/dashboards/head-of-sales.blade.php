@@ -86,7 +86,7 @@
     <a class="hierarchy-metric-btn booking" href="{{ route('dashboard.analytics.detail', 'booking') }}">Booking</a>
     <a class="hierarchy-metric-btn lost" href="{{ route('dashboard.analytics.detail', 'lost') }}">Lost</a>
     <a class="hierarchy-metric-btn closed" href="{{ route('dashboard.analytics.detail', 'closed') }}">Closed Lead</a>
-    <a class="hierarchy-metric-btn followup" href="{{ route('dashboard.followup_summary') }}">FollowUp</a>
+    <a class="hierarchy-metric-btn followup" href="{{ route('dashboard.followup_tracker') }}">FollowUp</a>
 </div>
 
 <section class="card district-card">
