@@ -95,6 +95,15 @@ $viewerId = (int) ($user?->id ?? 0);
     ->limit(8)
     ->get();
     $todayFollowupCount = $todayFollowups->count();
+    $systemReminders = \App\Models\SalesConsultantReminder::query()
+        ->with('sender:id,name')
+        ->where('recipient_id', $viewerId)
+        ->whereNull('read_at')
+        ->latest()
+        ->limit(5)
+        ->get();
+    $systemReminderCount = $systemReminders->count();
+    $notificationCount = $todayFollowupCount + $systemReminderCount;
     $todayLabel = now('Asia/Colombo')->format('M d, Y');
     $roleLabel = (string) ($user?->role_label ?? 'Sales Executive');
 
@@ -163,11 +172,30 @@ $viewerId = (int) ($user?->id ?? 0);
                                         <path d="M15 18H5l1.2-1.6A2 2 0 0 0 6.6 15V11a5.4 5.4 0 0 1 10.8 0v4a2 2 0 0 0 .4 1.4L19 18h-4" stroke-linecap="round" stroke-linejoin="round"></path>
                                         <path d="M10 20a2 2 0 0 0 4 0" stroke-linecap="round"></path>
                                     </svg>
-                                    @if($todayFollowupCount > 0)
-                                    <span class="crm-notify-badge">{{ $todayFollowupCount }}</span>
+                                    @if($notificationCount > 0)
+                                    <span class="crm-notify-badge">{{ $notificationCount }}</span>
                                     @endif
                                 </summary>
                                 <div class="crm-notify-menu">
+                                    <p class="crm-notify-title">System Reminders</p>
+                                    @forelse($systemReminders as $reminder)
+                                    <div class="crm-notify-item crm-reminder-item">
+                                        <span>{{ $reminder->sender?->name ?? 'Manager' }} sent a reminder</span>
+                                        <small>
+                                            Registration {{ $reminder->pending_registration_count }},
+                                            Follow Up {{ $reminder->pending_followup_count }},
+                                            Booking {{ $reminder->pending_booking_count }},
+                                            Delivery {{ $reminder->pending_delivery_count }}
+                                        </small>
+                                        <form method="POST" action="{{ route('dashboard.reminders.read', $reminder->id) }}">
+                                            @csrf
+                                            <button type="submit">Mark Read</button>
+                                        </form>
+                                    </div>
+                                    @empty
+                                    <p class="crm-notify-empty">No system reminders.</p>
+                                    @endforelse
+
                                     <p class="crm-notify-title">Today's Followups</p>
                                     @forelse($todayFollowups as $followup)
                                     @php

@@ -37,14 +37,30 @@
 }
 
 .dashboard-header-card .stat {
-    background: rgba(255, 255, 255, 0.15);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: #ffffff;
+    border: 1px solid #dbeafe;
     text-align: center;
+    box-shadow: 0 12px 26px rgba(15, 23, 42, 0.22);
 }
 
-.dashboard-header-card .stat strong,
+.dashboard-header-card .stat strong {
+    color: #0f172a;
+}
+
 .dashboard-header-card .stat span {
-    color: white;
+    color: #334155;
+}
+
+.dashboard-header-card .stats-grid .stat:nth-child(1) {
+    border-top: 5px solid #dc2626;
+}
+
+.dashboard-header-card .stats-grid .stat:nth-child(2) {
+    border-top: 5px solid #f59e0b;
+}
+
+.dashboard-header-card .stats-grid .stat:nth-child(3) {
+    border-top: 5px solid #2563eb;
 }
 
 .dashboard-header-card .btn-link {

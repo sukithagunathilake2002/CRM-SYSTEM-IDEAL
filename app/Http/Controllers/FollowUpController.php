@@ -17,7 +17,13 @@ class FollowUpController extends Controller
 {
     public function show(Request $request, Enquiry $enquiry): View
     {
-        $enquiry->load(['customer', 'vehicle', 'user']);
+        $enquiry->load([
+            'customer',
+            'vehicle',
+            'user',
+            'prospectSheet',
+            'followupAttempts' => fn($query) => $query->with('user')->latest('attempted_at')->latest('id'),
+        ]);
 
         abort_unless($this->canAccessEnquiry($request->user(), $enquiry), 403);
 
@@ -31,6 +37,9 @@ class FollowUpController extends Controller
         $customerName = trim(($customer?->title ? $customer->title . ' ' : '') . ($customer?->name ?? 'N/A'));
         $interestedIn = trim(($vehicle?->model ?? '') . ' ' . ($vehicle?->variant ?? ''));
         $totalPrice = (float) (($vehicle?->unit_price ?? 0) + ($vehicle?->vat_amount ?? 0));
+        $vehicleColor = $enquiry->prospectSheet?->interested_vehicle_color ?: 'N/A';
+        $registrationLabel = ((int) ($enquiry->prospectSheet?->current_step ?? 0)) >= 5 ? 'Registered' : 'Pending';
+        $dmsId = 'ENQ-' . $enquiry->id;
         $followDateLabel = $enquiry->follow_date
             ? Carbon::parse($enquiry->follow_date)->format('d-M-Y')
             : 'No followup date';
@@ -45,6 +54,7 @@ class FollowUpController extends Controller
             })
             ->toArray();
         $competitionBrands = array_keys($competitionMap);
+        $followupHistory = $enquiry->followupAttempts;
         $followupStatus = $enquiry->followup_status ?: 'pending';
         $selectedFollowupStatus = old('followup_status', $followupStatus);
         $selectedVisitDate = old(
@@ -114,11 +124,15 @@ class FollowUpController extends Controller
             'interestedIn' => $interestedIn ?: 'N/A',
             'primaryPhone' => $primaryPhone,
             'totalPrice' => $totalPrice,
+            'vehicleColor' => $vehicleColor,
+            'registrationLabel' => $registrationLabel,
+            'dmsId' => $dmsId,
             'followDateLabel' => $followDateLabel,
             'followTypeLabel' => $followTypeLabel,
             'competitionMap' => $competitionMap,
             'competitionBrands' => $competitionBrands,
             'followupStatus' => $followupStatus,
+            'followupHistory' => $followupHistory,
             'selectedFollowupStatus' => $selectedFollowupStatus,
             'selectedVisitDate' => $selectedVisitDate,
             'selectedMetWhom' => $selectedMetWhom,
@@ -370,6 +384,7 @@ class FollowUpController extends Controller
                 $enquiry->follow_type = $validated['followup_next_type'] ?? $enquiry->follow_type;
                 $enquiry->follow_date = $validated['followup_next_date'] ?? $enquiry->follow_date;
                 $enquiry->follow_time = $validated['followup_next_time'] ?? $enquiry->follow_time;
+                $enquiry->followup_status = 'pending';
                 $this->clearLostFollowupFields($enquiry);
             } elseif (($validated['followup_result'] ?? null) === 'lost') {
                 $lostReasons = array_values(array_unique(array_filter((array) ($validated['followup_lost_reject_reasons'] ?? []))));

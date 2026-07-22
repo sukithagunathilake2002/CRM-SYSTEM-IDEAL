@@ -62,30 +62,36 @@ body {
     left: calc(50% + 16px);
     right: calc(-50% + 16px);
     height: 2px;
-    background: #202020;
+    background: #90E686;
 }
 
 .step-number {
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    border: 2px solid #202020;
-    background: #f2f2f2;
-    color: #111;
-    font-weight: 700;
+    border: 1px solid #90E686;
+    background: #f7fff6;
+    color: #12851f;
+    font-weight: 800;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    text-shadow: 0 2px 2px rgba(10, 105, 22, 0.32);
+    box-shadow: 4px 5px 5px rgba(73, 150, 80, 0.28);
 }
 
 .stepper-item.active .step-number {
-    background: #000;
-    color: #fff;
+    background: #90E686;
+    color: #ffffff;
+    border-color: #90E686;
+    text-shadow: 0 2px 2px rgba(11, 103, 22, 0.5);
 }
 
 .stepper-item.complete .step-number {
-    background: #171717;
-    color: #fff;
+    background: #90E686;
+    color: #ffffff;
+    border-color: #90E686;
+    text-shadow: 0 2px 2px rgba(11, 103, 22, 0.5);
 }
 
 .step-label {
@@ -1386,14 +1392,14 @@ select:focus {
     }
 
     .step-number {
-        width: 30px;
-        height: 30px;
+        width: 34px;
+        height: 34px;
     }
 
     .stepper-item:not(:last-child)::after {
-        top: 15px;
-        left: calc(50% + 12px);
-        right: calc(-50% + 12px);
+        top: 17px;
+        left: calc(50% + 17px);
+        right: calc(-50% + 17px);
     }
 
     .step-label {

@@ -1056,6 +1056,13 @@ body.filter-open {
     letter-spacing: 0.2px;
 }
 
+.epr-created-user strong {
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 @media (max-width: 1200px) {
     .lead-name {
         font-size: 14px;

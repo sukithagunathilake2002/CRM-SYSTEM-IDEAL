@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Enquiry;
 use App\Models\FollowupAttempt;
 use App\Models\LeadTransferRequest;
+use App\Models\SalesConsultantReminder;
 use App\Models\User;
 use App\Models\Vehicle;
 use Carbon\Carbon;
@@ -224,21 +225,223 @@ class DashboardController extends Controller
     {
         $user = $request->user();
         $salesConsultants = User::query()
+            ->with('manager:id,name')
             ->where('role', User::ROLE_SALES_CONSULTANT)
             ->where('manager_id', $user->id)
             ->orderBy('name')
-            ->get();
+            ->get(['id', 'name', 'email', 'employee_number', 'phone', 'role', 'manager_id']);
         $pendingTransferRequestCount = LeadTransferRequest::query()
             ->where('area_manager_id', $user->id)
             ->where('status', LeadTransferRequest::STATUS_PENDING)
             ->count();
+        $manageableUsers = $salesConsultants->values();
+        $consultantPendingDetails = $this->buildAreaManagerConsultantPendingDetails($salesConsultants, $user);
         $analytics = $this->buildAnalytics($user, $request);
         
         $dashboardEpds = $this->getDashboardEpData($user);
         
         $districtEpData = $this->getDistrictEpData($user);
 
-        return view('dashboards.area-manager', compact('salesConsultants', 'pendingTransferRequestCount', 'analytics', 'dashboardEpds', 'districtEpData'));
+        return view('dashboards.area-manager', compact('salesConsultants', 'manageableUsers', 'consultantPendingDetails', 'pendingTransferRequestCount', 'analytics', 'dashboardEpds', 'districtEpData'));
+    }
+
+    public function sendSalesConsultantSystemReminder(Request $request, User $consultant): RedirectResponse
+    {
+        $areaManager = $request->user();
+
+        $this->authorizeAreaManagerReminder($areaManager, $consultant);
+
+        $counts = $this->getConsultantPendingCounts($consultant);
+        $this->createSalesConsultantReminder($areaManager, $consultant, $counts);
+
+        return back()->with('success', 'System reminder sent to ' . $consultant->name . '.');
+    }
+
+    private function authorizeAreaManagerReminder(?User $areaManager, User $consultant): void
+    {
+        abort_unless($areaManager?->role === User::ROLE_AREA_MANAGER, 403);
+        abort_unless($consultant->role === User::ROLE_SALES_CONSULTANT, 404);
+        abort_unless((int) $consultant->manager_id === (int) $areaManager->id, 403);
+    }
+
+    private function getConsultantPendingCounts(User $consultant): array
+    {
+        $details = $this->buildAreaManagerConsultantPendingDetails(collect([$consultant]))[(int) $consultant->id] ?? null;
+
+        return is_array($details) ? (array) ($details['counts'] ?? []) : [];
+    }
+
+    private function createSalesConsultantReminder(User $areaManager, User $consultant, array $counts): void
+    {
+        $total = array_sum(array_map('intval', $counts));
+
+        SalesConsultantReminder::query()->create([
+            'sender_id' => (int) $areaManager->id,
+            'recipient_id' => (int) $consultant->id,
+            'pending_registration_count' => (int) ($counts['pending_registration'] ?? 0),
+            'pending_followup_count' => (int) ($counts['pending_followup'] ?? 0),
+            'pending_booking_count' => (int) ($counts['pending_booking'] ?? 0),
+            'pending_delivery_count' => (int) ($counts['pending_delivery'] ?? 0),
+            'message' => sprintf(
+                '%s sent a reminder to complete %d pending CRM item%s.',
+                $areaManager->name,
+                $total,
+                $total === 1 ? '' : 's'
+            ),
+        ]);
+    }
+
+    public function markSalesConsultantReminderRead(Request $request, SalesConsultantReminder $reminder): RedirectResponse
+    {
+        abort_unless((int) $reminder->recipient_id === (int) $request->user()?->id, 403);
+
+        if ($reminder->read_at === null) {
+            $reminder->forceFill(['read_at' => now()])->save();
+        }
+
+        return back();
+    }
+
+    private function buildAreaManagerConsultantPendingDetails(Collection $salesConsultants, ?User $areaManager = null): array
+    {
+        return $salesConsultants
+            ->mapWithKeys(function (User $consultant) use ($areaManager): array {
+                $consultantId = (int) $consultant->id;
+
+                $pendingRegistration = Enquiry::query()
+                    ->with(['customer:id,title,name', 'vehicle:id,model,variant'])
+                    ->where('user_id', $consultantId)
+                    ->pendingRegistration()
+                    ->latest('created_at')
+                    ->get();
+
+                $pendingFollowups = Enquiry::query()
+                    ->with(['customer:id,title,name', 'vehicle:id,model,variant'])
+                    ->where('user_id', $consultantId)
+                    ->whereRaw("LOWER(COALESCE(followup_status, 'pending')) <> ?", ['done'])
+                    ->orderByRaw('CASE WHEN follow_date IS NULL THEN 1 ELSE 0 END')
+                    ->orderBy('follow_date')
+                    ->get();
+
+                $pendingBookings = Enquiry::query()
+                    ->with(['customer:id,title,name', 'vehicle:id,model,variant'])
+                    ->where('user_id', $consultantId)
+                    ->registeredLead()
+                    ->doesntHave('booking')
+                    ->latest('created_at')
+                    ->get();
+
+                $pendingDeliveries = Enquiry::query()
+                    ->with(['customer:id,title,name', 'vehicle:id,model,variant'])
+                    ->where('user_id', $consultantId)
+                    ->whereHas('booking')
+                    ->doesntHave('delivery')
+                    ->latest('created_at')
+                    ->get();
+
+                $counts = [
+                    'pending_registration' => $pendingRegistration->count(),
+                    'pending_followup' => $pendingFollowups->count(),
+                    'pending_booking' => $pendingBookings->count(),
+                    'pending_delivery' => $pendingDeliveries->count(),
+                ];
+
+                $totalPending = array_sum($counts);
+
+                return [
+                    $consultantId => [
+                        'id' => $consultantId,
+                        'name' => $consultant->name,
+                        'email' => (string) ($consultant->email ?? ''),
+                        'phone' => (string) ($consultant->phone ?? ''),
+                        'counts' => $counts,
+                        'total_pending' => $totalPending,
+                        'reminder_url' => $this->buildConsultantPendingReminderMailto($consultant, $counts, $areaManager),
+                        'sections' => [
+                            'pending_registration' => [
+                                'title' => 'Enquiry Pending Registration',
+                                'action' => 'Open Prospect',
+                                'items' => $this->mapPendingLeadRows($pendingRegistration, 'prospect.show'),
+                            ],
+                            'pending_followup' => [
+                                'title' => 'Pending Follow Up',
+                                'action' => 'Open Follow Up',
+                                'items' => $this->mapPendingLeadRows($pendingFollowups, 'followup.show'),
+                            ],
+                            'pending_booking' => [
+                                'title' => 'Pending Booking',
+                                'action' => 'Open Booking',
+                                'items' => $this->mapPendingLeadRows($pendingBookings, 'booking.show'),
+                            ],
+                            'pending_delivery' => [
+                                'title' => 'Pending Delivery',
+                                'action' => 'Open Delivery',
+                                'items' => $this->mapPendingLeadRows($pendingDeliveries, 'delivery.show'),
+                            ],
+                        ],
+                    ],
+                ];
+            })
+            ->all();
+    }
+
+    private function mapPendingLeadRows(Collection $enquiries, string $routeName): array
+    {
+        return $enquiries
+            ->take(10)
+            ->map(function (Enquiry $enquiry) use ($routeName): array {
+                $customer = $enquiry->customer;
+                $vehicle = $enquiry->vehicle;
+
+                return [
+                    'id' => (int) $enquiry->id,
+                    'customer' => trim(($customer?->title ? $customer->title . ' ' : '') . ($customer?->name ?? 'Unknown')),
+                    'vehicle' => trim(($vehicle?->model ?? '') . ' ' . ($vehicle?->variant ?? '')) ?: 'Vehicle not set',
+                    'follow_date' => $enquiry->follow_date ? Carbon::parse($enquiry->follow_date)->format('d M Y') : '-',
+                    'url' => route($routeName, $enquiry->id),
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    private function buildConsultantPendingReminderMailto(User $consultant, array $counts, ?User $areaManager = null): ?string
+    {
+        $email = trim((string) ($consultant->email ?? ''));
+        if ($email === '') {
+            return null;
+        }
+
+        $body = $this->buildConsultantPendingReminderEmailBody($consultant, $counts, $areaManager);
+
+        return 'mailto:' . rawurlencode($email) . '?' . http_build_query([
+            'subject' => $this->consultantPendingReminderEmailSubject(),
+            'body' => $body,
+        ], '', '&', PHP_QUERY_RFC3986);
+    }
+
+    private function consultantPendingReminderEmailSubject(): string
+    {
+        return 'CRM pending work reminder';
+    }
+
+    private function buildConsultantPendingReminderEmailBody(User $consultant, array $counts, ?User $areaManager = null): string
+    {
+        $total = array_sum(array_map('intval', $counts));
+        $senderLine = $areaManager
+            ? sprintf("%s has sent this reminder from the CRM system.\n\n", $areaManager->name)
+            : '';
+
+        return sprintf(
+            "Dear %s,\n\n%sPlease review and update your pending CRM work.\n\nEnquiry Pending Registration: %d\nPending Follow Up: %d\nPending Booking: %d\nPending Delivery: %d\n\nTotal Pending: %d\n\nPlease complete the relevant updates as soon as possible.",
+            $consultant->name,
+            $senderLine,
+            (int) ($counts['pending_registration'] ?? 0),
+            (int) ($counts['pending_followup'] ?? 0),
+            (int) ($counts['pending_booking'] ?? 0),
+            (int) ($counts['pending_delivery'] ?? 0),
+            $total
+        );
     }
 
     public function analytics(Request $request): View|RedirectResponse
@@ -555,7 +758,7 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
     private function canViewFollowupTracker(?User $user): bool
     {
         return $user instanceof User
-            && in_array($user->role, [User::ROLE_SUPER_ADMIN, User::ROLE_HEAD_OF_SALES], true);
+            && in_array($user->role, [User::ROLE_SUPER_ADMIN, User::ROLE_HEAD_OF_SALES, User::ROLE_AREA_MANAGER], true);
     }
 
     private function buildFollowupTrackerReport(User $viewer, string $section, Request $request): array

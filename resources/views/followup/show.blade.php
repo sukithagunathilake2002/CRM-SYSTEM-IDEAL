@@ -25,6 +25,7 @@
     ];
     $existingFollowupPicture1Url = !empty($enquiry->followup_picture_1) ? asset('storage/' . $enquiry->followup_picture_1) : null;
     $existingFollowupPicture2Url = !empty($enquiry->followup_picture_2) ? asset('storage/' . $enquiry->followup_picture_2) : null;
+    $dialPhone = preg_replace('/\D+/', '', (string) $primaryPhone);
 @endphp
 
 <div class="followup-page">
@@ -53,53 +54,91 @@
             </div>
         @endif
 
-        <section class="lead-summary-card">
-            <div class="lead-summary-grid">
-                <article class="summary-item">
-                    <span class="summary-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" focusable="false">
-                            <circle cx="12" cy="8" r="3.2"></circle>
-                            <path d="M5.8 18c1.4-2.8 3.8-4.2 6.2-4.2s4.8 1.4 6.2 4.2"></path>
-                        </svg>
-                    </span>
-                    <p><strong>Name :</strong> {{ $customerName }}</p>
-                </article>
-
-                <article class="summary-item">
-                    <span class="summary-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" focusable="false">
-                            <path d="M4 15.2v2.3h1.8"></path>
-                            <path d="M18.2 17.5H20v-2.3"></path>
-                            <path d="M6 15.2h12l-1.1-4.2a2.2 2.2 0 0 0-2.1-1.6H9.2a2.2 2.2 0 0 0-2.1 1.6L6 15.2Z"></path>
-                            <circle cx="8.3" cy="17.6" r="1.4"></circle>
-                            <circle cx="15.7" cy="17.6" r="1.4"></circle>
-                            <path d="M8.6 12.5h6.8"></path>
-                        </svg>
-                    </span>
-                    <p><strong>Interested In :</strong> {{ strtoupper($interestedIn) }}</p>
-                </article>
-
-                <article class="summary-item">
-                    <span class="summary-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" focusable="false">
-                            <path d="M21 16.4v2a1.7 1.7 0 0 1-1.8 1.7A16.8 16.8 0 0 1 3.9 4.8 1.7 1.7 0 0 1 5.6 3h2a1.7 1.7 0 0 1 1.7 1.5c.1 1 .3 2 .7 2.8a1.7 1.7 0 0 1-.4 1.8l-.8.8a13.6 13.6 0 0 0 5.7 5.7l.8-.8a1.7 1.7 0 0 1 1.8-.4c.9.4 1.8.6 2.8.7A1.7 1.7 0 0 1 21 16.4Z"></path>
-                        </svg>
-                    </span>
-                    <p><strong>Contact Number :</strong> {{ $primaryPhone }}</p>
-                </article>
-
-                <article class="summary-item">
-                    <span class="summary-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" focusable="false">
-                            <path d="M3 11.2 12 4l9 7.2"></path>
-                            <path d="M5.5 10.6V20h13V10.6"></path>
-                            <path d="M10 20v-5h4v5"></path>
-                        </svg>
-                    </span>
-                    <p><strong>Followup Type :</strong> {{ $enquiry->follow_type ?: 'N/A' }}</p>
-                </article>
+        <section class="lead-summary-card lead-detail-card">
+            <div class="lead-detail-grid">
+                <div class="lead-detail-main">
+                    <div class="lead-detail-row">
+                        <span class="lead-detail-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false"><circle cx="12" cy="8" r="3.2"></circle><path d="M5.8 18c1.4-2.8 3.8-4.2 6.2-4.2s4.8 1.4 6.2 4.2"></path></svg>
+                        </span>
+                        <strong>Name</strong>
+                        <span>:</span>
+                        <p>{{ $customerName }}</p>
+                    </div>
+                    <div class="lead-detail-row">
+                        <span class="lead-detail-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false"><path d="M4 15.2v2.3h1.8"></path><path d="M18.2 17.5H20v-2.3"></path><path d="M6 15.2h12l-1.1-4.2a2.2 2.2 0 0 0-2.1-1.6H9.2a2.2 2.2 0 0 0-2.1 1.6L6 15.2Z"></path><circle cx="8.3" cy="17.6" r="1.4"></circle><circle cx="15.7" cy="17.6" r="1.4"></circle></svg>
+                        </span>
+                        <strong>Interested In</strong>
+                        <span>:</span>
+                        <p>{{ strtoupper($interestedIn) }}</p>
+                    </div>
+                    <div class="lead-detail-row">
+                        <span class="lead-detail-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false"><path d="M12 3.5c2.1 2.2 3.2 4.2 3.2 6a3.2 3.2 0 1 1-6.4 0c0-1.8 1.1-3.8 3.2-6Z"></path><path d="M7 14.2h10M8.2 18h7.6"></path></svg>
+                        </span>
+                        <strong>Total price</strong>
+                        <span>:</span>
+                        <p>{{ number_format($totalPrice, 0) }}</p>
+                    </div>
+                    <div class="lead-detail-row">
+                        <span class="lead-detail-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false"><path d="M4 5.5h8v6H4z"></path><path d="M14 8h3.2l2.8 3.2v4.3h-2a2 2 0 0 1-4 0H9a2 2 0 0 1-4 0H4v-4"></path><circle cx="7" cy="15.5" r="1.5"></circle><circle cx="16" cy="15.5" r="1.5"></circle></svg>
+                        </span>
+                        <strong>DMS ID</strong>
+                        <span>:</span>
+                        <p>{{ $dmsId }}</p>
+                    </div>
+                </div>
+                <div class="lead-detail-side">
+                    <span>{{ $primaryPhone }}</span>
+                    <span>{{ $vehicleColor }}</span>
+                    <span>{{ $registrationLabel }}</span>
+                </div>
             </div>
         </section>
+
+        @if($followupHistory->isNotEmpty())
+            <section class="followup-history-card" aria-label="Follow up history">
+                <h2>Follow Up History</h2>
+                <div class="followup-history-list">
+                    @foreach($followupHistory as $historyItem)
+                        @php
+                            $historyDate = $historyItem->attempted_at
+                                ? $historyItem->attempted_at->format('d-M-Y')
+                                : '--';
+                            $historyStatus = match ($historyItem->followup_status) {
+                                'done' => 'Done',
+                                'not_done' => 'Not Done',
+                                default => 'Pending',
+                            };
+                        @endphp
+                        <article class="followup-history-row">
+                            <div class="history-main">
+                                <span>Follow Up Date :</span>
+                                <strong>{{ strtoupper($historyDate) }}</strong>
+                            </div>
+                            <div class="history-main">
+                                <span>Follow-up Type :</span>
+                                <strong>{{ $historyItem->follow_type ?: '--' }}</strong>
+                            </div>
+                            <div class="history-main">
+                                <span>Status :</span>
+                                <strong class="history-status {{ $historyItem->followup_status }}">{{ $historyStatus }}</strong>
+                            </div>
+                            <div class="history-main">
+                                <span>Created User :</span>
+                                <strong>{{ $historyItem->user?->name ?? 'Unassigned' }}</strong>
+                            </div>
+                            <div class="history-main">
+                                <span>Inquiry Date :</span>
+                                <strong>{{ optional($enquiry->created_at)->format('d-M-Y') ?: '--' }}</strong>
+                            </div>
+                        </article>
+                    @endforeach
+                </div>
+            </section>
+        @endif
 
         <section class="followup-card">
             <form method="POST" action="{{ route('followup.update_status', $enquiry->id) }}" enctype="multipart/form-data" id="followupForm">
@@ -108,47 +147,11 @@
                 <input type="hidden" name="is_home_visit" id="isHomeVisit" value="{{ $isHomeVisit ? '1' : '0' }}">
 
                 <div class="followup-head-grid">
-                    <div class="followup-left followup-metrics">
-                        <article class="metric-item">
-                            <span class="metric-icon" aria-hidden="true">
-                                <svg viewBox="0 0 24 24" focusable="false">
-                                    <rect x="3.5" y="5" width="17" height="15" rx="2"></rect>
-                                    <path d="M7 3.5v3M17 3.5v3M3.5 9.5h17"></path>
-                                    <path d="M8 13h2M12 13h2M16 13h2M8 16h2M12 16h2"></path>
-                                </svg>
-                            </span>
-                            <div>
-                                <p class="followup-date">{{ strtoupper($followDateLabel) }}</p>
-                                <p class="metric-label">Date</p>
-                            </div>
-                        </article>
-
-                        <article class="metric-item">
-                            <span class="metric-icon" aria-hidden="true">
-                                <svg viewBox="0 0 24 24" focusable="false">
-                                    <path d="M3 11.2 12 4l9 7.2"></path>
-                                    <path d="M5.5 10.6V20h13V10.6"></path>
-                                    <path d="M10 20v-5h4v5"></path>
-                                </svg>
-                            </span>
-                            <div>
-                                <p class="followup-type">{{ $followTypeLabel }}</p>
-                                <p class="metric-label">Follow-up Type</p>
-                            </div>
-                        </article>
-
-                        <article class="metric-item">
-                            <span class="metric-icon" aria-hidden="true">
-                                <svg viewBox="0 0 24 24" focusable="false">
-                                    <circle cx="12" cy="12" r="7.8"></circle>
-                                    <path d="M12 7.8v4.4l2.8 1.7"></path>
-                                </svg>
-                            </span>
-                            <div>
-                                <p class="followup-status {{ $followupStatus }}">{{ $statusLabel }}</p>
-                                <p class="metric-label">Status</p>
-                            </div>
-                        </article>
+                    <div class="current-followup-summary">
+                        <h2>Current Follow Up</h2>
+                        <p>{{ strtoupper($followDateLabel) }}</p>
+                        <p>{{ $followTypeLabel }}</p>
+                        <span class="followup-status {{ $followupStatus }}">{{ $statusLabel }}</span>
                     </div>
 
                     <div class="followup-right">
@@ -434,6 +437,9 @@
                     <button type="submit" class="status-btn save-btn">Save</button>
                 </div>
             </form>
+            <div class="dial-now-row">
+                <a href="{{ $dialPhone !== '' ? 'tel:' . $dialPhone : '#' }}" class="dial-now-btn">Dial Now</a>
+            </div>
         </section>
     </main>
 </div>
