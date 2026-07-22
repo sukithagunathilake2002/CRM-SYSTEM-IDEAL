@@ -21,6 +21,18 @@
     @php
         $portalUser = auth()->user();
         $isLoginRoute = request()->routeIs('login') || request()->routeIs('auth.login.form');
+        $portalInitial = strtoupper(substr((string) ($portalUser?->name ?? 'U'), 0, 1));
+        $portalSystemReminders = collect();
+        if ($portalUser && !$isLoginRoute && \Illuminate\Support\Facades\Schema::hasTable('sales_consultant_reminders')) {
+            $portalSystemReminders = \App\Models\SalesConsultantReminder::query()
+                ->with('sender:id,name')
+                ->where('recipient_id', $portalUser->id)
+                ->whereNull('read_at')
+                ->latest()
+                ->limit(5)
+                ->get();
+        }
+        $portalNotificationCount = $portalSystemReminders->count();
     @endphp
     <div class="portal-shell">
         <header class="portal-topbar">
@@ -37,21 +49,75 @@
             <div class="portal-topbar-right">
                 @auth
                     @unless($isLoginRoute)
-                    <div class="portal-user">
-                        <span>{{ auth()->user()->name }} ({{ auth()->user()->role_label }})</span>
-                        <form method="POST" action="{{ route('auth.logout') }}">
-                            @csrf
-                            <button type="submit">Logout</button>
-                        </form>
+                    <div class="portal-quick-icons" aria-label="Quick navigation">
+                        <a href="{{ route('dashboard.main') }}" class="portal-quick-icon" aria-label="Open CRM dashboard overview" title="CRM Dashboard Overview">
+                            <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                                <path d="M4 19h16" stroke-linecap="round"></path>
+                                <path d="M7 18v-5" stroke-linecap="round"></path>
+                                <path d="M12 18v-8" stroke-linecap="round"></path>
+                                <path d="M17 18v-11" stroke-linecap="round"></path>
+                                <path d="M6 11l4-3 3 2 5-5" stroke-linecap="round" stroke-linejoin="round"></path>
+                            </svg>
+                        </a>
+
+                        <details class="portal-notifications">
+                            <summary class="portal-quick-icon" aria-label="Open notifications" title="Notifications">
+                                <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                                    <path d="M15 18H5l1.2-1.6A2 2 0 0 0 6.6 15V11a5.4 5.4 0 0 1 10.8 0v4a2 2 0 0 0 .4 1.4L19 18h-4" stroke-linecap="round" stroke-linejoin="round"></path>
+                                    <path d="M10 20a2 2 0 0 0 4 0" stroke-linecap="round"></path>
+                                </svg>
+                                @if($portalNotificationCount > 0)
+                                    <span class="portal-notify-badge">{{ $portalNotificationCount }}</span>
+                                @endif
+                            </summary>
+                            <div class="portal-popover portal-notify-menu">
+                                <p class="portal-popover-title">Notifications</p>
+                                @forelse($portalSystemReminders as $reminder)
+                                    <div class="portal-notify-item">
+                                        <span>{{ $reminder->sender?->name ?? 'Manager' }} sent a reminder</span>
+                                        <small>
+                                            Registration {{ $reminder->pending_registration_count }},
+                                            Follow Up {{ $reminder->pending_followup_count }},
+                                            Booking {{ $reminder->pending_booking_count }},
+                                            Delivery {{ $reminder->pending_delivery_count }}
+                                        </small>
+                                        <form method="POST" action="{{ route('dashboard.reminders.read', $reminder->id) }}">
+                                            @csrf
+                                            <button type="submit">Mark Read</button>
+                                        </form>
+                                    </div>
+                                @empty
+                                    <p class="portal-popover-empty">No notifications.</p>
+                                @endforelse
+                            </div>
+                        </details>
+
+                        <details class="portal-profile-menu-wrap">
+                            <summary class="portal-quick-icon portal-profile-btn" aria-label="Open profile menu" title="Profile">
+                                <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                                    <circle cx="12" cy="8" r="3.5"></circle>
+                                    <path d="M5 19c0-3.3 3.1-6 7-6s7 2.7 7 6" stroke-linecap="round"></path>
+                                </svg>
+                            </summary>
+                            <div class="portal-popover portal-profile-menu">
+                                <div class="portal-profile-summary">
+                                    <span>{{ $portalInitial }}</span>
+                                    <div>
+                                        <p class="portal-popover-title">{{ $portalUser?->name ?? 'User' }}</p>
+                                        <p class="portal-popover-detail">{{ $portalUser?->role_label ?? 'User' }}</p>
+                                    </div>
+                                </div>
+                                <p class="portal-popover-detail">{{ $portalUser?->email ?? 'No email' }}</p>
+                                @if(!empty($portalUser?->phone))
+                                    <p class="portal-popover-detail">{{ $portalUser->phone }}</p>
+                                @endif
+                                <form method="POST" action="{{ route('auth.logout') }}" class="portal-profile-logout-form">
+                                    @csrf
+                                    <button type="submit" class="portal-profile-logout-btn">Logout</button>
+                                </form>
+                            </div>
+                        </details>
                     </div>
-                    <a href="{{ route('dashboard.main') }}" class="portal-icon-btn" aria-label="Open main dashboard" title="Dashboard">
-                        <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-                            <rect x="4" y="4" width="7" height="7" rx="1.5"></rect>
-                            <rect x="13" y="4" width="7" height="7" rx="1.5"></rect>
-                            <rect x="4" y="13" width="7" height="7" rx="1.5"></rect>
-                            <rect x="13" y="13" width="7" height="7" rx="1.5"></rect>
-                        </svg>
-                    </a>
                     @endunless
                 @endauth
                 <button type="button" id="themeToggle" class="theme-toggle-btn theme-toggle-icon" aria-label="Toggle dark mode" aria-pressed="false"></button>

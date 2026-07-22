@@ -773,20 +773,23 @@ body {
 .stepper-item:not(:last-child)::after {
     content: "";
     position: absolute;
-    left: calc(50% + 16px);
-    right: calc(-50% + 16px);
-    top: 13px;
+    left: calc(50% + 17px);
+    right: calc(-50% + 17px);
+    top: 17px;
     height: 2px;
-    background: #72757d;
+    background: #90E686;
 }
 
 .step-number {
-    width: 26px;
-    height: 26px;
-    border: 2px solid #5f6269;
-    background: #d8d9dc;
-    color: #292b2f;
-    font-size: 10px;
+    width: 34px;
+    height: 34px;
+    border: 1px solid #90E686;
+    background: #f7fff6;
+    color: #12851f;
+    font-size: 12px;
+    font-weight: 800;
+    text-shadow: 0 2px 2px rgba(10, 105, 22, 0.32);
+    box-shadow: 4px 5px 5px rgba(73, 150, 80, 0.28);
 }
 
 .step-label {
@@ -798,9 +801,11 @@ body {
 
 .stepper-item.active .step-number,
 .stepper-item.complete .step-number {
-    background: #1d1f24;
-    color: #fff;
-    border-color: #1d1f24;
+    background: #90E686;
+    color: #ffffff;
+    border-color: #90E686;
+    text-shadow: 0 2px 2px rgba(11, 103, 22, 0.5);
+    box-shadow: 5px 6px 6px rgba(73, 150, 80, 0.34);
 }
 
 .summary-card {
@@ -1085,8 +1090,8 @@ body {
     }
 
     .stepper-item:not(:last-child)::after {
-        left: calc(50% + 14px);
-        right: calc(-50% + 14px);
+        left: calc(50% + 17px);
+        right: calc(-50% + 17px);
     }
 
     .actions {

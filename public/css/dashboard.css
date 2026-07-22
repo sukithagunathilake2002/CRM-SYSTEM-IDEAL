@@ -1176,6 +1176,30 @@ html.theme-dark .prospect-page .summary-modal-close {
     color: var(--text-soft);
 }
 
+.crm-reminder-item {
+    display: grid;
+    gap: 6px;
+    margin-bottom: 8px;
+    background: #fff7ed;
+    border-color: #fed7aa;
+}
+
+.crm-reminder-item form {
+    margin: 0;
+}
+
+.crm-reminder-item button {
+    border: 0;
+    border-radius: 999px;
+    background: #df0000;
+    color: #ffffff;
+    min-height: 26px;
+    padding: 5px 10px;
+    font-size: 11px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
 .crm-notify-empty {
     margin: 0;
     font-size: 12px;

@@ -55,6 +55,13 @@ Route::middleware('auth')->group(function () {
         ->middleware('role:' . User::ROLE_AREA_MANAGER)
         ->name('dashboard.area_manager');
 
+    Route::post('/dashboard/area-manager/consultants/{consultant}/reminder/system', [DashboardController::class, 'sendSalesConsultantSystemReminder'])
+        ->middleware('role:' . User::ROLE_AREA_MANAGER)
+        ->name('dashboard.area_manager.consultant_reminder.system');
+
+    Route::post('/dashboard/reminders/{reminder}/read', [DashboardController::class, 'markSalesConsultantReminderRead'])
+        ->name('dashboard.reminders.read');
+
     Route::get('/dashboard/sales-consultant', [DashboardController::class, 'salesConsultant'])
         ->middleware('role:' . User::ROLE_SALES_CONSULTANT)
         ->name('dashboard.sales_consultant');

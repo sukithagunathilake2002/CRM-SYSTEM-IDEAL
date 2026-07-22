@@ -42,11 +42,11 @@
 .delivery-step::before {
     content: "";
     position: absolute;
-    top: 11px;
+    top: 17px;
     left: -50%;
     width: 100%;
     height: 2px;
-    background: #5f6573;
+    background: #90E686;
     z-index: 0;
 }
 
@@ -55,23 +55,29 @@
 }
 
 .delivery-step span {
-    width: 24px;
-    height: 24px;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
-    background: #ffffff;
-    border: 1px solid #111827;
+    background: #f7fff6;
+    border: 1px solid #90E686;
+    color: #12851f;
     display: grid;
     place-items: center;
     position: relative;
     z-index: 1;
-    font-size: 8px;
+    font-size: 12px;
     font-weight: 800;
+    text-shadow: 0 2px 2px rgba(10, 105, 22, 0.32);
+    box-shadow: 4px 5px 5px rgba(73, 150, 80, 0.28);
 }
 
 .delivery-step.complete span,
 .delivery-step.active span {
-    background: #070707;
+    background: #90E686;
     color: #ffffff;
+    border-color: #90E686;
+    text-shadow: 0 2px 2px rgba(11, 103, 22, 0.5);
+    box-shadow: 5px 6px 6px rgba(73, 150, 80, 0.34);
 }
 
 .delivery-step small {

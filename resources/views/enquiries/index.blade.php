@@ -245,6 +245,16 @@
                             <p>{{ $followLabel }}</p>
                             <strong>{{ $followDate }}</strong>
                         </div>
+                        <div class="epr-date-item epr-created-user">
+                            <span class="epr-date-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false">
+                                    <circle cx="12" cy="8" r="3.4"></circle>
+                                    <path d="M5 19c0-3.2 3.1-5.8 7-5.8s7 2.6 7 5.8"></path>
+                                </svg>
+                            </span>
+                            <p>Created User</p>
+                            <strong title="{{ $ownerRoleLabel }}">{{ $ownerName }}</strong>
+                        </div>
                     </div>
                 </div>
             </article>
