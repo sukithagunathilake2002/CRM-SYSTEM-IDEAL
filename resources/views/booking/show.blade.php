@@ -106,7 +106,7 @@
     $selectedOfferTotalCost = old('offer_total_cost', $defaultValues['offer_total_cost']);
     $selectedOfferTotalDiscount = old('offer_total_discount', $defaultValues['offer_total_discount']);
     $selectedOfferFinalPrice = old('offer_final_price', $defaultValues['offer_final_price']);
-    $isOfferEdit = old('edit_offer_details') === null ? true : old('edit_offer_details') === '1';
+    $isOfferEdit = old('edit_offer_details') === '1';
 
     $interestedVehicleLine = collect([$selectedInterestedModel, $selectedInterestedEngine, $selectedInterestedVariant])
         ->filter()
@@ -168,16 +168,26 @@
         @endif
 
         @if($currentStep > 2)
-            <h2>{{ $pageTitle }}</h2>
+            @if($currentStep !== 4)
+                <h2>{{ $pageTitle }}</h2>
+            @endif
 
-            <div class="booking-summary">
-                <p>{{ $summaryName }}</p>
-                <p>{{ $summaryMobile }}</p>
-                <p>{{ $summaryAddress ?: 'N/A' }}</p>
-                <p>{{ $customerTypeLabel }}</p>
-                <p>Profession - {{ $professionLabel }}</p>
-                <p>DOB: {{ $dobLabel }}</p>
-            </div>
+            @if($currentStep === 4)
+                <div class="offer-page-summary">
+                    <h3>SUMMARY</h3>
+                    <p>Customer Name: <strong>{{ $summaryName }}</strong></p>
+                    <p>Interested in: <strong>{{ strtoupper($interestedVehicleLine) }}</strong></p>
+                </div>
+            @else
+                <div class="booking-summary">
+                    <p>{{ $summaryName }}</p>
+                    <p>{{ $summaryMobile }}</p>
+                    <p>{{ $summaryAddress ?: 'N/A' }}</p>
+                    <p>{{ $customerTypeLabel }}</p>
+                    <p>Profession - {{ $professionLabel }}</p>
+                    <p>DOB: {{ $dobLabel }}</p>
+                </div>
+            @endif
         @endif
 
         <form method="POST" action="{{ route('booking.store', $enquiry->id) }}" enctype="multipart/form-data" id="bookingForm">
@@ -189,7 +199,7 @@
                     <h3 class="section-heading">Personal Details</h3>
                     <label class="inline-edit-check">
                         <input type="checkbox" id="sameAsToggle" @checked(!$sameAsCustomer)>
-                        <span>Edit</span>
+                        <span>Edit Buying Details</span>
                     </label>
                     <input type="hidden" id="bookingSameAsCustomer" name="booking_same_as_customer" value="{{ $sameAsCustomer ? '1' : '0' }}">
                 </div>
@@ -493,11 +503,6 @@
             <section class="booking-section exchange-section {{ $currentStep === 3 ? 'active' : '' }}">
                 <h3 class="section-heading">Exchange Details</h3>
 
-                <div class="row">
-                    <label>Interested In</label>
-                    <div class="vehicle-pill-display">{{ $interestedVehicleLine }}</div>
-                </div>
-
                 <label>Interested In Exchange</label>
                 <div class="segment-row two">
                     <label><input type="radio" name="interested_in_exchange" value="yes" @checked($selectedInterestedExchange === 'yes')><span>Yes</span></label>
@@ -523,6 +528,11 @@
                     </div>
 
                     <div id="exchangeEditFields" class="exchange-edit-fields {{ $showExchangeDetails ? '' : 'hidden' }}">
+                        <div class="row exchange-interested-row">
+                            <label>Interested In</label>
+                            <div class="vehicle-pill-display">{{ $interestedVehicleLine }}</div>
+                        </div>
+
                         <div class="row split">
                             <div>
                                 <label>Brand</label>
@@ -544,44 +554,45 @@
                             </div>
                         </div>
 
-                        <div class="row">
-                            <label>Year</label>
-                            <select name="exchange_manufacture_year" class="buying-select">
-                                <option value="">Select Year</option>
-                                @for($year = now()->year + 1; $year >= 1950; $year--)
-                                    <option value="{{ $year }}" @selected((string) $selectedExchangeYear === (string) $year)>{{ $year }}</option>
-                                @endfor
-                            </select>
+                        <div class="row split">
+                            <div>
+                                <label>Year</label>
+                                <select name="exchange_manufacture_year" class="buying-select">
+                                    <option value="">Select Year</option>
+                                    @for($year = now()->year + 1; $year >= 1950; $year--)
+                                        <option value="{{ $year }}" @selected((string) $selectedExchangeYear === (string) $year)>{{ $year }}</option>
+                                    @endfor
+                                </select>
+                            </div>
+                            <div>
+                                <label>Color</label>
+                                <input type="text" name="exchange_color" value="{{ $selectedExchangeColor }}" placeholder="Color">
+                            </div>
                         </div>
 
                         <div class="row split">
                             <div>
-                                <label>Color</label>
-                                <input type="text" name="exchange_color" value="{{ $selectedExchangeColor }}">
+                                <label>Mileage Km</label>
+                                <input type="number" min="0" name="exchange_mileage_km" value="{{ $selectedExchangeMileage }}" placeholder="Mileage KM">
                             </div>
                             <div>
-                                <label>Mileage Km</label>
-                                <input type="number" min="0" name="exchange_mileage_km" value="{{ $selectedExchangeMileage }}">
+                                <label>Registration No.</label>
+                                <input type="text" name="exchange_registration_no" value="{{ $selectedExchangeRegNo }}" placeholder="Registration No.">
                             </div>
-                        </div>
-
-                        <div class="row">
-                            <label>Registration No.</label>
-                            <input type="text" name="exchange_registration_no" value="{{ $selectedExchangeRegNo }}">
                         </div>
 
                         <div class="row triple">
                             <div>
                                 <label>Expected Price</label>
-                                <input type="number" step="0.01" min="0" id="exchange_expected_price" name="exchange_expected_price" value="{{ $selectedExchangeExpectedPrice }}">
+                                <input type="number" step="0.01" min="0" id="exchange_expected_price" name="exchange_expected_price" value="{{ $selectedExchangeExpectedPrice }}" placeholder="Expected Price">
                             </div>
                             <div>
                                 <label>Quoted Price</label>
-                                <input type="number" step="0.01" min="0" id="exchange_quoted_price" name="exchange_quoted_price" value="{{ $selectedExchangeQuotedPrice }}">
+                                <input type="number" step="0.01" min="0" id="exchange_quoted_price" name="exchange_quoted_price" value="{{ $selectedExchangeQuotedPrice }}" placeholder="Quoted Price">
                             </div>
                             <div>
                                 <label>Difference</label>
-                                <input type="number" step="0.01" id="exchange_price_difference" name="exchange_price_difference" class="exchange-difference-input" value="{{ $selectedExchangeDifference }}" readonly>
+                                <input type="number" step="0.01" id="exchange_price_difference" name="exchange_price_difference" class="exchange-difference-input" value="{{ $selectedExchangeDifference }}" placeholder="Difference" readonly>
                             </div>
                         </div>
 
@@ -662,13 +673,52 @@
                     <label class="inline-edit-check">
                         <input type="hidden" name="edit_offer_details" value="0">
                         <input type="checkbox" id="toggleOfferEdit" name="edit_offer_details" value="1" @checked($isOfferEdit)>
-                        <span>Edit</span>
+                        <span>Edit Buying Details</span>
                     </label>
+                </div>
+
+                <div class="offer-summary-panel" id="offerSummaryPanel">
+                    <div class="offer-summary-table">
+                        <div class="offer-summary-head">
+                            <span></span>
+                            <span>Cost</span>
+                            <span>Offer</span>
+                            <span>Payable</span>
+                        </div>
+                        <div class="offer-summary-row">
+                            <strong>VAT</strong>
+                            <span id="offerSummaryVatCost">{{ number_format((float) ($selectedOfferVatAmount ?? 0), 0) }}</span>
+                            <span id="offerSummaryVatOffer">{{ number_format((float) ($selectedOfferVatDiscount ?? 0), 0) }}</span>
+                            <span id="offerSummaryVatPayable">{{ number_format(max(0, (float) ($selectedOfferVatAmount ?? 0) - (float) ($selectedOfferVatDiscount ?? 0)), 0) }}</span>
+                        </div>
+                        <div class="offer-summary-row">
+                            <strong>Unit price (without vat)</strong>
+                            <span id="offerSummaryUnitCost">{{ number_format((float) ($selectedOfferUnitPrice ?? 0), 0) }}</span>
+                            <span id="offerSummaryUnitOffer">{{ number_format((float) ($selectedOfferUnitPriceDiscount ?? 0), 0) }}</span>
+                            <span id="offerSummaryUnitPayable">{{ number_format(max(0, (float) ($selectedOfferUnitPrice ?? 0) - (float) ($selectedOfferUnitPriceDiscount ?? 0)), 0) }}</span>
+                        </div>
+                    </div>
+
+                    <div class="offer-summary-total">
+                        <strong>Total</strong>
+                        <span id="offerSummaryTotalCost">{{ number_format((float) ($selectedOfferTotalCost ?? 0), 0) }}</span>
+                        <span id="offerSummaryTotalOffer">{{ number_format((float) ($selectedOfferTotalDiscount ?? 0), 0) }}</span>
+                        <span id="offerSummaryTotalPayable">{{ number_format((float) ($selectedOfferFinalPrice ?? 0), 0) }}</span>
+                    </div>
+
+                    <div class="offer-remarks">
+                        <label class="offer-remarks-toggle">
+                            <span>Add Remarks</span>
+                            <input type="checkbox" id="offerRemarksToggle" checked>
+                            <i></i>
+                        </label>
+                        <textarea id="offerRemarksText" rows="4" placeholder="Type comment here......"></textarea>
+                    </div>
                 </div>
 
                 <div class="offer-edit-group" id="offerEditGroup">
                     <div class="offer-card">
-                        <div class="offer-card-title">Unit price - without VAT</div>
+                        <div class="offer-card-title">Unit price (without vat)</div>
                         <div class="offer-card-amount-row">
                             <input type="number" step="0.01" min="0" name="offer_unit_price" id="offer_unit_price" value="{{ $selectedOfferUnitPrice }}">
                         </div>
@@ -702,13 +752,13 @@
                             <span>Total</span>
                             <span>Cost</span>
                             <span>Offer</span>
-                            <span>Final offer price</span>
+                            <span>Final Offer Price</span>
                         </div>
                         <div class="offer-total-values">
                             <span></span>
-                            <strong id="offerTotalCostDisplay">{{ number_format((float) ($selectedOfferTotalCost ?? 0), 2, '.', '') }}</strong>
-                            <strong id="offerTotalDiscountDisplay">{{ number_format((float) ($selectedOfferTotalDiscount ?? 0), 2, '.', '') }}</strong>
-                            <strong id="offerFinalPriceDisplay">{{ number_format((float) ($selectedOfferFinalPrice ?? 0), 2, '.', '') }}</strong>
+                            <strong id="offerTotalCostDisplay">{{ number_format((float) ($selectedOfferTotalCost ?? 0), 0) }}</strong>
+                            <strong id="offerTotalDiscountDisplay">{{ number_format((float) ($selectedOfferTotalDiscount ?? 0), 0) }}</strong>
+                            <strong id="offerFinalPriceDisplay">{{ number_format((float) ($selectedOfferFinalPrice ?? 0), 0) }}</strong>
                         </div>
                     </div>
 
@@ -870,6 +920,18 @@
         const offerTotalCostDisplay = document.getElementById('offerTotalCostDisplay');
         const offerTotalDiscountDisplay = document.getElementById('offerTotalDiscountDisplay');
         const offerFinalPriceDisplay = document.getElementById('offerFinalPriceDisplay');
+        const offerSummaryPanel = document.getElementById('offerSummaryPanel');
+        const offerSummaryVatCost = document.getElementById('offerSummaryVatCost');
+        const offerSummaryVatOffer = document.getElementById('offerSummaryVatOffer');
+        const offerSummaryVatPayable = document.getElementById('offerSummaryVatPayable');
+        const offerSummaryUnitCost = document.getElementById('offerSummaryUnitCost');
+        const offerSummaryUnitOffer = document.getElementById('offerSummaryUnitOffer');
+        const offerSummaryUnitPayable = document.getElementById('offerSummaryUnitPayable');
+        const offerSummaryTotalCost = document.getElementById('offerSummaryTotalCost');
+        const offerSummaryTotalOffer = document.getElementById('offerSummaryTotalOffer');
+        const offerSummaryTotalPayable = document.getElementById('offerSummaryTotalPayable');
+        const offerRemarksToggle = document.getElementById('offerRemarksToggle');
+        const offerRemarksText = document.getElementById('offerRemarksText');
         const bookingStepInput = document.querySelector('input[name="booking_step"]');
         const actionRow = document.getElementById('actionRow');
         const backAction = document.getElementById('backAction');
@@ -1213,10 +1275,19 @@
             return Number.isNaN(n) ? 0 : Math.max(0, n);
         }
 
+        function formatOfferMoney(value) {
+            return Math.round(toMoney(value)).toLocaleString('en-US');
+        }
+
         function syncOfferReadonlyState() {
             if (!toggleOfferEdit || !offerEditGroup) return;
 
             const editable = toggleOfferEdit.checked;
+            offerEditGroup.classList.toggle('hidden', !editable);
+            if (offerSummaryPanel) {
+                offerSummaryPanel.classList.toggle('hidden', editable);
+            }
+
             const targets = offerEditGroup.querySelectorAll(
                 'input[type="number"], input[type="checkbox"]'
             );
@@ -1233,6 +1304,12 @@
                     el.readOnly = !editable;
                 }
             });
+        }
+
+        function syncOfferRemarksState() {
+            if (!offerRemarksToggle || !offerRemarksText) return;
+
+            offerRemarksText.classList.toggle('hidden', !offerRemarksToggle.checked);
         }
 
         function syncOfferTotals() {
@@ -1277,9 +1354,19 @@
             if (offerTotalDiscountInput) offerTotalDiscountInput.value = totalDiscount.toFixed(2);
             if (offerFinalPriceInput) offerFinalPriceInput.value = finalPrice.toFixed(2);
 
-            if (offerTotalCostDisplay) offerTotalCostDisplay.textContent = totalCost.toFixed(2);
-            if (offerTotalDiscountDisplay) offerTotalDiscountDisplay.textContent = totalDiscount.toFixed(2);
-            if (offerFinalPriceDisplay) offerFinalPriceDisplay.textContent = finalPrice.toFixed(2);
+            if (offerTotalCostDisplay) offerTotalCostDisplay.textContent = formatOfferMoney(totalCost);
+            if (offerTotalDiscountDisplay) offerTotalDiscountDisplay.textContent = formatOfferMoney(totalDiscount);
+            if (offerFinalPriceDisplay) offerFinalPriceDisplay.textContent = formatOfferMoney(finalPrice);
+
+            if (offerSummaryVatCost) offerSummaryVatCost.textContent = formatOfferMoney(vat);
+            if (offerSummaryVatOffer) offerSummaryVatOffer.textContent = formatOfferMoney(vatDiscount);
+            if (offerSummaryVatPayable) offerSummaryVatPayable.textContent = formatOfferMoney(Math.max(0, vat - vatDiscount));
+            if (offerSummaryUnitCost) offerSummaryUnitCost.textContent = formatOfferMoney(unit);
+            if (offerSummaryUnitOffer) offerSummaryUnitOffer.textContent = formatOfferMoney(unitDiscount);
+            if (offerSummaryUnitPayable) offerSummaryUnitPayable.textContent = formatOfferMoney(Math.max(0, unit - unitDiscount));
+            if (offerSummaryTotalCost) offerSummaryTotalCost.textContent = formatOfferMoney(totalCost);
+            if (offerSummaryTotalOffer) offerSummaryTotalOffer.textContent = formatOfferMoney(totalDiscount);
+            if (offerSummaryTotalPayable) offerSummaryTotalPayable.textContent = formatOfferMoney(finalPrice);
         }
 
         if (toggle) {
@@ -1460,6 +1547,11 @@
             syncOfferReadonlyState();
         }
 
+        if (offerRemarksToggle) {
+            offerRemarksToggle.addEventListener('change', syncOfferRemarksState);
+            syncOfferRemarksState();
+        }
+
         syncBuyingState();
         syncCompetitionModels();
         syncExistingVehicleModels();
@@ -1493,4 +1585,3 @@
 </script>
 @endif
 @endsection
-
