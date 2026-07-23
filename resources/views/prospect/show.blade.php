@@ -59,6 +59,7 @@
     ];
     $defaultCustomerRemark = $remarkOptions[0];
     $customerRemark = old('customer_remark', !empty($prospect->customer_remark) ? $prospect->customer_remark : $defaultCustomerRemark);
+    $summaryTotalPrice = (float) ($vehicle->unit_price ?? 0) + (float) ($vehicle->vat_amount ?? 0);
 
     $latestFollowupText = 'No followup scheduled yet';
     if (!empty($enquiry->follow_type) || !empty($enquiry->follow_date) || !empty($enquiry->follow_time)) {
@@ -142,11 +143,11 @@
     </div>
 
     <div class="summary-card">
-        <div class="summary-row"><span>Customer Name</span><strong>{{ $customer->title }} {{ $customer->name }}</strong></div>
+        <div class="summary-row"><span>Name</span><strong>{{ $customer->title }} {{ $customer->name }}</strong></div>
         <div class="summary-row"><span>Interested In</span><strong>{{ $vehicle->model }} {{ $vehicle->variant }}</strong></div>
-        <div class="summary-row"><span>Mobile No.</span><strong>{{ $mobileString }}</strong></div>
-        <div class="summary-row"><span>DMS ID</span><strong>ENQ-{{ $enquiry->id }}</strong></div>
-        <div class="summary-row"><span>SC Name</span><strong>N/A</strong></div>
+        <div class="summary-row"><span>Total price</span><strong>{{ number_format($summaryTotalPrice, 0) }}</strong></div>
+        <div class="summary-row"><span>DMS ID</span><strong>{{ $mobileString ?: 'ENQ-' . $enquiry->id }}</strong></div>
+        <div class="summary-row"><span>SC Name</span><strong>{{ $enquiry->user?->name ?? 'N/A' }}</strong></div>
     </div>
 
     <form method="POST" action="{{ route('prospect.store', $enquiry->id) }}" id="prospectForm" data-initial-step="{{ old('active_step', $initialStep) }}" enctype="multipart/form-data">
@@ -213,7 +214,12 @@
                 </div>
             </div>
 
-            <input type="hidden" name="address2" value="{{ old('address2', $customer->address2) }}">
+            <div class="personal-row personal-row-full">
+                <div class="field-pill">
+                    <label>Address Line 2</label>
+                    <input class="lockable" type="text" name="address2" value="{{ old('address2', $customer->address2) }}" placeholder="Address Line 2">
+                </div>
+            </div>
 
             <label>Type Of Customer</label>
             <div class="segmented customer-type-segment">
@@ -238,14 +244,14 @@
         <section class="prospect-step buying-step" data-step="2">
             <h3>Buying Details</h3>
 
-            <div class="section-title-line">
-                <label>Interested In Vehicle</label>
+            <div class="section-title-line buying-edit-line">
                 <label class="switch-label">
                     <input type="checkbox" id="toggleInterestedVehicleEdit" name="edit_interested_vehicle" value="1" @checked($isInterestedVehicleEdit)>
                     <span>Edit</span>
                 </label>
             </div>
 
+            <label class="buying-field-label">Interested In</label>
             <div class="vehicle-pill">
                 {{ $vehicle->model }} / {{ $vehicle->engine_type }} / {{ $vehicle->variant }}
             </div>
@@ -274,7 +280,7 @@
                 </div>
             </div>
 
-            <label>Select Color</label>
+            <label class="buying-color-label">Select Color</label>
             <select name="interested_vehicle_color" id="interested_vehicle_color">
                 <option value="">Select Color</option>
                 @foreach($vehicleColorOptions as $colorOption)
@@ -292,12 +298,12 @@
                 @endforeach
             </div>
 
-            <label>Source Of Information</label>
+            <label>Source of Information</label>
             <select name="source_of_information" id="source_of_information" data-selected-source-info="{{ $selectedSourceOfInformation }}">
                 <option value="">Select Source of Information</option>
             </select>
 
-            <label>Did the Customer Take a Quote?</label>
+            <label>Did the customer take a quote?</label>
             <div class="segmented buying-segment-2">
                 <label><input type="radio" name="quote_taken" value="yes" @checked($selectedQuote === 'yes')><span>Yes</span></label>
                 <label><input type="radio" name="quote_taken" value="no" @checked($selectedQuote === 'no')><span>No</span></label>
@@ -308,21 +314,34 @@
                 <input type="date" name="quote_date" value="{{ old('quote_date', $prospect->quote_date) }}">
             </div>
 
-            <label>Test Drive Given</label>
+            <label>Test Drive Given?</label>
             <div class="segmented buying-segment-2">
                 <label><input type="radio" name="test_drive_given" value="yes" @checked($selectedTestDrive === 'yes')><span>Yes</span></label>
                 <label><input type="radio" name="test_drive_given" value="no" @checked($selectedTestDrive === 'no')><span>No</span></label>
             </div>
 
             <div class="buying-test-yes" data-conditional="test_drive_given" data-value="yes">
-                <label>When?</label>
-                <input type="date" name="test_drive_date" value="{{ old('test_drive_date', $prospect->test_drive_date) }}">
+                <div class="buying-test-name-field">
+                    <label>Name</label>
+                    <div class="buying-name-input">
+                        <select aria-label="Title">
+                            @foreach(['Mr.', 'Mrs.', 'Ms.', 'Dr.'] as $title)
+                                <option value="{{ $title }}" @selected(($customer->title ? rtrim($customer->title, '.') . '.' : 'Mr.') === $title)>{{ $title }}</option>
+                            @endforeach
+                        </select>
+                        <input type="text" name="test_drive_to_whom" value="{{ old('test_drive_to_whom', $prospect->test_drive_to_whom) }}" placeholder="{{ $customer->name }}">
+                    </div>
+                </div>
 
-                <label>Vehicle Model</label>
-                <input type="text" name="test_drive_vehicle_model" value="{{ old('test_drive_vehicle_model', $prospect->test_drive_vehicle_model) }}">
+                <div>
+                    <label>When?</label>
+                    <input type="date" name="test_drive_date" value="{{ old('test_drive_date', $prospect->test_drive_date) }}">
+                </div>
 
-                <label>To Whom?</label>
-                <input type="text" name="test_drive_to_whom" value="{{ old('test_drive_to_whom', $prospect->test_drive_to_whom) }}">
+                <div class="buying-test-vehicle-field">
+                    <label>Vehicle Used?</label>
+                    <input type="text" name="test_drive_vehicle_model" value="{{ old('test_drive_vehicle_model', $prospect->test_drive_vehicle_model) }}" placeholder="{{ $vehicle->model }} {{ $vehicle->variant }}">
+                </div>
             </div>
 
             <div class="buying-test-no" data-conditional="test_drive_given" data-value="no">
@@ -330,7 +349,7 @@
                 <input type="text" name="test_drive_not_given_reason" value="{{ old('test_drive_not_given_reason', $prospect->test_drive_not_given_reason) }}" placeholder="Reason">
             </div>
 
-            <label>Mode Of Purchase</label>
+            <label>Mode of Purchase</label>
             <div class="segmented buying-segment-2">
                 <label><input type="radio" name="purchase_mode" value="cash" @checked($selectedPurchaseMode === 'cash')><span>Cash</span></label>
                 <label><input type="radio" name="purchase_mode" value="finance" @checked($selectedPurchaseMode === 'finance')><span>Finance</span></label>
@@ -361,7 +380,7 @@
                 </div>
             </div>
 
-            <label>First Time Buyer</label>
+            <label>First time buyer?</label>
             <div class="segmented buying-segment-2">
                 <label><input type="radio" name="first_time_buyer" value="yes" @checked($selectedFirstTimeBuyer === 'yes')><span>Yes</span></label>
                 <label><input type="radio" name="first_time_buyer" value="no" @checked($selectedFirstTimeBuyer === 'no')><span>No</span></label>
@@ -370,20 +389,26 @@
             <div class="grid-3 buying-existing-grid" data-conditional="first_time_buyer" data-value="no">
                 <div>
                     <label>Existing Vehicle Brand</label>
-                    <input type="text" name="existing_vehicle_brand" value="{{ old('existing_vehicle_brand', $prospect->existing_vehicle_brand) }}">
+                    <input type="text" name="existing_vehicle_brand" value="{{ old('existing_vehicle_brand', $prospect->existing_vehicle_brand) }}" placeholder="Select brand">
                 </div>
                 <div>
                     <label>Existing Vehicle Model</label>
-                    <input type="text" name="existing_vehicle_model" value="{{ old('existing_vehicle_model', $prospect->existing_vehicle_model) }}">
+                    <input type="text" name="existing_vehicle_model" value="{{ old('existing_vehicle_model', $prospect->existing_vehicle_model) }}" placeholder="Select model">
                 </div>
                 <div>
                     <label>Year</label>
-                    <input type="number" name="existing_vehicle_year" min="1950" max="2100" value="{{ old('existing_vehicle_year', $prospect->existing_vehicle_year) }}">
+                    <input type="number" name="existing_vehicle_year" min="1950" max="2100" value="{{ old('existing_vehicle_year', $prospect->existing_vehicle_year) }}" placeholder="Model year">
                 </div>
             </div>
         </section>
         <section class="prospect-step exchange-step" data-step="3">
-            <h3>Exchange Details</h3>
+            <div class="section-title-line exchange-edit-line">
+                <h3>Exchange Details</h3>
+                <label class="switch-label exchange-edit-label">
+                    <input type="checkbox" id="allowExchangeEdit" checked>
+                    <span>Edit Exchange Details</span>
+                </label>
+            </div>
 
             <label>Interested In Exchange?</label>
             <div class="segmented exchange-interest-segment">
@@ -392,7 +417,8 @@
             </div>
 
             <div class="exchange-detail-wrap" data-conditional="interested_in_exchange" data-value="yes">
-                <h4 class="sub-title">Exchange detail</h4>
+                <label class="exchange-interested-label">Interested In</label>
+                <input class="exchange-interested-input" type="text" value="{{ $vehicle->model }} {{ $vehicle->variant }}" readonly>
 
                 @php
                     $exchangeYearSelected = old('exchange_manufacture_year', $prospect->exchange_manufacture_year);
@@ -499,31 +525,31 @@
                     @endif
 
                     <div class="section-title-line exchange-switch-row exchange-more-row">
-                        <label>Add more images</label>
+                        <label>Additional Images</label>
                         <button type="button" class="exchange-more-btn" id="addMoreExchangeImagesBtn" aria-label="Add more images">+</button>
                     </div>
 
                     <div id="extraExchangeImagesContainer" class="exchange-upload-grid exchange-upload-grid-extra">
                         <div class="extra-image-row">
                             <label class="exchange-upload-tile exchange-upload-tile-extra" data-upload-tile>
-                                <span class="exchange-upload-text">Car picture 3</span>
-                                <img class="exchange-upload-preview" alt="Car picture 3 preview" hidden>
+                                <span class="exchange-upload-text">Image 1</span>
+                                <img class="exchange-upload-preview" alt="Image 1 preview" hidden>
                                 <button type="button" class="extra-image-remove-top" aria-label="Remove image slot">-</button>
                                 <input type="file" name="extra_exchange_images[]" accept="image/*">
                             </label>
                         </div>
                         <div class="extra-image-row">
                             <label class="exchange-upload-tile exchange-upload-tile-extra" data-upload-tile>
-                                <span class="exchange-upload-text">Car picture 4</span>
-                                <img class="exchange-upload-preview" alt="Car picture 4 preview" hidden>
+                                <span class="exchange-upload-text">Image 2</span>
+                                <img class="exchange-upload-preview" alt="Image 2 preview" hidden>
                                 <button type="button" class="extra-image-remove-top" aria-label="Remove image slot">-</button>
                                 <input type="file" name="extra_exchange_images[]" accept="image/*">
                             </label>
                         </div>
                         <div class="extra-image-row">
                             <label class="exchange-upload-tile exchange-upload-tile-extra" data-upload-tile>
-                                <span class="exchange-upload-text">Car picture 5</span>
-                                <img class="exchange-upload-preview" alt="Car picture 5 preview" hidden>
+                                <span class="exchange-upload-text">Image 3</span>
+                                <img class="exchange-upload-preview" alt="Image 3 preview" hidden>
                                 <button type="button" class="extra-image-remove-top" aria-label="Remove image slot">-</button>
                                 <input type="file" name="extra_exchange_images[]" accept="image/*">
                             </label>
@@ -737,7 +763,7 @@
         <div class="actions">
             <button type="button" class="btn btn-secondary" id="backBtn">Back</button>
             <button type="button" class="btn btn-secondary" id="saveExitBtn">Save & Exit</button>
-            <button type="button" class="btn btn-primary" id="nextBtn">Next</button>
+            <button type="button" class="btn btn-primary" id="nextBtn">Save &amp; Next</button>
         </div>
     </form>
 </div>
@@ -774,11 +800,6 @@
     })();
 </script>
 @endsection
-
-
-
-
-
 
 
 

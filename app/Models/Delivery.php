@@ -71,6 +71,19 @@ class Delivery extends Model
         'citizenship_certificate_1_image',
         'citizenship_certificate_2_image',
         'extra_images',
+        'payment_receipt_amount_booking',
+        'payment_pre_delivery_amount',
+        'payment_delivery_amount',
+        'payment_finance_provider',
+        'payment_pending_reason',
+        'payment_pending_amount',
+        'payment_agent_name',
+        'payment_agent_number',
+        'payment_expected_date',
+        'payment_credit_given_to_customer',
+        'payment_credit_amount_pending',
+        'payment_credit_permitted_by',
+        'payment_credit_expected_date',
     ];
 
     protected $casts = [
@@ -84,6 +97,13 @@ class Delivery extends Model
         'exchange_quoted_price' => 'decimal:2',
         'exchange_price_difference' => 'decimal:2',
         'exchange_extra_images' => 'array',
+        'payment_receipt_amount_booking' => 'decimal:2',
+        'payment_pre_delivery_amount' => 'decimal:2',
+        'payment_delivery_amount' => 'decimal:2',
+        'payment_pending_amount' => 'decimal:2',
+        'payment_expected_date' => 'date',
+        'payment_credit_amount_pending' => 'decimal:2',
+        'payment_credit_expected_date' => 'date',
     ];
 
     public function enquiry()

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Booking;
 use App\Models\CompetitionVehicle;
 use App\Models\Delivery;
 use App\Models\Enquiry;
@@ -45,7 +46,7 @@ class DeliveryController extends Controller
         $prospect = $enquiry->prospectSheet;
         $booking = $enquiry->booking;
         $currentStep = (int) old('delivery_step', request()->query('step', 1));
-        $currentStep = max(1, min(3, $currentStep));
+        $currentStep = max(1, min(6, $currentStep));
         $vehicleModels = Vehicle::query()
             ->select('model')
             ->distinct()
@@ -109,6 +110,28 @@ class DeliveryController extends Controller
             'exchange_expected_price' => $delivery->exchange_expected_price ?: $booking?->exchange_expected_price ?: $prospect?->exchange_expected_price,
             'exchange_quoted_price' => $delivery->exchange_quoted_price ?: $booking?->exchange_quoted_price ?: $prospect?->exchange_quoted_price,
             'exchange_price_difference' => $delivery->exchange_price_difference ?: $booking?->exchange_price_difference ?: $prospect?->exchange_price_difference,
+            'offer_unit_price' => $booking?->offer_unit_price ?? $prospect?->offer_unit_price ?? $enquiry->vehicle?->unit_price,
+            'offer_unit_price_discount' => $booking?->offer_unit_price_discount ?? $prospect?->offer_unit_price_discount ?? 0,
+            'offer_unit_price_free' => (bool) (($booking?->offer_unit_price_free ?? null) ?? $prospect?->offer_unit_price_free),
+            'offer_vat_amount' => $booking?->offer_vat_amount ?? $prospect?->offer_vat_amount ?? $enquiry->vehicle?->vat_amount,
+            'offer_vat_discount' => $booking?->offer_vat_discount ?? $prospect?->offer_vat_discount ?? 0,
+            'offer_vat_free' => (bool) (($booking?->offer_vat_free ?? null) ?? $prospect?->offer_vat_free),
+            'offer_total_cost' => $booking?->offer_total_cost ?? $prospect?->offer_total_cost,
+            'offer_total_discount' => $booking?->offer_total_discount ?? $prospect?->offer_total_discount,
+            'offer_final_price' => $booking?->offer_final_price ?? $prospect?->offer_final_price,
+            'payment_receipt_amount_booking' => $delivery->payment_receipt_amount_booking,
+            'payment_pre_delivery_amount' => $delivery->payment_pre_delivery_amount,
+            'payment_delivery_amount' => $delivery->payment_delivery_amount,
+            'payment_finance_provider' => $delivery->payment_finance_provider ?: 'Self',
+            'payment_pending_reason' => $delivery->payment_pending_reason,
+            'payment_pending_amount' => $delivery->payment_pending_amount,
+            'payment_agent_name' => $delivery->payment_agent_name,
+            'payment_agent_number' => $delivery->payment_agent_number,
+            'payment_expected_date' => $delivery->payment_expected_date ? substr((string) $delivery->payment_expected_date, 0, 10) : null,
+            'payment_credit_given_to_customer' => $delivery->payment_credit_given_to_customer,
+            'payment_credit_amount_pending' => $delivery->payment_credit_amount_pending,
+            'payment_credit_permitted_by' => $delivery->payment_credit_permitted_by,
+            'payment_credit_expected_date' => $delivery->payment_credit_expected_date ? substr((string) $delivery->payment_credit_expected_date, 0, 10) : null,
         ];
 
         return view('delivery.show', [
@@ -127,7 +150,7 @@ class DeliveryController extends Controller
 
     public function store(Request $request, Enquiry $enquiry)
     {
-        $enquiry->load(['delivery']);
+        $enquiry->load(['delivery', 'booking', 'prospectSheet']);
 
         $documentValidation = [];
         foreach (self::DOCUMENT_FIELDS as $field) {
@@ -140,8 +163,8 @@ class DeliveryController extends Controller
         }
 
         $validated = $request->validate([
-            'action_type' => ['nullable', Rule::in(['save_exit', 'save_next'])],
-            'delivery_step' => ['nullable', 'integer', 'between:1,3'],
+            'action_type' => ['nullable', Rule::in(['save_exit', 'save_next', 'submit'])],
+            'delivery_step' => ['nullable', 'integer', 'between:1,6'],
             'title' => ['nullable', 'string', 'max:20'],
             'name' => ['nullable', 'string', 'max:255'],
             'contact_type' => ['nullable', Rule::in(['Mobile', 'Home', 'Office'])],
@@ -185,6 +208,29 @@ class DeliveryController extends Controller
             'exchange_expected_price' => ['nullable', 'numeric', 'min:0'],
             'exchange_quoted_price' => ['nullable', 'numeric', 'min:0'],
             'exchange_price_difference' => ['nullable', 'numeric'],
+            'offer_unit_price' => ['nullable', 'numeric', 'min:0'],
+            'offer_unit_price_discount' => ['nullable', 'numeric', 'min:0'],
+            'offer_unit_price_free' => ['nullable', 'in:0,1'],
+            'offer_vat_amount' => ['nullable', 'numeric', 'min:0'],
+            'offer_vat_discount' => ['nullable', 'numeric', 'min:0'],
+            'offer_vat_free' => ['nullable', 'in:0,1'],
+            'offer_total_cost' => ['nullable', 'numeric', 'min:0'],
+            'offer_total_discount' => ['nullable', 'numeric', 'min:0'],
+            'offer_final_price' => ['nullable', 'numeric', 'min:0'],
+            'edit_offer_details' => ['nullable', 'in:0,1'],
+            'payment_receipt_amount_booking' => ['nullable', 'numeric', 'min:0'],
+            'payment_pre_delivery_amount' => ['nullable', 'numeric', 'min:0'],
+            'payment_delivery_amount' => ['nullable', 'numeric', 'min:0'],
+            'payment_finance_provider' => ['nullable', 'string', 'max:255'],
+            'payment_pending_reason' => ['nullable', 'string', 'max:255'],
+            'payment_pending_amount' => ['nullable', 'numeric', 'min:0'],
+            'payment_agent_name' => ['nullable', 'string', 'max:255'],
+            'payment_agent_number' => ['nullable', 'string', 'max:50'],
+            'payment_expected_date' => ['nullable', 'date'],
+            'payment_credit_given_to_customer' => ['nullable', 'string', 'max:255'],
+            'payment_credit_amount_pending' => ['nullable', 'numeric', 'min:0'],
+            'payment_credit_permitted_by' => ['nullable', 'string', 'max:255'],
+            'payment_credit_expected_date' => ['nullable', 'date'],
             'extra_images' => ['nullable', 'array'],
             'extra_images.*' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'remove_extra_images' => ['nullable', 'array'],
@@ -195,12 +241,31 @@ class DeliveryController extends Controller
             'remove_exchange_extra_images.*' => ['nullable', 'string'],
         ] + $documentValidation);
 
+        $currentStep = (int) ($validated['delivery_step'] ?? 1);
+        $currentStep = max(1, min(6, $currentStep));
         $existingDelivery = $enquiry->delivery;
         $removeDocumentFields = collect(array_merge(self::DOCUMENT_FIELDS, self::EXCHANGE_IMAGE_FIELDS))
             ->map(fn($field) => 'remove_' . $field)
             ->all();
         $payload = collect($validated)
-            ->except(array_merge(['action_type', 'delivery_step', 'extra_images', 'remove_extra_images', 'exchange_extra_images', 'remove_exchange_extra_images'], $removeDocumentFields))
+            ->except(array_merge([
+                'action_type',
+                'delivery_step',
+                'extra_images',
+                'remove_extra_images',
+                'exchange_extra_images',
+                'remove_exchange_extra_images',
+                'offer_unit_price',
+                'offer_unit_price_discount',
+                'offer_unit_price_free',
+                'offer_vat_amount',
+                'offer_vat_discount',
+                'offer_vat_free',
+                'offer_total_cost',
+                'offer_total_discount',
+                'offer_final_price',
+                'edit_offer_details',
+            ], $removeDocumentFields))
             ->all();
 
         if (array_key_exists('customer_type', $payload) && ($payload['customer_type'] ?? null) !== 'corporate') {
@@ -360,15 +425,128 @@ class DeliveryController extends Controller
             $payload
         );
 
-        $currentStep = (int) ($validated['delivery_step'] ?? 1);
-        $currentStep = max(1, min(3, $currentStep));
+        $bookingVehicleSync = [];
+        if (array_key_exists('interested_model', $payload)) {
+            $bookingVehicleSync['interested_model'] = $payload['interested_model'];
+        }
+        if (array_key_exists('interested_vehicle_color', $payload)) {
+            $bookingVehicleSync['interested_vehicle_color'] = $payload['interested_vehicle_color'];
+        }
+
+        if (!empty($bookingVehicleSync) && $enquiry->booking) {
+            $enquiry->booking->fill($bookingVehicleSync)->save();
+        }
+
+        if (array_key_exists('interested_vehicle_color', $payload) && $enquiry->prospectSheet) {
+            $enquiry->prospectSheet->fill([
+                'interested_vehicle_color' => $payload['interested_vehicle_color'],
+            ])->save();
+        }
+
+        if ($currentStep === 4) {
+            $isEditingOffer = ($validated['edit_offer_details'] ?? '0') === '1';
+            $offerSource = function (string $field, $fallback = 0) use ($enquiry) {
+                $vehicleField = match ($field) {
+                    'offer_unit_price' => 'unit_price',
+                    'offer_vat_amount' => 'vat_amount',
+                    default => null,
+                };
+
+                return $enquiry->booking?->{$field}
+                    ?? $enquiry->prospectSheet?->{$field}
+                    ?? ($vehicleField ? $enquiry->vehicle?->{$vehicleField} : null)
+                    ?? $fallback;
+            };
+
+            $offerUnitPrice = (float) (
+                $isEditingOffer
+                    ? ($validated['offer_unit_price'] ?? $offerSource('offer_unit_price'))
+                    : $offerSource('offer_unit_price')
+            );
+            $offerVatAmount = (float) (
+                $isEditingOffer
+                    ? ($validated['offer_vat_amount'] ?? $offerSource('offer_vat_amount'))
+                    : $offerSource('offer_vat_amount')
+            );
+            $offerUnitPriceDiscount = (float) (
+                $isEditingOffer
+                    ? ($validated['offer_unit_price_discount'] ?? $offerSource('offer_unit_price_discount'))
+                    : $offerSource('offer_unit_price_discount')
+            );
+            $offerVatDiscount = (float) (
+                $isEditingOffer
+                    ? ($validated['offer_vat_discount'] ?? $offerSource('offer_vat_discount'))
+                    : $offerSource('offer_vat_discount')
+            );
+            $offerUnitPriceFree = $isEditingOffer
+                ? (($validated['offer_unit_price_free'] ?? '0') === '1')
+                : (bool) $offerSource('offer_unit_price_free', false);
+            $offerVatFree = $isEditingOffer
+                ? (($validated['offer_vat_free'] ?? '0') === '1')
+                : (bool) $offerSource('offer_vat_free', false);
+
+            $offerUnitPrice = max(0, $offerUnitPrice);
+            $offerVatAmount = max(0, $offerVatAmount);
+            $offerUnitPriceDiscount = max(0, $offerUnitPriceDiscount);
+            $offerVatDiscount = max(0, $offerVatDiscount);
+
+            if ($offerUnitPriceFree) {
+                $offerUnitPriceDiscount = $offerUnitPrice;
+            } else {
+                $offerUnitPriceDiscount = min($offerUnitPriceDiscount, $offerUnitPrice);
+            }
+
+            if ($offerVatFree) {
+                $offerVatDiscount = $offerVatAmount;
+            } else {
+                $offerVatDiscount = min($offerVatDiscount, $offerVatAmount);
+            }
+
+            $offerPayload = [
+                'offer_unit_price' => $offerUnitPrice,
+                'offer_unit_price_discount' => $offerUnitPriceDiscount,
+                'offer_unit_price_free' => $offerUnitPriceFree,
+                'offer_vat_amount' => $offerVatAmount,
+                'offer_vat_discount' => $offerVatDiscount,
+                'offer_vat_free' => $offerVatFree,
+                'offer_total_cost' => $offerUnitPrice + $offerVatAmount,
+                'offer_total_discount' => $offerUnitPriceDiscount + $offerVatDiscount,
+                'offer_final_price' => max(0, ($offerUnitPrice + $offerVatAmount) - ($offerUnitPriceDiscount + $offerVatDiscount)),
+            ];
+
+            if ($enquiry->booking) {
+                $enquiry->booking->fill($offerPayload)->save();
+            } elseif ($isEditingOffer) {
+                Booking::create(array_merge(['enquiry_id' => $enquiry->id], $offerPayload));
+            }
+
+            if ($enquiry->prospectSheet) {
+                $enquiry->prospectSheet->fill($offerPayload)->save();
+            }
+        }
+
         $actionType = $validated['action_type'] ?? null;
 
         if ($actionType === 'save_exit') {
             return redirect('/epr')->with('success', 'Delivery details saved.');
         }
 
-        if ($actionType === 'save_next' && $currentStep < 3) {
+        if ($actionType === 'submit' && $currentStep === 6) {
+            return redirect()
+                ->route('delivery.show', ['enquiry' => $enquiry->id, 'step' => 6])
+                ->with('delivery_submitted_popup', true)
+                ->with('delivery_submitted_message', 'Delivery Submitted Successfully.');
+        }
+
+        if ($actionType === 'save_next' && $currentStep === 4) {
+            return redirect()
+                ->route('delivery.show', ['enquiry' => $enquiry->id, 'step' => 4])
+                ->with('delivery_offer_summary_popup', true)
+                ->with('delivery_offer_summary_next_url', route('delivery.show', ['enquiry' => $enquiry->id, 'step' => 5]))
+                ->with('success', 'Offer details saved.');
+        }
+
+        if ($actionType === 'save_next' && $currentStep < 6) {
             return redirect()
                 ->route('delivery.show', ['enquiry' => $enquiry->id, 'step' => $currentStep + 1])
                 ->with('success', 'Delivery details saved.');

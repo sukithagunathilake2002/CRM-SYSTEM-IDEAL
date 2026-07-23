@@ -7,7 +7,11 @@
     $summaryName = trim(($customer?->title ? $customer->title . ' ' : '') . ($customer?->name ?? 'N/A'));
     $summaryMobile = collect($customer?->mobile_numbers ?? [])->filter()->values()->implode(', ') ?: 'N/A';
     $summaryAddress = collect([$customer?->address1, $customer?->address2, $customer?->location, $customer?->district, $customer?->state])->filter()->implode(', ');
-    $summaryVehicle = collect([$booking?->interested_model ?: $vehicle?->model, $booking?->interested_engine ?: $vehicle?->engine_type, $booking?->interested_variant ?: $vehicle?->variant])->filter()->implode(' / ');
+    $summaryVehicle = collect([
+        $delivery?->interested_model ?: $booking?->interested_model ?: $vehicle?->model,
+        $delivery?->interested_engine ?: $booking?->interested_engine ?: $vehicle?->engine_type,
+        $delivery?->interested_variant ?: $booking?->interested_variant ?: $vehicle?->variant,
+    ])->filter()->implode(' / ');
 
     $selectedTitle = old('title', $defaultValues['title']);
     $selectedName = old('name', $defaultValues['name']);
@@ -50,6 +54,41 @@
     $selectedExchangeExpectedPrice = old('exchange_expected_price', $defaultValues['exchange_expected_price']);
     $selectedExchangeQuotedPrice = old('exchange_quoted_price', $defaultValues['exchange_quoted_price']);
     $selectedExchangeDifference = old('exchange_price_difference', $defaultValues['exchange_price_difference']);
+    $selectedOfferUnitPrice = old('offer_unit_price', $defaultValues['offer_unit_price']);
+    $selectedOfferUnitPriceDiscount = old('offer_unit_price_discount', $defaultValues['offer_unit_price_discount']);
+    $selectedOfferUnitPriceFree = old('offer_unit_price_free', (int) ($defaultValues['offer_unit_price_free'] ?? 0)) == 1;
+    $selectedOfferVatAmount = old('offer_vat_amount', $defaultValues['offer_vat_amount']);
+    $selectedOfferVatDiscount = old('offer_vat_discount', $defaultValues['offer_vat_discount']);
+    $selectedOfferVatFree = old('offer_vat_free', (int) ($defaultValues['offer_vat_free'] ?? 0)) == 1;
+    $selectedOfferTotalCost = old('offer_total_cost', $defaultValues['offer_total_cost']);
+    $selectedOfferTotalDiscount = old('offer_total_discount', $defaultValues['offer_total_discount']);
+    $selectedOfferFinalPrice = old('offer_final_price', $defaultValues['offer_final_price']);
+    $isOfferEdit = old('edit_offer_details') === '1';
+
+    $offerUnitValue = (float) ($selectedOfferUnitPrice ?? 0);
+    $offerVatValue = (float) ($selectedOfferVatAmount ?? 0);
+    $offerUnitDiscountValue = (float) ($selectedOfferUnitPriceDiscount ?? 0);
+    $offerVatDiscountValue = (float) ($selectedOfferVatDiscount ?? 0);
+    $selectedOfferTotalCost = $selectedOfferTotalCost ?? ($offerUnitValue + $offerVatValue);
+    $selectedOfferTotalDiscount = $selectedOfferTotalDiscount ?? ($offerUnitDiscountValue + $offerVatDiscountValue);
+    $selectedOfferFinalPrice = $selectedOfferFinalPrice ?? max(0, (float) $selectedOfferTotalCost - (float) $selectedOfferTotalDiscount);
+    $selectedPaymentReceiptBooking = old('payment_receipt_amount_booking', $defaultValues['payment_receipt_amount_booking']);
+    $selectedPaymentPreDelivery = old('payment_pre_delivery_amount', $defaultValues['payment_pre_delivery_amount']);
+    $selectedPaymentDelivery = old('payment_delivery_amount', $defaultValues['payment_delivery_amount']);
+    $selectedPaymentFinanceProvider = old('payment_finance_provider', $defaultValues['payment_finance_provider']);
+    $selectedPaymentPendingReason = old('payment_pending_reason', $defaultValues['payment_pending_reason']);
+    $selectedPaymentPendingAmount = old('payment_pending_amount', $defaultValues['payment_pending_amount']);
+    $selectedPaymentAgentName = old('payment_agent_name', $defaultValues['payment_agent_name']);
+    $selectedPaymentAgentNumber = old('payment_agent_number', $defaultValues['payment_agent_number']);
+    $selectedPaymentExpectedDate = old('payment_expected_date', $defaultValues['payment_expected_date']);
+    $selectedPaymentCreditGiven = old('payment_credit_given_to_customer', $defaultValues['payment_credit_given_to_customer']);
+    $selectedPaymentCreditAmount = old('payment_credit_amount_pending', $defaultValues['payment_credit_amount_pending']);
+    $selectedPaymentCreditPermittedBy = old('payment_credit_permitted_by', $defaultValues['payment_credit_permitted_by']);
+    $selectedPaymentCreditExpectedDate = old('payment_credit_expected_date', $defaultValues['payment_credit_expected_date']);
+    $paymentReceivedTotal = (float) ($selectedPaymentReceiptBooking ?? 0)
+        + (float) ($selectedPaymentPreDelivery ?? 0)
+        + (float) ($selectedPaymentDelivery ?? 0);
+    $selectedPaymentPendingAmount = $selectedPaymentPendingAmount ?? max(0, (float) ($selectedOfferFinalPrice ?? 0) - $paymentReceivedTotal);
 
     $vehicleColorOptions = ['White', 'Black', 'Silver', 'Grey', 'Red', 'Blue', 'Green', 'Brown', 'Orange', 'Other'];
     $testDriveNoReasons = [
@@ -86,6 +125,63 @@
 
     $documentUrl = fn($field) => !empty($delivery->{$field}) ? asset('storage/' . $delivery->{$field}) : null;
     $exchangeImageUrl = fn($field) => !empty($delivery->{$field}) ? asset('storage/' . $delivery->{$field}) : null;
+    $displayValue = fn($value, $fallback = 'N/A') => filled($value) ? $value : $fallback;
+    $displayDate = fn($value) => $value ? \Illuminate\Support\Carbon::parse($value)->format('F d, Y') : 'N/A';
+    $deliveryOwnerName = $displayValue($enquiry->user?->name, $summaryName);
+    $bookingDisplayName = trim(($booking?->title ? $booking->title . ' ' : '') . ($booking?->name ?? '')) ?: $summaryName;
+    $customerDisplayName = $displayValue($selectedName, $customer?->name ?: 'N/A');
+    $reviewRows = [
+        'delivery' => [
+            'title' => 'Delivery Details',
+            'rows' => [
+                ['label' => 'Name', 'value' => $deliveryOwnerName],
+                ['label' => 'Lead Source', 'value' => $displayValue($enquiry->lead_source)],
+                ['label' => 'Source of Information', 'value' => $displayValue($enquiry->source_of_information ?: $prospect?->source_of_information)],
+                ['label' => 'Model', 'value' => $displayValue($selectedInterestedModel ?: $vehicle?->model)],
+                ['label' => 'Variant', 'value' => $displayValue($delivery?->interested_variant ?: $booking?->interested_variant ?: $vehicle?->variant)],
+                ['label' => 'Color', 'value' => $displayValue($selectedInterestedColor)],
+            ],
+        ],
+        'enquiry' => [
+            'title' => 'Enquiry Details',
+            'rows' => [
+                ['label' => 'Date of Enquiry', 'value' => $displayDate($enquiry->created_at)],
+                ['label' => 'Name', 'value' => $deliveryOwnerName],
+            ],
+        ],
+        'booking' => [
+            'title' => 'Booking Details',
+            'rows' => [
+                ['label' => 'Date of Booking', 'value' => $displayDate($booking?->created_at)],
+                ['label' => 'Name', 'value' => $bookingDisplayName],
+            ],
+        ],
+        'personal' => [
+            'title' => 'Personal Details',
+            'rows' => [
+                ['label' => 'Customer Name', 'value' => $customerDisplayName],
+                ['label' => 'Mobile No', 'value' => $summaryMobile],
+                ['label' => 'Email', 'value' => $displayValue($customer?->email, 'null')],
+                ['label' => 'Address', 'value' => $displayValue($summaryAddress)],
+                ['label' => 'Type of Customer', 'value' => ucfirst((string) ($selectedCustomerType ?: 'N/A'))],
+                ['label' => 'Profession', 'value' => ucwords(str_replace('_', ' ', (string) ($selectedProfession ?: 'N/A')))],
+            ],
+        ],
+        'buying' => [
+            'title' => 'Buying Details',
+            'rows' => [
+                ['label' => 'First Time Buyer', 'value' => $selectedFirstTimeBuyer ? ucfirst($selectedFirstTimeBuyer) : 'N/A'],
+                ['label' => 'Mode of Purchase', 'value' => $selectedPurchaseMode ? ucfirst($selectedPurchaseMode) : 'N/A'],
+                ['label' => 'Did the customer take aquote?', 'value' => $selectedQuote ? ucfirst($selectedQuote) : 'N/A'],
+            ],
+        ],
+        'exchange' => [
+            'title' => 'Exchange Details',
+            'rows' => [
+                ['label' => 'Interested in Exchange', 'value' => $selectedInterestedExchange ? ucfirst($selectedInterestedExchange) : 'N/A'],
+            ],
+        ],
+    ];
 @endphp
 
 <div class="delivery-page">
@@ -101,7 +197,7 @@
             2 => 'Buying Details',
             3 => 'Exchange Details',
             4 => 'Offer Details',
-            5 => 'Plan Followup',
+            5 => 'Payment Details',
             6 => 'Delivery Form',
         ] as $index => $label)
             <div class="delivery-step {{ $index === $currentStep ? 'active' : ($index < $currentStep ? 'complete' : '') }}">
@@ -127,7 +223,24 @@
             </div>
         @endif
 
-        @if($currentStep === 2)
+        @if($currentStep === 4)
+            <section class="delivery-offer-page-summary">
+                <h3>SUMMARY</h3>
+                <p>Customer Name: <strong>{{ $summaryName }}</strong></p>
+                <p>Interested in: <strong>{{ strtoupper($summaryVehicle ?: 'N/A') }}</strong></p>
+            </section>
+        @elseif($currentStep === 5)
+            <section class="delivery-offer-page-summary">
+                <h3>SUMMARY</h3>
+                <p>Customer Name: <strong>{{ $summaryName }}</strong></p>
+                <p>Interested in: <strong>{{ strtoupper($summaryVehicle ?: 'N/A') }}</strong></p>
+            </section>
+            <section class="delivery-payment-total-summary">
+                <div><span>Total Final Closure Amount</span><strong>{{ number_format((float) ($selectedOfferFinalPrice ?? 0), 0) }}</strong></div>
+                <div><span>Total payable Amount</span><strong>{{ number_format((float) ($selectedOfferFinalPrice ?? 0), 0) }}</strong></div>
+            </section>
+        @elseif($currentStep === 6)
+        @elseif($currentStep === 2)
             <section class="delivery-summary">
                 <div><span>Interested In</span><strong>{{ $summaryVehicle ?: 'N/A' }}</strong></div>
                 <div><span>Colour</span><strong>{{ $selectedInterestedColor ?: 'N/A' }}</strong></div>
@@ -160,7 +273,7 @@
             </section>
         @endif
 
-        <form method="POST" action="{{ route('delivery.store', $enquiry->id) }}" enctype="multipart/form-data" class="delivery-form">
+        <form method="POST" action="{{ route('delivery.store', $enquiry->id) }}" enctype="multipart/form-data" class="delivery-form {{ $currentStep === 6 ? 'delivery-form-review' : '' }}">
             @csrf
             <input type="hidden" name="delivery_step" value="{{ $currentStep }}">
 
@@ -488,7 +601,7 @@
                     </select>
                 </label>
             </div>
-            @else
+            @elseif($currentStep === 3)
             <div class="delivery-section-head">
                 <h2>Exchange Details</h2>
                 <label class="delivery-switch">
@@ -506,6 +619,19 @@
             </div>
 
             <div id="deliveryExchangeDetailsWrap" class="delivery-exchange-wrap">
+                <div class="delivery-exchange-interested">
+                    <span>Interested In</span>
+                    <select name="interested_model" data-exchange-lockable>
+                        <option value="">Select Model</option>
+                        @foreach($vehicleModels as $modelOption)
+                            <option value="{{ $modelOption }}" @selected($selectedInterestedModel === $modelOption)>{{ $modelOption }}</option>
+                        @endforeach
+                        @if(!empty($selectedInterestedModel) && !$vehicleModels->contains($selectedInterestedModel))
+                            <option value="{{ $selectedInterestedModel }}" selected>{{ $selectedInterestedModel }}</option>
+                        @endif
+                    </select>
+                </div>
+
                 <div class="delivery-buying-grid">
                     <label class="delivery-pill delivery-wide">
                         <span>Vehicle</span>
@@ -538,31 +664,39 @@
                     </label>
                     <label class="delivery-pill">
                         <span>Year</span>
-                        <input type="number" name="exchange_manufacture_year" min="1950" max="2100" value="{{ $selectedExchangeYear }}" data-exchange-lockable>
+                        <input type="number" name="exchange_manufacture_year" min="1950" max="2100" value="{{ $selectedExchangeYear }}" placeholder="Year" data-exchange-lockable>
                     </label>
                     <label class="delivery-pill">
                         <span>Color</span>
-                        <input type="text" name="exchange_color" value="{{ $selectedExchangeColor }}" data-exchange-lockable>
+                        <select name="interested_vehicle_color" data-exchange-lockable>
+                            <option value="">Color</option>
+                            @foreach($vehicleColorOptions as $colorOption)
+                                <option value="{{ $colorOption }}" @selected($selectedInterestedColor === $colorOption)>{{ $colorOption }}</option>
+                            @endforeach
+                            @if(!empty($selectedInterestedColor) && !in_array($selectedInterestedColor, $vehicleColorOptions, true))
+                                <option value="{{ $selectedInterestedColor }}" selected>{{ $selectedInterestedColor }}</option>
+                            @endif
+                        </select>
                     </label>
                     <label class="delivery-pill">
                         <span>Mileage Km</span>
-                        <input type="number" name="exchange_mileage_km" min="0" value="{{ $selectedExchangeMileage }}" data-exchange-lockable>
+                        <input type="number" name="exchange_mileage_km" min="0" value="{{ $selectedExchangeMileage }}" placeholder="Mileage KM" data-exchange-lockable>
                     </label>
                     <label class="delivery-pill">
                         <span>Registration No.</span>
-                        <input type="text" name="exchange_registration_no" value="{{ $selectedExchangeRegistration }}" data-exchange-lockable>
+                        <input type="text" name="exchange_registration_no" value="{{ $selectedExchangeRegistration }}" placeholder="Registration No." data-exchange-lockable>
                     </label>
                     <label class="delivery-pill">
                         <span>Expected Price</span>
-                        <input type="number" step="0.01" min="0" name="exchange_expected_price" id="deliveryExchangeExpectedPrice" value="{{ $selectedExchangeExpectedPrice }}" data-exchange-lockable>
+                        <input type="number" step="0.01" min="0" name="exchange_expected_price" id="deliveryExchangeExpectedPrice" value="{{ $selectedExchangeExpectedPrice }}" placeholder="Expected Price" data-exchange-lockable>
                     </label>
                     <label class="delivery-pill">
                         <span>Quoted Price</span>
-                        <input type="number" step="0.01" min="0" name="exchange_quoted_price" id="deliveryExchangeQuotedPrice" value="{{ $selectedExchangeQuotedPrice }}" data-exchange-lockable>
+                        <input type="number" step="0.01" min="0" name="exchange_quoted_price" id="deliveryExchangeQuotedPrice" value="{{ $selectedExchangeQuotedPrice }}" placeholder="Quoted Price" data-exchange-lockable>
                     </label>
                     <label class="delivery-pill">
                         <span>Difference</span>
-                        <input type="number" step="0.01" name="exchange_price_difference" id="deliveryExchangeDifference" value="{{ $selectedExchangeDifference }}" readonly>
+                        <input type="number" step="0.01" name="exchange_price_difference" id="deliveryExchangeDifference" value="{{ $selectedExchangeDifference }}" placeholder="Difference" readonly>
                     </label>
                 </div>
 
@@ -634,16 +768,286 @@
                     </div>
                 </div>
             </div>
+            @elseif($currentStep === 4)
+            <div class="delivery-section-head delivery-offer-head">
+                <h2>Offer Details</h2>
+                <label class="delivery-offer-toggle">
+                    <input type="hidden" name="edit_offer_details" value="0">
+                    <input type="checkbox" id="deliveryOfferEditToggle" name="edit_offer_details" value="1" @checked($isOfferEdit)>
+                    <span>Edit Buying Details</span>
+                </label>
+            </div>
+
+            <div class="delivery-offer-summary-panel" id="deliveryOfferSummaryPanel">
+                <div class="delivery-offer-summary-table">
+                    <div class="delivery-offer-summary-head">
+                        <span></span>
+                        <span>Cost</span>
+                        <span>Offer</span>
+                        <span>Payable</span>
+                    </div>
+                    <div class="delivery-offer-summary-row">
+                        <strong>VAT</strong>
+                        <span id="deliveryOfferSummaryVatCost">{{ number_format((float) ($selectedOfferVatAmount ?? 0), 0) }}</span>
+                        <span id="deliveryOfferSummaryVatOffer">{{ number_format((float) ($selectedOfferVatDiscount ?? 0), 0) }}</span>
+                        <span id="deliveryOfferSummaryVatPayable">{{ number_format(max(0, (float) ($selectedOfferVatAmount ?? 0) - (float) ($selectedOfferVatDiscount ?? 0)), 0) }}</span>
+                    </div>
+                    <div class="delivery-offer-summary-row">
+                        <strong>Unit price (without vat)</strong>
+                        <span id="deliveryOfferSummaryUnitCost">{{ number_format((float) ($selectedOfferUnitPrice ?? 0), 0) }}</span>
+                        <span id="deliveryOfferSummaryUnitOffer">{{ number_format((float) ($selectedOfferUnitPriceDiscount ?? 0), 0) }}</span>
+                        <span id="deliveryOfferSummaryUnitPayable">{{ number_format(max(0, (float) ($selectedOfferUnitPrice ?? 0) - (float) ($selectedOfferUnitPriceDiscount ?? 0)), 0) }}</span>
+                    </div>
+                </div>
+
+                <div class="delivery-offer-summary-total">
+                    <strong>Total</strong>
+                    <span id="deliveryOfferSummaryTotalCost">{{ number_format((float) ($selectedOfferTotalCost ?? 0), 0) }}</span>
+                    <span id="deliveryOfferSummaryTotalOffer">{{ number_format((float) ($selectedOfferTotalDiscount ?? 0), 0) }}</span>
+                    <span id="deliveryOfferSummaryTotalPayable">{{ number_format((float) ($selectedOfferFinalPrice ?? 0), 0) }}</span>
+                </div>
+
+                <div class="delivery-offer-remarks">
+                    <label class="delivery-offer-remarks-toggle">
+                        <span>Add Remarks</span>
+                        <input type="checkbox" id="deliveryOfferRemarksToggle" checked>
+                        <i></i>
+                    </label>
+                    <textarea id="deliveryOfferRemarksText" rows="4" placeholder="Type comment here......"></textarea>
+                </div>
+            </div>
+
+            <div class="delivery-offer-edit-group" id="deliveryOfferEditGroup">
+                <div class="delivery-offer-card">
+                    <div class="delivery-offer-card-title">Unit price (without vat)</div>
+                    <div class="delivery-offer-card-amount-row">
+                        <input type="number" step="0.01" min="0" name="offer_unit_price" id="delivery_offer_unit_price" value="{{ $selectedOfferUnitPrice }}">
+                    </div>
+                    <div class="delivery-offer-card-bottom-row">
+                        <label class="delivery-offer-free-check">
+                            <input type="hidden" name="offer_unit_price_free" value="0">
+                            <input type="checkbox" name="offer_unit_price_free" id="delivery_offer_unit_price_free" value="1" @checked($selectedOfferUnitPriceFree)>
+                            <span>Free</span>
+                        </label>
+                        <input type="number" step="0.01" min="0" name="offer_unit_price_discount" id="delivery_offer_unit_price_discount" value="{{ $selectedOfferUnitPriceDiscount }}">
+                    </div>
+                </div>
+
+                <div class="delivery-offer-card">
+                    <div class="delivery-offer-card-title">VAT</div>
+                    <div class="delivery-offer-card-amount-row">
+                        <input type="number" step="0.01" min="0" name="offer_vat_amount" id="delivery_offer_vat_amount" value="{{ $selectedOfferVatAmount }}">
+                    </div>
+                    <div class="delivery-offer-card-bottom-row">
+                        <label class="delivery-offer-free-check">
+                            <input type="hidden" name="offer_vat_free" value="0">
+                            <input type="checkbox" name="offer_vat_free" id="delivery_offer_vat_free" value="1" @checked($selectedOfferVatFree)>
+                            <span>Free</span>
+                        </label>
+                        <input type="number" step="0.01" min="0" name="offer_vat_discount" id="delivery_offer_vat_discount" value="{{ $selectedOfferVatDiscount }}">
+                    </div>
+                </div>
+
+                <div class="delivery-offer-total-panel">
+                    <div class="delivery-offer-total-head">
+                        <span>Total</span>
+                        <span>Cost</span>
+                        <span>Offer</span>
+                        <span>Final Offer Price</span>
+                    </div>
+                    <div class="delivery-offer-total-values">
+                        <span></span>
+                        <strong id="deliveryOfferTotalCostDisplay">{{ number_format((float) ($selectedOfferTotalCost ?? 0), 0) }}</strong>
+                        <strong id="deliveryOfferTotalDiscountDisplay">{{ number_format((float) ($selectedOfferTotalDiscount ?? 0), 0) }}</strong>
+                        <strong id="deliveryOfferFinalPriceDisplay">{{ number_format((float) ($selectedOfferFinalPrice ?? 0), 0) }}</strong>
+                    </div>
+                </div>
+
+                <input type="hidden" name="offer_total_cost" id="delivery_offer_total_cost" value="{{ $selectedOfferTotalCost }}">
+                <input type="hidden" name="offer_total_discount" id="delivery_offer_total_discount" value="{{ $selectedOfferTotalDiscount }}">
+                <input type="hidden" name="offer_final_price" id="delivery_offer_final_price" value="{{ $selectedOfferFinalPrice }}">
+            </div>
+            @elseif($currentStep === 5)
+            <div class="delivery-section-head delivery-payment-head">
+                <h2>Payment Received</h2>
+            </div>
+
+            <div class="delivery-payment-section">
+                <section class="delivery-payment-card delivery-payment-received">
+                    <h3>Payment Received</h3>
+                    <div class="delivery-payment-grid">
+                        <label>
+                            <span>Receipt Amount (Booking)</span>
+                            <input type="number" step="0.01" min="0" name="payment_receipt_amount_booking" id="paymentReceiptBooking" value="{{ $selectedPaymentReceiptBooking }}">
+                        </label>
+                        <label>
+                            <span>Pre Delivery</span>
+                            <input type="number" step="0.01" min="0" name="payment_pre_delivery_amount" id="paymentPreDelivery" value="{{ $selectedPaymentPreDelivery }}">
+                        </label>
+                        <label>
+                            <span>Delivery</span>
+                            <span class="delivery-payment-receipt-wrap">
+                                <input type="number" step="0.01" min="0" name="payment_delivery_amount" id="paymentDelivery" value="{{ $selectedPaymentDelivery }}">
+                                <button type="button">Add Receipts</button>
+                            </span>
+                        </label>
+                        <label>
+                            <span>Finance</span>
+                            <span class="delivery-payment-finance-wrap">
+                                <input type="text" name="payment_finance_provider" value="{{ $selectedPaymentFinanceProvider }}">
+                                <i aria-hidden="true"></i>
+                            </span>
+                        </label>
+                    </div>
+
+                    <div class="delivery-pending-badge">
+                        <span>Pending Amount</span>
+                        <strong id="paymentPendingDisplay">{{ number_format((float) ($selectedPaymentPendingAmount ?? 0), 0) }}</strong>
+                    </div>
+                </section>
+
+                <section class="delivery-payment-card delivery-payment-reason">
+                    <h3>Reason</h3>
+                    <label class="delivery-payment-full">
+                        <select name="payment_pending_reason">
+                            <option value="">Select reason</option>
+                            @foreach([
+                                'Old Car Payment Pending from Agent',
+                                'Finance Pending',
+                                'Customer Payment Pending',
+                                'Cheque Pending',
+                                'Bank Transfer Pending',
+                                'Other',
+                            ] as $reasonOption)
+                                <option value="{{ $reasonOption }}" @selected($selectedPaymentPendingReason === $reasonOption)>{{ $reasonOption }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                    <label class="delivery-payment-full">
+                        <input type="number" step="0.01" min="0" name="payment_pending_amount" id="paymentPendingAmount" value="{{ $selectedPaymentPendingAmount }}" placeholder="Amount Pending">
+                    </label>
+                    <label class="delivery-payment-full">
+                        <input type="text" name="payment_agent_name" value="{{ $selectedPaymentAgentName }}" placeholder="Agent Name">
+                    </label>
+                    <label class="delivery-payment-full">
+                        <input type="text" name="payment_agent_number" value="{{ $selectedPaymentAgentNumber }}" placeholder="Agent Number">
+                    </label>
+                    <label class="delivery-payment-full">
+                        <input type="date" name="payment_expected_date" value="{{ $selectedPaymentExpectedDate }}" placeholder="Expected date of payment">
+                    </label>
+                    <label class="delivery-payment-full">
+                        <select name="payment_credit_given_to_customer">
+                            <option value="">Credit Given To Customer</option>
+                            @foreach(['Credit Given To Customer', 'No Credit Given', 'Part Credit Given'] as $creditOption)
+                                <option value="{{ $creditOption }}" @selected($selectedPaymentCreditGiven === $creditOption)>{{ $creditOption }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                    <label class="delivery-payment-full">
+                        <input type="number" step="0.01" min="0" name="payment_credit_amount_pending" value="{{ $selectedPaymentCreditAmount }}" placeholder="Amount Pending">
+                    </label>
+                    <label class="delivery-payment-full">
+                        <input type="text" name="payment_credit_permitted_by" value="{{ $selectedPaymentCreditPermittedBy }}" placeholder="Permitted By">
+                    </label>
+                    <label class="delivery-payment-full">
+                        <input type="date" name="payment_credit_expected_date" value="{{ $selectedPaymentCreditExpectedDate }}" placeholder="Expected date of payment">
+                    </label>
+                </section>
+            </div>
+            @elseif($currentStep === 6)
+            <div class="delivery-review-stack">
+                @foreach($reviewRows as $sectionKey => $section)
+                    <section class="delivery-review-card delivery-review-{{ $sectionKey }}">
+                        <h2>{{ $section['title'] }}</h2>
+                        <div class="delivery-review-rows">
+                            @foreach($section['rows'] as $row)
+                                <div class="delivery-review-row">
+                                    <span class="delivery-review-icon" aria-hidden="true"></span>
+                                    <strong>{{ $row['label'] }}</strong>
+                                    <i>:</i>
+                                    <p>{{ $row['value'] }}</p>
+                                </div>
+                            @endforeach
+                        </div>
+                    </section>
+                @endforeach
+            </div>
             @endif
 
-            <div class="delivery-actions">
-                <a href="{{ $currentStep > 1 ? route('delivery.show', ['enquiry' => $enquiry->id, 'step' => $currentStep - 1]) : route('booking.show', ['enquiry' => $enquiry->id, 'step' => 5]) }}" class="delivery-action back">Back</a>
+            <div class="delivery-actions {{ $currentStep === 1 ? 'no-back' : '' }}">
+                @if($currentStep > 1)
+                    <a href="{{ route('delivery.show', ['enquiry' => $enquiry->id, 'step' => $currentStep - 1]) }}" class="delivery-action back">Back</a>
+                @endif
                 <button type="submit" name="action_type" value="save_exit" class="delivery-action save-exit">Save &amp; Exit</button>
-                <button type="submit" name="action_type" value="save_next" class="delivery-action save-next">Save &amp; Next</button>
+                @if($currentStep === 6)
+                    <button type="submit" name="action_type" value="submit" class="delivery-action save-next delivery-submit-action">Submit</button>
+                @else
+                    <button type="submit" name="action_type" value="save_next" class="delivery-action save-next">Save &amp; Next</button>
+                @endif
             </div>
         </form>
     </main>
 </div>
+
+@if(session('delivery_submitted_popup'))
+    <div class="delivery-submit-popup" id="deliverySubmitPopup" role="dialog" aria-modal="true" aria-labelledby="deliverySubmitTitle">
+        <div class="delivery-submit-popup-card" data-dashboard-url="{{ route('dashboard.main') }}">
+            <div class="delivery-submit-icon" aria-hidden="true">&#10003;</div>
+            <h4 id="deliverySubmitTitle">Delivery Submitted Successfully</h4>
+            <p>{{ session('delivery_submitted_message', 'Delivery Submitted Successfully.') }}</p>
+            <button type="button" class="delivery-submit-popup-btn" id="deliverySubmitPopupOk">OK</button>
+        </div>
+    </div>
+@endif
+
+@if(session('delivery_offer_summary_popup'))
+    <div
+        class="delivery-offer-popup"
+        id="deliveryOfferPopup"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="deliveryOfferPopupTitle"
+        data-next-url="{{ session('delivery_offer_summary_next_url', route('delivery.show', ['enquiry' => $enquiry->id, 'step' => 5])) }}"
+    >
+        <div class="delivery-offer-popup-card">
+            <h3 id="deliveryOfferPopupTitle">SUMMARY</h3>
+            <div class="delivery-offer-popup-customer">
+                <p>Customer Name: <strong>{{ $summaryName }}</strong></p>
+                <p>Interested in: <strong>{{ strtoupper($summaryVehicle ?: 'N/A') }}</strong></p>
+            </div>
+
+            <div class="delivery-offer-popup-table">
+                <div class="delivery-offer-popup-head">
+                    <span></span>
+                    <span>Cost</span>
+                    <span>Offer</span>
+                    <span>Payable</span>
+                </div>
+                <div class="delivery-offer-popup-row">
+                    <strong>VAT</strong>
+                    <span>{{ number_format((float) ($selectedOfferVatAmount ?? 0), 0) }}</span>
+                    <span>{{ number_format((float) ($selectedOfferVatDiscount ?? 0), 0) }}</span>
+                    <span>{{ number_format(max(0, (float) ($selectedOfferVatAmount ?? 0) - (float) ($selectedOfferVatDiscount ?? 0)), 0) }}</span>
+                </div>
+                <div class="delivery-offer-popup-row">
+                    <strong>Unit price (without vat)</strong>
+                    <span>{{ number_format((float) ($selectedOfferUnitPrice ?? 0), 0) }}</span>
+                    <span>{{ number_format((float) ($selectedOfferUnitPriceDiscount ?? 0), 0) }}</span>
+                    <span>{{ number_format(max(0, (float) ($selectedOfferUnitPrice ?? 0) - (float) ($selectedOfferUnitPriceDiscount ?? 0)), 0) }}</span>
+                </div>
+            </div>
+
+            <div class="delivery-offer-popup-total">
+                <strong>Total</strong>
+                <span>{{ number_format((float) ($selectedOfferTotalCost ?? 0), 0) }}</span>
+                <span>{{ number_format((float) ($selectedOfferTotalDiscount ?? 0), 0) }}</span>
+                <span>{{ number_format((float) ($selectedOfferFinalPrice ?? 0), 0) }}</span>
+            </div>
+
+            <button type="button" class="delivery-offer-popup-ok" id="deliveryOfferPopupOk">OK</button>
+        </div>
+    </div>
+@endif
 
 <script>
 (() => {
@@ -663,6 +1067,190 @@
         editToggle.addEventListener('change', syncLockable);
         syncLockable();
     }
+
+    const buyingEditToggle = document.getElementById('deliveryBuyingEditToggle');
+    const buyingLockableFields = Array.from(document.querySelectorAll('[data-buying-lockable]'));
+
+    const syncBuyingLockable = () => {
+        buyingLockableFields.forEach((field) => {
+            field.classList.toggle('delivery-locked', !buyingEditToggle?.checked);
+        });
+    };
+
+    buyingEditToggle?.addEventListener('change', syncBuyingLockable);
+    syncBuyingLockable();
+
+    const deliveryOfferEditToggle = document.getElementById('deliveryOfferEditToggle');
+    const deliveryOfferSummaryPanel = document.getElementById('deliveryOfferSummaryPanel');
+    const deliveryOfferEditGroup = document.getElementById('deliveryOfferEditGroup');
+    const deliveryOfferUnitPriceInput = document.getElementById('delivery_offer_unit_price');
+    const deliveryOfferUnitPriceDiscountInput = document.getElementById('delivery_offer_unit_price_discount');
+    const deliveryOfferUnitPriceFreeInput = document.getElementById('delivery_offer_unit_price_free');
+    const deliveryOfferVatAmountInput = document.getElementById('delivery_offer_vat_amount');
+    const deliveryOfferVatDiscountInput = document.getElementById('delivery_offer_vat_discount');
+    const deliveryOfferVatFreeInput = document.getElementById('delivery_offer_vat_free');
+    const deliveryOfferTotalCostInput = document.getElementById('delivery_offer_total_cost');
+    const deliveryOfferTotalDiscountInput = document.getElementById('delivery_offer_total_discount');
+    const deliveryOfferFinalPriceInput = document.getElementById('delivery_offer_final_price');
+    const deliveryOfferTotalCostDisplay = document.getElementById('deliveryOfferTotalCostDisplay');
+    const deliveryOfferTotalDiscountDisplay = document.getElementById('deliveryOfferTotalDiscountDisplay');
+    const deliveryOfferFinalPriceDisplay = document.getElementById('deliveryOfferFinalPriceDisplay');
+    const deliveryOfferSummaryVatCost = document.getElementById('deliveryOfferSummaryVatCost');
+    const deliveryOfferSummaryVatOffer = document.getElementById('deliveryOfferSummaryVatOffer');
+    const deliveryOfferSummaryVatPayable = document.getElementById('deliveryOfferSummaryVatPayable');
+    const deliveryOfferSummaryUnitCost = document.getElementById('deliveryOfferSummaryUnitCost');
+    const deliveryOfferSummaryUnitOffer = document.getElementById('deliveryOfferSummaryUnitOffer');
+    const deliveryOfferSummaryUnitPayable = document.getElementById('deliveryOfferSummaryUnitPayable');
+    const deliveryOfferSummaryTotalCost = document.getElementById('deliveryOfferSummaryTotalCost');
+    const deliveryOfferSummaryTotalOffer = document.getElementById('deliveryOfferSummaryTotalOffer');
+    const deliveryOfferSummaryTotalPayable = document.getElementById('deliveryOfferSummaryTotalPayable');
+    const deliveryOfferRemarksToggle = document.getElementById('deliveryOfferRemarksToggle');
+    const deliveryOfferRemarksText = document.getElementById('deliveryOfferRemarksText');
+
+    const deliveryOfferMoney = (value) => {
+        const parsed = parseFloat(value || '0');
+        return Number.isNaN(parsed) ? 0 : Math.max(0, parsed);
+    };
+
+    const formatDeliveryOfferMoney = (value) => Math.round(deliveryOfferMoney(value)).toLocaleString('en-US');
+
+    const syncDeliveryOfferReadonlyState = () => {
+        if (!deliveryOfferEditToggle || !deliveryOfferEditGroup) {
+            return;
+        }
+
+        const editable = deliveryOfferEditToggle.checked;
+        deliveryOfferEditGroup.classList.toggle('hidden', !editable);
+        deliveryOfferSummaryPanel?.classList.toggle('hidden', editable);
+
+        deliveryOfferEditGroup
+            .querySelectorAll('input[type="number"], input[type="checkbox"]')
+            .forEach((field) => {
+                if (
+                    field === deliveryOfferTotalCostInput ||
+                    field === deliveryOfferTotalDiscountInput ||
+                    field === deliveryOfferFinalPriceInput
+                ) {
+                    field.readOnly = true;
+                    return;
+                }
+
+                if (field.type === 'checkbox') {
+                    field.disabled = !editable;
+                } else {
+                    field.readOnly = !editable;
+                }
+            });
+    };
+
+    const syncDeliveryOfferRemarksState = () => {
+        if (!deliveryOfferRemarksToggle || !deliveryOfferRemarksText) {
+            return;
+        }
+
+        deliveryOfferRemarksText.classList.toggle('hidden', !deliveryOfferRemarksToggle.checked);
+    };
+
+    const syncDeliveryOfferTotals = () => {
+        if (!deliveryOfferUnitPriceInput || !deliveryOfferVatAmountInput) {
+            return;
+        }
+
+        const unit = deliveryOfferMoney(deliveryOfferUnitPriceInput.value);
+        const vat = deliveryOfferMoney(deliveryOfferVatAmountInput.value);
+        let unitDiscount = deliveryOfferMoney(deliveryOfferUnitPriceDiscountInput?.value);
+        let vatDiscount = deliveryOfferMoney(deliveryOfferVatDiscountInput?.value);
+        const unitFree = Boolean(deliveryOfferUnitPriceFreeInput?.checked);
+        const vatFree = Boolean(deliveryOfferVatFreeInput?.checked);
+
+        if (unitFree) {
+            unitDiscount = unit;
+            if (deliveryOfferUnitPriceDiscountInput) {
+                deliveryOfferUnitPriceDiscountInput.value = unit.toFixed(2);
+            }
+        } else {
+            unitDiscount = Math.min(unitDiscount, unit);
+            if (deliveryOfferUnitPriceDiscountInput) {
+                deliveryOfferUnitPriceDiscountInput.value = unitDiscount.toFixed(2);
+            }
+        }
+
+        if (vatFree) {
+            vatDiscount = vat;
+            if (deliveryOfferVatDiscountInput) {
+                deliveryOfferVatDiscountInput.value = vat.toFixed(2);
+            }
+        } else {
+            vatDiscount = Math.min(vatDiscount, vat);
+            if (deliveryOfferVatDiscountInput) {
+                deliveryOfferVatDiscountInput.value = vatDiscount.toFixed(2);
+            }
+        }
+
+        const totalCost = unit + vat;
+        const totalDiscount = unitDiscount + vatDiscount;
+        const finalPrice = Math.max(0, totalCost - totalDiscount);
+
+        if (deliveryOfferTotalCostInput) deliveryOfferTotalCostInput.value = totalCost.toFixed(2);
+        if (deliveryOfferTotalDiscountInput) deliveryOfferTotalDiscountInput.value = totalDiscount.toFixed(2);
+        if (deliveryOfferFinalPriceInput) deliveryOfferFinalPriceInput.value = finalPrice.toFixed(2);
+
+        if (deliveryOfferTotalCostDisplay) deliveryOfferTotalCostDisplay.textContent = formatDeliveryOfferMoney(totalCost);
+        if (deliveryOfferTotalDiscountDisplay) deliveryOfferTotalDiscountDisplay.textContent = formatDeliveryOfferMoney(totalDiscount);
+        if (deliveryOfferFinalPriceDisplay) deliveryOfferFinalPriceDisplay.textContent = formatDeliveryOfferMoney(finalPrice);
+
+        if (deliveryOfferSummaryVatCost) deliveryOfferSummaryVatCost.textContent = formatDeliveryOfferMoney(vat);
+        if (deliveryOfferSummaryVatOffer) deliveryOfferSummaryVatOffer.textContent = formatDeliveryOfferMoney(vatDiscount);
+        if (deliveryOfferSummaryVatPayable) deliveryOfferSummaryVatPayable.textContent = formatDeliveryOfferMoney(Math.max(0, vat - vatDiscount));
+        if (deliveryOfferSummaryUnitCost) deliveryOfferSummaryUnitCost.textContent = formatDeliveryOfferMoney(unit);
+        if (deliveryOfferSummaryUnitOffer) deliveryOfferSummaryUnitOffer.textContent = formatDeliveryOfferMoney(unitDiscount);
+        if (deliveryOfferSummaryUnitPayable) deliveryOfferSummaryUnitPayable.textContent = formatDeliveryOfferMoney(Math.max(0, unit - unitDiscount));
+        if (deliveryOfferSummaryTotalCost) deliveryOfferSummaryTotalCost.textContent = formatDeliveryOfferMoney(totalCost);
+        if (deliveryOfferSummaryTotalOffer) deliveryOfferSummaryTotalOffer.textContent = formatDeliveryOfferMoney(totalDiscount);
+        if (deliveryOfferSummaryTotalPayable) deliveryOfferSummaryTotalPayable.textContent = formatDeliveryOfferMoney(finalPrice);
+    };
+
+    deliveryOfferEditToggle?.addEventListener('change', syncDeliveryOfferReadonlyState);
+    deliveryOfferRemarksToggle?.addEventListener('change', syncDeliveryOfferRemarksState);
+    [
+        deliveryOfferUnitPriceInput,
+        deliveryOfferUnitPriceDiscountInput,
+        deliveryOfferVatAmountInput,
+        deliveryOfferVatDiscountInput,
+    ].forEach((field) => field?.addEventListener('input', syncDeliveryOfferTotals));
+    [deliveryOfferUnitPriceFreeInput, deliveryOfferVatFreeInput].forEach((field) => {
+        field?.addEventListener('change', syncDeliveryOfferTotals);
+    });
+    syncDeliveryOfferReadonlyState();
+    syncDeliveryOfferRemarksState();
+    syncDeliveryOfferTotals();
+
+    const paymentTotalPayable = {{ (float) ($selectedOfferFinalPrice ?? 0) }};
+    const paymentReceiptBooking = document.getElementById('paymentReceiptBooking');
+    const paymentPreDelivery = document.getElementById('paymentPreDelivery');
+    const paymentDelivery = document.getElementById('paymentDelivery');
+    const paymentPendingDisplay = document.getElementById('paymentPendingDisplay');
+    const paymentPendingAmount = document.getElementById('paymentPendingAmount');
+
+    const syncPaymentPendingAmount = () => {
+        if (!paymentPendingDisplay || !paymentPendingAmount) {
+            return;
+        }
+
+        const received = [paymentReceiptBooking, paymentPreDelivery, paymentDelivery].reduce((sum, field) => {
+            const value = parseFloat(field?.value || '0');
+            return sum + (Number.isNaN(value) ? 0 : Math.max(0, value));
+        }, 0);
+        const pending = Math.max(0, paymentTotalPayable - received);
+
+        paymentPendingDisplay.textContent = Math.round(pending).toLocaleString('en-US');
+        paymentPendingAmount.value = pending.toFixed(2);
+    };
+
+    [paymentReceiptBooking, paymentPreDelivery, paymentDelivery].forEach((field) => {
+        field?.addEventListener('input', syncPaymentPendingAmount);
+    });
+    syncPaymentPendingAmount();
 
     document.querySelectorAll('[data-image-tile]').forEach((tile) => {
         const fileInput = tile.querySelector('[data-image-input]');
@@ -893,6 +1481,25 @@
     quotedPrice?.addEventListener('input', syncExchangeDifference);
     syncExchangeDetails();
     syncExchangeDifference();
+
+    const deliveryOfferPopup = document.getElementById('deliveryOfferPopup');
+    const deliveryOfferPopupOk = document.getElementById('deliveryOfferPopupOk');
+    if (deliveryOfferPopup && deliveryOfferPopupOk) {
+        document.body.classList.add('delivery-modal-open');
+        deliveryOfferPopupOk.addEventListener('click', () => {
+            window.location.href = deliveryOfferPopup.dataset.nextUrl || '{{ route('delivery.show', ['enquiry' => $enquiry->id, 'step' => 5]) }}';
+        });
+    }
+
+    const deliverySubmitPopup = document.getElementById('deliverySubmitPopup');
+    const deliverySubmitPopupOk = document.getElementById('deliverySubmitPopupOk');
+    if (deliverySubmitPopup && deliverySubmitPopupOk) {
+        document.body.classList.add('delivery-modal-open');
+        deliverySubmitPopupOk.addEventListener('click', () => {
+            const card = deliverySubmitPopup.querySelector('.delivery-submit-popup-card');
+            window.location.href = card?.dataset.dashboardUrl || '{{ route('dashboard.main') }}';
+        });
+    }
 })();
 </script>
 @endsection

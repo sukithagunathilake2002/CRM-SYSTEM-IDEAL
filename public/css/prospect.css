@@ -2714,3 +2714,1043 @@ body {
     padding: 14px;
     margin-bottom: 12px;
 }
+
+/* Prospect personal details delivery-style layout */
+.prospect-page {
+    max-width: 100%;
+    min-height: 100vh;
+    background: #f1f1f1;
+    padding: 0 0 22px;
+}
+
+.prospect-topbar {
+    min-height: 44px;
+    background: #050505;
+    border: 0;
+    border-radius: 0;
+    padding: 5px 12px;
+    display: grid;
+    grid-template-columns: 44px 1fr 112px;
+    align-items: center;
+}
+
+.prospect-topbar::before {
+    content: "";
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #ffffff;
+    justify-self: start;
+    box-shadow: inset 0 0 0 1px #d9d9d9;
+}
+
+.prospect-topbar .brand-logo-link {
+    grid-column: 2;
+    justify-self: center;
+    display: inline-flex;
+    align-items: center;
+}
+
+.prospect-topbar .brand-logo {
+    width: 88px;
+    max-height: 34px;
+}
+
+.prospect-top-search {
+    display: none;
+}
+
+.prospect-topbar .top-icons-right {
+    grid-column: 3;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.prospect-topbar .top-icons-right::before,
+.prospect-topbar .top-icons-right::after {
+    content: "";
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background: #f5f5f5;
+}
+
+.prospect-topbar .top-icons-right::before {
+    box-shadow: -35px 0 0 #f5f5f5;
+}
+
+.stepper {
+    width: min(660px, calc(100% - 48px));
+    margin: 12px auto 10px;
+    padding: 0;
+    overflow: visible;
+}
+
+.stepper-item {
+    gap: 5px;
+}
+
+.stepper-item:not(:last-child)::after {
+    top: 17px;
+    background: #91e986;
+}
+
+.step-number {
+    width: 34px;
+    height: 34px;
+    border: 1px solid #91e986;
+    background: #f7fff7;
+    color: #16851e;
+    font-size: 12px;
+}
+
+.step-label {
+    color: #111111;
+    font-size: 8px;
+    font-weight: 800;
+}
+
+.stepper-item.active .step-number,
+.stepper-item.complete .step-number {
+    background: #8fe987;
+    color: #ffffff;
+    border-color: #8fe987;
+}
+
+.summary-card {
+    width: min(1120px, calc(100% - 28px));
+    margin: 12px auto 26px;
+    border: 1px solid #d5d5d5;
+    border-left: 4px solid #ef2a22;
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 2px 2px 5px rgba(15, 23, 42, 0.16);
+    padding: 8px 14px 8px 12px;
+}
+
+.summary-row {
+    display: grid;
+    grid-template-columns: 18px 122px 12px minmax(0, 1fr);
+    gap: 8px;
+    align-items: center;
+    min-height: 26px;
+    padding: 4px 0;
+    line-height: 1.28;
+    --prospect-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3Cpath d='M5 22c.8-5 3.2-8 7-8s6.2 3 7 8z'/%3E%3C/svg%3E");
+}
+
+.summary-row::before {
+    content: "";
+    grid-row: 1;
+    width: 13px;
+    height: 13px;
+    background: #ef2a22;
+    -webkit-mask: var(--prospect-summary-icon) center / contain no-repeat;
+    mask: var(--prospect-summary-icon) center / contain no-repeat;
+}
+
+.summary-row:nth-child(2) {
+    --prospect-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 11l2-5h10l2 5 2 1v6h-3v-2H6v2H3v-6zM8 8l-1 3h10l-1-3z'/%3E%3Ccircle cx='7' cy='14' r='1.7'/%3E%3Ccircle cx='17' cy='14' r='1.7'/%3E%3C/svg%3E");
+}
+
+.summary-row:nth-child(3),
+.summary-row:nth-child(4) {
+    --prospect-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 2h10c1 0 2 .9 2 2v16c0 1.1-1 2-2 2H7c-1 0-2-.9-2-2V4c0-1.1 1-2 2-2zm3 17h4v-1h-4z'/%3E%3C/svg%3E");
+}
+
+.summary-row span {
+    grid-row: 1;
+    grid-column: 2;
+    color: #111111;
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.summary-row span::after {
+    content: "";
+}
+
+.summary-row::after {
+    content: ":";
+    grid-row: 1;
+    grid-column: 3;
+    color: #111111;
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.summary-row strong {
+    grid-row: 1;
+    grid-column: 4;
+    min-width: 0;
+    color: #111111;
+    font-size: 12px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.prospect-page > form {
+    padding: 0 14px;
+}
+
+.personal-step {
+    position: relative;
+    width: min(1120px, 100%);
+    margin: 0 auto 12px;
+    border: 1px solid #d5d5d5;
+    border-radius: 10px;
+    background: #ffffff;
+    box-shadow: 2px 2px 5px rgba(15, 23, 42, 0.16);
+    padding: 24px 20px 28px;
+}
+
+.personal-step .section-title-line {
+    position: absolute;
+    top: -27px;
+    right: 4px;
+    min-height: 22px;
+    align-items: center;
+    justify-content: flex-end;
+    margin: 0;
+}
+
+.personal-step h3 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+}
+
+.personal-step h3::before {
+    content: "";
+}
+
+.personal-step .switch-label {
+    color: #e00000;
+    font-size: 10px;
+    font-weight: 900;
+    gap: 5px;
+}
+
+.personal-step .switch-label input {
+    width: 12px;
+    height: 12px;
+    margin: 0;
+    accent-color: #ef2a22;
+}
+
+.personal-row {
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.personal-row-primary {
+    grid-template-columns: 62px minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 1fr);
+    align-items: end;
+}
+
+.personal-row-secondary {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.65fr);
+}
+
+.personal-row-full {
+    grid-template-columns: 1fr;
+}
+
+.personal-step .field-pill {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    padding: 0;
+}
+
+.personal-step .field-pill label,
+.personal-step > label,
+.personal-step [data-conditional="customer_type"] > label {
+    display: block;
+    margin: 0 0 8px;
+    color: #111111;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.personal-step .field-pill input,
+.personal-step .field-pill select,
+.personal-step [data-conditional="customer_type"] .lockable {
+    width: 100%;
+    min-height: 32px;
+    border: 1px solid #c8cdd5;
+    border-radius: 9px;
+    background: #ffffff;
+    color: #111827;
+    padding: 0 12px;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.personal-step .field-pill input[type='date'] {
+    font-size: 10px;
+}
+
+.contact-input-wrap {
+    grid-template-columns: minmax(0, 1fr) 20px;
+    gap: 7px;
+}
+
+.contact-add-btn {
+    width: 17px;
+    height: 17px;
+    min-width: 17px;
+    background: #050505;
+    font-size: 12px;
+}
+
+.personal-step > label {
+    margin-top: 16px;
+}
+
+.personal-step .customer-type-segment,
+.personal-step .profession-segment {
+    border: 1px solid #d0d3da;
+    border-radius: 7px;
+    background: #ffffff;
+    overflow: hidden;
+}
+
+.personal-step .segmented span {
+    min-height: 28px;
+    display: grid;
+    place-items: center;
+    border-right: 1px solid #d0d3da;
+    background: #ffffff;
+    color: #111111;
+    padding: 0 8px;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.personal-step .segmented input:checked + span {
+    background: #d00000;
+    color: #ffffff;
+}
+
+.personal-step .profession-segment span {
+    font-size: 9px;
+}
+
+.personal-step [data-conditional="customer_type"] {
+    margin-top: 16px;
+}
+
+.actions {
+    position: static;
+    width: min(1120px, 100%);
+    margin: 18px auto 0;
+    padding: 0 18px 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    display: grid;
+    grid-template-columns: 140px 170px 170px;
+    justify-content: space-between;
+    gap: 14px;
+    box-shadow: none;
+}
+
+.actions .btn {
+    min-height: 42px;
+    border-radius: 999px;
+    box-shadow: none;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0;
+}
+
+.actions .btn:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+#backBtn,
+#nextBtn {
+    background: #e00000;
+}
+
+#saveExitBtn {
+    background: #111827;
+}
+
+@media (max-width: 760px) {
+    .prospect-page > form {
+        padding: 0 10px;
+    }
+
+    .summary-card,
+    .personal-step,
+    .actions {
+        width: calc(100% - 16px);
+    }
+
+    .personal-row-primary,
+    .personal-row-secondary {
+        grid-template-columns: 1fr;
+    }
+
+    .actions {
+        grid-template-columns: 1fr;
+        padding: 0;
+    }
+}
+
+/* Prospect buying details delivery-style layout */
+.buying-step {
+    position: relative;
+    width: min(1120px, 100%);
+    margin: 0 auto 12px;
+    border: 1px solid #d5d5d5;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 2px 2px 5px rgba(15, 23, 42, 0.16);
+    padding: 22px 24px 26px;
+}
+
+.buying-step h3 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+}
+
+.buying-step h3::before {
+    content: "";
+}
+
+.buying-step .buying-edit-line {
+    position: absolute;
+    top: -27px;
+    right: 4px;
+    min-height: 22px;
+    align-items: center;
+    margin: 0;
+    justify-content: flex-end;
+}
+
+.buying-step .switch-label {
+    color: #e00000;
+    font-size: 11px;
+    font-weight: 800;
+    gap: 8px;
+}
+
+.buying-step .switch-label input {
+    width: 13px;
+    height: 13px;
+    margin: 0;
+    accent-color: #ef2a22;
+}
+
+.buying-step label,
+.buying-step .buying-field-label {
+    display: block;
+    margin: 0 0 7px;
+    color: #111111;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.buying-step .vehicle-pill,
+.buying-step select,
+.buying-step input[type='text'],
+.buying-step input[type='date'],
+.buying-step input[type='number'] {
+    width: 100%;
+    min-height: 34px;
+    border: 1px solid #c6c8cf;
+    border-radius: 14px;
+    background: #ffffff;
+    color: #1f2128;
+    padding: 0 12px;
+    font-size: 11px;
+    font-weight: 500;
+    box-sizing: border-box;
+}
+
+.buying-step .vehicle-pill {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.buying-step .vehicle-pill::after {
+    content: none;
+}
+
+.buying-step select {
+    appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, #111111 50%), linear-gradient(135deg, #111111 50%, transparent 50%);
+    background-position: calc(100% - 20px) calc(50% - 3px), calc(100% - 14px) calc(50% - 3px);
+    background-size: 7px 7px, 7px 7px;
+    background-repeat: no-repeat;
+    padding-right: 34px;
+}
+
+.buying-step #interestedVehicleEditFields {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin: 0 0 12px;
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+}
+
+.buying-step #interestedVehicleEditFields label {
+    margin-bottom: 8px;
+}
+
+.buying-step #interested_vehicle_color {
+    max-width: 370px;
+    margin-bottom: 18px;
+}
+
+.buying-step .buying-color-label {
+    display: none;
+}
+
+.buying-step > label {
+    margin-top: 18px;
+}
+
+.buying-step > label:first-of-type {
+    margin-top: 0;
+}
+
+.buying-step .segmented {
+    display: grid;
+    border: 1px solid #c6c8cf;
+    border-radius: 14px;
+    background: #ffffff;
+    overflow: hidden;
+    margin: 0 0 16px;
+    box-shadow: 1px 2px 4px rgba(15, 23, 42, 0.16);
+}
+
+.buying-step .segmented label {
+    display: block;
+    margin: 0;
+}
+
+.buying-step .segmented span {
+    min-height: 30px;
+    width: 100%;
+    display: grid;
+    place-items: center;
+    border-right: 1px solid #c6c8cf;
+    background: #ffffff;
+    color: #111111;
+    padding: 0 8px;
+    font-size: 11px;
+    font-weight: 500;
+    box-sizing: border-box;
+}
+
+.buying-step .segmented label:last-child span {
+    border-right: 0;
+}
+
+.buying-step .segmented input:checked + span,
+.buying-step #leadSourceGroup input:checked + span {
+    background: #d90000;
+    color: #ffffff;
+}
+
+.buying-step .buying-segment-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: min(420px, 100%);
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.buying-step .buying-segment-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: min(500px, 100%);
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.buying-step #leadSourceGroup {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    width: 100%;
+    max-width: none;
+    margin-bottom: 18px;
+    box-shadow: none;
+}
+
+.buying-step #leadSourceGroup span {
+    min-height: 30px;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 500;
+    padding-right: 20px;
+    position: relative;
+}
+
+.buying-step #leadSourceGroup span::after {
+    content: "";
+    position: absolute;
+    right: 11px;
+    top: 50%;
+    width: 6px;
+    height: 6px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: translateY(-65%) rotate(45deg);
+}
+
+.buying-step #source_of_information {
+    max-width: none;
+    margin-bottom: 20px;
+}
+
+.buying-step .buying-quote-when {
+    display: block;
+    width: min(420px, 100%);
+    margin: -2px 0 20px;
+}
+
+.buying-step .buying-quote-when label {
+    display: none;
+}
+
+.buying-step .buying-test-yes {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    gap: 12px;
+    margin: 8px 0 20px;
+}
+
+.buying-step .buying-test-yes > div {
+    min-width: 0;
+}
+
+.buying-step .buying-test-yes label {
+    margin: 0 0 7px;
+}
+
+.buying-step .buying-test-vehicle-field {
+    grid-column: 1 / -1;
+}
+
+.buying-name-input {
+    display: grid;
+    grid-template-columns: 62px minmax(0, 1fr);
+}
+
+.buying-name-input select {
+    border-radius: 14px 0 0 14px;
+    border-right: 0;
+    padding-right: 38px;
+}
+
+.buying-name-input input {
+    border-radius: 0 14px 14px 0;
+}
+
+.buying-step .buying-test-no {
+    width: min(420px, 100%);
+    max-width: none;
+    margin: -2px 0 20px;
+}
+
+.buying-step .buying-competition-grid,
+.buying-step .buying-existing-grid {
+    gap: 10px;
+    margin: -2px 0 20px;
+}
+
+.buying-step .buying-competition-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.buying-step .buying-existing-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.buying-step .buying-competition-grid label,
+.buying-step .buying-existing-grid label {
+    display: none;
+}
+
+.buying-step .buying-competition-grid select,
+.buying-step .buying-existing-grid input,
+.buying-step .buying-existing-grid select,
+.buying-step input[name='test_drive_to_whom'],
+.buying-step input[name='test_drive_vehicle_model'],
+.buying-step input[name='test_drive_date'],
+.buying-step input[name='quote_date'],
+.buying-step input[name='test_drive_not_given_reason'] {
+    border: 1px solid #c6c8cf;
+    border-radius: 14px;
+    background: #ffffff;
+    padding: 0 12px;
+    min-height: 34px;
+}
+
+.buying-step .buying-existing-grid input {
+    padding-right: 34px;
+    background-image: linear-gradient(45deg, transparent 50%, #111111 50%), linear-gradient(135deg, #111111 50%, transparent 50%);
+    background-position: calc(100% - 20px) calc(50% - 3px), calc(100% - 14px) calc(50% - 3px);
+    background-size: 7px 7px, 7px 7px;
+    background-repeat: no-repeat;
+}
+
+@media (max-width: 900px) {
+    .buying-step {
+        padding: 24px 18px 28px;
+    }
+
+    .buying-step #interestedVehicleEditFields,
+    .buying-step .buying-test-yes,
+    .buying-step .buying-competition-grid,
+    .buying-step .buying-existing-grid,
+    .buying-step #leadSourceGroup {
+        grid-template-columns: 1fr;
+    }
+
+    .buying-name-input {
+        grid-template-columns: 84px minmax(0, 1fr);
+    }
+}
+
+/* Prospect exchange details delivery-style layout */
+.exchange-step {
+    position: relative;
+    width: min(1120px, 100%);
+    margin: 0 auto 12px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+}
+
+.exchange-step .exchange-edit-line {
+    position: static;
+    min-height: 22px;
+    margin: 0 4px 8px auto;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+}
+
+.exchange-step h3 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+}
+
+.exchange-step h3::before {
+    content: "";
+}
+
+.exchange-step .exchange-edit-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin: 0;
+    color: #e00000;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.exchange-step .exchange-edit-label input {
+    appearance: none;
+    position: relative;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    border: 1px solid #9ca3af;
+    border-radius: 2px;
+    background: #ffffff;
+}
+
+.exchange-step .exchange-edit-label input:checked {
+    background: #ef2a22;
+    border-color: #ef2a22;
+}
+
+.exchange-step .exchange-edit-label input:checked::after {
+    content: "";
+    position: absolute;
+    left: 4px;
+    top: 0;
+    width: 5px;
+    height: 9px;
+    border: solid #ffffff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.exchange-step > label {
+    display: block;
+    margin: 0 0 8px;
+    color: #111111;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.exchange-step .exchange-interest-segment {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: min(620px, 100%);
+    max-width: none;
+    margin: 0 0 18px;
+    border: 1px solid #c6c8cf;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #ffffff;
+    box-shadow: 1px 2px 4px rgba(15, 23, 42, 0.16);
+}
+
+.exchange-step .exchange-interest-segment label {
+    margin: 0;
+}
+
+.exchange-step .exchange-interest-segment span {
+    min-height: 34px;
+    display: grid;
+    place-items: center;
+    border-right: 1px solid #c6c8cf;
+    background: #ffffff;
+    color: #111111;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.exchange-step .exchange-interest-segment label:last-child span {
+    border-right: 0;
+}
+
+.exchange-step .exchange-interest-segment input:checked + span {
+    background: #d90000;
+    color: #ffffff;
+}
+
+.exchange-step .exchange-detail-wrap {
+    margin-top: 0;
+    border: 1px solid #d8d8d8;
+    border-radius: 16px;
+    background: #ffffff;
+    padding: 20px 24px 24px;
+    box-shadow: 2px 3px 7px rgba(15, 23, 42, 0.18);
+}
+
+.exchange-step .sub-title,
+.exchange-step .exchange-price-title,
+.exchange-step .exchange-price-grid label {
+    display: none;
+}
+
+.exchange-step .exchange-interested-label,
+.exchange-step .exchange-switch-row > label {
+    display: block;
+    margin: 0 0 8px;
+    color: #111111;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.exchange-step .exchange-interested-input {
+    margin-bottom: 16px;
+}
+
+.exchange-step .exchange-input-grid,
+.exchange-step .exchange-price-grid {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.exchange-step .exchange-input-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.exchange-step .exchange-price-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.exchange-step select,
+.exchange-step input[type='text'],
+.exchange-step input[type='number'] {
+    width: 100%;
+    height: 34px;
+    border: 1px solid #d6d6d6;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #111827;
+    padding: 0 14px;
+    font-size: 11px;
+    font-weight: 500;
+    box-shadow: 0 2px 4px rgba(15, 23, 42, 0.14);
+    box-sizing: border-box;
+}
+
+.exchange-step .exchange-difference-input,
+.exchange-step .exchange-difference-input[readonly] {
+    background: #ffffff !important;
+    border-color: #d6d6d6 !important;
+    color: #111827 !important;
+    -webkit-text-fill-color: #111827;
+    opacity: 1;
+}
+
+.exchange-step .exchange-difference-input::placeholder,
+.exchange-step .exchange-difference-input[readonly]::placeholder {
+    color: #111827;
+}
+
+.exchange-step select,
+.exchange-step .exchange-interested-input {
+    appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, #111827 50%), linear-gradient(135deg, #111827 50%, transparent 50%);
+    background-position: calc(100% - 20px) calc(50% - 3px), calc(100% - 14px) calc(50% - 3px);
+    background-size: 7px 7px, 7px 7px;
+    background-repeat: no-repeat;
+    padding-right: 36px;
+}
+
+.exchange-step .exchange-switch-row {
+    margin: 14px 0 10px;
+    justify-content: flex-start;
+    gap: 10px;
+}
+
+.exchange-step .exchange-switch,
+.exchange-step .exchange-switch input,
+.exchange-step .exchange-switch span {
+    display: none;
+}
+
+.exchange-step #exchangeImageFields {
+    display: block !important;
+    margin-top: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    padding: 0;
+}
+
+.exchange-step .exchange-upload-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.exchange-step .exchange-upload-grid-extra {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.exchange-step .exchange-upload-tile {
+    position: relative;
+    min-height: 96px;
+    border: 0;
+    border-radius: 4px;
+    background: #c6c6c6;
+    color: #ffffff;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 8px;
+    text-align: center;
+    overflow: hidden;
+    cursor: pointer;
+    padding: 12px 8px 10px;
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.exchange-step .exchange-upload-tile::before {
+    content: "";
+    width: 26px;
+    height: 26px;
+    background: url("/icons/imageuploadic.png") center / contain no-repeat;
+    filter: brightness(0);
+}
+
+.exchange-step .exchange-upload-tile:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.exchange-step .exchange-upload-text {
+    position: relative;
+    z-index: 2;
+    color: #ffffff;
+}
+
+.exchange-step .exchange-upload-preview {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 1;
+}
+
+.exchange-step .exchange-upload-tile.has-preview::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.42);
+    z-index: 1;
+}
+
+.exchange-step .exchange-upload-tile.has-preview::before {
+    filter: brightness(0) invert(1);
+    position: relative;
+    z-index: 2;
+}
+
+.exchange-step .exchange-more-row {
+    margin-top: 16px;
+}
+
+.exchange-step .exchange-more-btn {
+    display: none;
+}
+
+.exchange-step .existing-files {
+    margin-top: 6px;
+}
+
+.exchange-step .existing-files small {
+    font-size: 10px;
+    color: #5f6269;
+}
+
+@media (max-width: 900px) {
+    .exchange-step {
+        width: calc(100% - 16px);
+    }
+
+    .exchange-step .exchange-input-grid,
+    .exchange-step .exchange-price-grid,
+    .exchange-step .exchange-upload-grid,
+    .exchange-step .exchange-upload-grid-extra {
+        grid-template-columns: 1fr;
+    }
+}

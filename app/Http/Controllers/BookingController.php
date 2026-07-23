@@ -184,6 +184,7 @@ class BookingController extends Controller
             'offer_total_cost' => ['nullable', 'numeric', 'min:0'],
             'offer_total_discount' => ['nullable', 'numeric', 'min:0'],
             'offer_final_price' => ['nullable', 'numeric', 'min:0'],
+            'edit_offer_details' => ['nullable', 'in:0,1'],
             'purchase_order_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'booking_step' => ['nullable', 'integer', 'between:1,5'],
             'action_type' => ['nullable', Rule::in(['next', 'save_exit', 'save', 'submit'])],
@@ -318,32 +319,35 @@ class BookingController extends Controller
             }
         }
 
+        $isEditingOffer = ($validated['edit_offer_details'] ?? '0') === '1';
+        $offerSource = fn(string $field, $fallback = 0) => $booking->{$field} ?? $prospect?->{$field} ?? $fallback;
+
         $offerUnitPrice = (float) (
-            $validated['offer_unit_price']
-            ?? $booking->offer_unit_price
-            ?? $prospect?->offer_unit_price
-            ?? 0
+            $isEditingOffer
+                ? ($validated['offer_unit_price'] ?? $offerSource('offer_unit_price'))
+                : $offerSource('offer_unit_price')
         );
         $offerVatAmount = (float) (
-            $validated['offer_vat_amount']
-            ?? $booking->offer_vat_amount
-            ?? $prospect?->offer_vat_amount
-            ?? 0
+            $isEditingOffer
+                ? ($validated['offer_vat_amount'] ?? $offerSource('offer_vat_amount'))
+                : $offerSource('offer_vat_amount')
         );
         $offerUnitPriceDiscount = (float) (
-            $validated['offer_unit_price_discount']
-            ?? $booking->offer_unit_price_discount
-            ?? $prospect?->offer_unit_price_discount
-            ?? 0
+            $isEditingOffer
+                ? ($validated['offer_unit_price_discount'] ?? $offerSource('offer_unit_price_discount'))
+                : $offerSource('offer_unit_price_discount')
         );
         $offerVatDiscount = (float) (
-            $validated['offer_vat_discount']
-            ?? $booking->offer_vat_discount
-            ?? $prospect?->offer_vat_discount
-            ?? 0
+            $isEditingOffer
+                ? ($validated['offer_vat_discount'] ?? $offerSource('offer_vat_discount'))
+                : $offerSource('offer_vat_discount')
         );
-        $offerUnitPriceFree = ($validated['offer_unit_price_free'] ?? '0') === '1';
-        $offerVatFree = ($validated['offer_vat_free'] ?? '0') === '1';
+        $offerUnitPriceFree = $isEditingOffer
+            ? (($validated['offer_unit_price_free'] ?? '0') === '1')
+            : (bool) $offerSource('offer_unit_price_free', false);
+        $offerVatFree = $isEditingOffer
+            ? (($validated['offer_vat_free'] ?? '0') === '1')
+            : (bool) $offerSource('offer_vat_free', false);
 
         $offerUnitPrice = max(0, $offerUnitPrice);
         $offerVatAmount = max(0, $offerVatAmount);

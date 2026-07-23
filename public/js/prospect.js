@@ -78,7 +78,7 @@
         });
 
         activeStepInput.value = currentStep;
-        nextBtn.textContent = currentStep === 5 ? 'Submit' : 'Next';
+        nextBtn.textContent = currentStep === 5 ? 'Submit' : 'Save & Next';
     }
 
     function selectedValue(name) {
@@ -91,7 +91,7 @@
             const fieldName = block.dataset.conditional;
             const expectedValue = block.dataset.value;
             const currentValue = selectedValue(fieldName);
-            block.style.display = currentValue === expectedValue ? 'block' : 'none';
+            block.style.display = currentValue === expectedValue ? '' : 'none';
         });
     }
 
@@ -844,8 +844,6 @@
 
     renumberExtraExchangeRows();
 })();
-
-
 
 
 
