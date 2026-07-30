@@ -31,6 +31,8 @@ class ProspectSheet extends Model
         'exchange_vehicle_brand',
         'exchange_vehicle_model',
         'exchange_manufacture_year',
+        'exchange_ownership',
+        'exchange_insurance_validity',
         'exchange_color',
         'exchange_mileage_km',
         'exchange_registration_no',
@@ -51,6 +53,7 @@ class ProspectSheet extends Model
         'offer_total_cost',
         'offer_total_discount',
         'offer_final_price',
+        'offer_remark',
         'interested_in_competition',
         'competition_brand',
         'competition_model',
@@ -60,6 +63,7 @@ class ProspectSheet extends Model
         'existing_vehicle_year',
         'current_step',
         'reschedule_followup',
+        'reschedule_reason',
         'lead_status',
         'customer_remark',
     ];
@@ -80,6 +84,7 @@ class ProspectSheet extends Model
         'offer_total_cost' => 'decimal:2',
         'offer_total_discount' => 'decimal:2',
         'offer_final_price' => 'decimal:2',
+        'exchange_insurance_validity' => 'date',
         'reschedule_followup' => 'boolean',
     ];
 }

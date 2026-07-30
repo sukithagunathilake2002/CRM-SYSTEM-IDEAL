@@ -829,7 +829,7 @@
                             <input type="checkbox" name="offer_unit_price_free" id="delivery_offer_unit_price_free" value="1" @checked($selectedOfferUnitPriceFree)>
                             <span>Free</span>
                         </label>
-                        <input type="number" step="0.01" min="0" name="offer_unit_price_discount" id="delivery_offer_unit_price_discount" value="{{ $selectedOfferUnitPriceDiscount }}">
+                        <input type="number" step="0.01" min="0" name="offer_unit_price_discount" id="delivery_offer_unit_price_discount" value="{{ $selectedOfferUnitPriceDiscount }}" placeholder="Discount amount">
                     </div>
                 </div>
 
@@ -844,7 +844,7 @@
                             <input type="checkbox" name="offer_vat_free" id="delivery_offer_vat_free" value="1" @checked($selectedOfferVatFree)>
                             <span>Free</span>
                         </label>
-                        <input type="number" step="0.01" min="0" name="offer_vat_discount" id="delivery_offer_vat_discount" value="{{ $selectedOfferVatDiscount }}">
+                        <input type="number" step="0.01" min="0" name="offer_vat_discount" id="delivery_offer_vat_discount" value="{{ $selectedOfferVatDiscount }}" placeholder="Discount amount">
                     </div>
                 </div>
 
@@ -1169,9 +1169,11 @@
                 deliveryOfferUnitPriceDiscountInput.value = unit.toFixed(2);
             }
         } else {
-            unitDiscount = Math.min(unitDiscount, unit);
-            if (deliveryOfferUnitPriceDiscountInput) {
-                deliveryOfferUnitPriceDiscountInput.value = unitDiscount.toFixed(2);
+            if (unitDiscount > unit) {
+                unitDiscount = unit;
+                if (deliveryOfferUnitPriceDiscountInput) {
+                    deliveryOfferUnitPriceDiscountInput.value = unitDiscount.toFixed(2);
+                }
             }
         }
 
@@ -1181,9 +1183,11 @@
                 deliveryOfferVatDiscountInput.value = vat.toFixed(2);
             }
         } else {
-            vatDiscount = Math.min(vatDiscount, vat);
-            if (deliveryOfferVatDiscountInput) {
-                deliveryOfferVatDiscountInput.value = vatDiscount.toFixed(2);
+            if (vatDiscount > vat) {
+                vatDiscount = vat;
+                if (deliveryOfferVatDiscountInput) {
+                    deliveryOfferVatDiscountInput.value = vatDiscount.toFixed(2);
+                }
             }
         }
 

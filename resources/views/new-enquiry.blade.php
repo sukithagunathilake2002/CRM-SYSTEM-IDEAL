@@ -45,6 +45,7 @@
         $selectedFollowTime = old('follow_time')
             ? substr((string) old('follow_time'), 0, 5)
             : \Carbon\Carbon::now('Asia/Colombo')->format('H:i');
+        $createdLead = session('created_lead');
     @endphp
 
     <header class="topbar">
@@ -55,8 +56,70 @@
     </header>
 
     <div class="enquiry-shell">
-        @if(session('success'))
+        @if(session('success') && !(is_array($createdLead ?? null) && !empty($createdLead['id'])))
             <div class="form-flash success">{{ session('success') }}</div>
+        @endif
+
+        @if(is_array($createdLead ?? null) && !empty($createdLead['id']))
+            <div class="created-lead-modal" id="createdLeadModal" role="dialog" aria-modal="true" aria-labelledby="createdLeadTitle">
+                <section class="created-lead-card">
+                    <button type="button" class="created-lead-close" id="createdLeadCloseBtn" aria-label="Close">&times;</button>
+
+                    <div class="created-lead-head">
+                        <div>
+                            <p class="created-lead-kicker">Lead Created Successfully</p>
+                            <h3 id="createdLeadTitle">{{ $createdLead['customer_name'] ?? 'New Lead' }}</h3>
+                        </div>
+                        <span class="created-lead-id">EPR #{{ $createdLead['id'] }}</span>
+                    </div>
+
+                    <div class="created-lead-grid">
+                        <div>
+                            <span>Contact No</span>
+                            <strong>{{ implode(', ', $createdLead['mobile_numbers'] ?? []) ?: 'N/A' }}</strong>
+                        </div>
+                        <div>
+                            <span>Location</span>
+                            <strong>{{ trim(($createdLead['location'] ?? '') . (($createdLead['district'] ?? '') ? ', ' . $createdLead['district'] : '')) ?: 'N/A' }}</strong>
+                        </div>
+                        <div>
+                            <span>Lead Source</span>
+                            <strong>{{ trim(($createdLead['lead_source'] ?? '') . (($createdLead['source_of_information'] ?? '') ? ' - ' . $createdLead['source_of_information'] : '')) ?: 'N/A' }}</strong>
+                        </div>
+                        <div>
+                            <span>Follow Up</span>
+                            <strong>
+                                {{ $createdLead['follow_type'] ?? 'Followup' }}
+                                @if(!empty($createdLead['follow_date']))
+                                    on {{ \Carbon\Carbon::parse($createdLead['follow_date'])->format('d M Y') }}
+                                @endif
+                                @if(!empty($createdLead['follow_time']))
+                                    at {{ substr((string) $createdLead['follow_time'], 0, 5) }}
+                                @endif
+                            </strong>
+                        </div>
+                    </div>
+
+                    @if(!empty($createdLead['vehicles']))
+                        <div class="created-lead-vehicles">
+                            <span>Selected Vehicle Models</span>
+                            <div>
+                                @foreach($createdLead['vehicles'] as $createdVehicleLabel)
+                                    <small>{{ $createdVehicleLabel }}</small>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
+                    <div class="created-lead-actions">
+                        <p>Would you like to register or create a booking?</p>
+                        <div>
+                            <a href="{{ route('prospect.show', $createdLead['id']) }}" class="created-lead-btn primary">Register</a>
+                            <a href="{{ route('booking.show', $createdLead['id']) }}" class="created-lead-btn secondary">Booking</a>
+                        </div>
+                    </div>
+                </section>
+            </div>
         @endif
 
         @if(session('error'))
@@ -76,21 +139,35 @@
         <form class="enquiry-form" method="POST" action="{{ route('save.customer') }}" id="enquiryForm">
             @csrf
 
-            <div class="field-row triple">
-                <select id="model" name="model" class="input-pill" required>
+            <div class="field-row vehicle-picker-row">
+                <select id="model" name="model" class="input-pill">
                     <option value="">Select model</option>
                     @foreach($models as $m)
                     <option value="{{ $m->model }}" @selected(old('model') === $m->model)>{{ $m->model }}</option>
                     @endforeach
                 </select>
 
-                <select id="engine" name="engine" class="input-pill" required>
+                <select id="engine" name="engine" class="input-pill">
                     <option value="">Select engine type</option>
                 </select>
 
-                <select id="variant" name="variant" class="input-pill" required>
+                <select id="variant" name="variant" class="input-pill">
                     <option value="">Select variant</option>
                 </select>
+            </div>
+
+            <div class="selected-vehicle-box">
+                <div class="selected-vehicle-head">
+                    <span>Selected Vehicle Models</span>
+                    <small id="selectedVehicleCount">0 selected</small>
+                </div>
+                <div id="selectedVehicleInputs">
+                    @foreach(($selectedVehiclesForForm ?? []) as $selectedVehicle)
+                        <input type="hidden" name="selected_vehicle_ids[]" value="{{ $selectedVehicle['vehicle_id'] ?? '' }}" data-vehicle-id="{{ $selectedVehicle['vehicle_id'] ?? '' }}">
+                    @endforeach
+                </div>
+                <div id="selectedVehicleList" class="selected-vehicle-list"></div>
+                <p class="selected-vehicle-empty" id="selectedVehicleEmpty">No vehicle model selected yet.</p>
             </div>
 
             <h4 class="section-title">Lead Source</h4>
@@ -237,10 +314,19 @@
     const modelSelect = document.getElementById('model');
     const engineSelect = document.getElementById('engine');
     const variantSelect = document.getElementById('variant');
+    const selectedVehicleInputs = document.getElementById('selectedVehicleInputs');
+    const selectedVehicleList = document.getElementById('selectedVehicleList');
+    const selectedVehicleEmpty = document.getElementById('selectedVehicleEmpty');
+    const selectedVehicleCount = document.getElementById('selectedVehicleCount');
     const oldModel = @json(old('model'));
     const oldEngine = @json(old('engine'));
     const oldVariant = @json(old('variant'));
     const sourceInfoMap = @json($sourceInfoMap);
+    const initialSelectedVehicles = @json($selectedVehiclesForForm ?? []);
+    let selectedVehicles = initialSelectedVehicles.map((vehicle) => ({
+        id: String(vehicle.vehicle_id || vehicle.id || ''),
+        label: String(vehicle.label || '').trim(),
+    })).filter((vehicle) => vehicle.id !== '' && vehicle.label !== '');
 
     function resetSelect(selectEl, placeholder) {
         selectEl.innerHTML = `<option value="">${placeholder}</option>`;
@@ -285,6 +371,7 @@
                     const option = document.createElement('option');
                     option.value = v.variant;
                     option.textContent = v.variant;
+                    option.dataset.vehicleId = v.id;
                     if (selectedVariant && selectedVariant === v.variant) {
                         option.selected = true;
                     }
@@ -303,6 +390,76 @@
         const engine = this.value;
         loadVariants(model, engine);
     });
+
+    variantSelect.addEventListener('change', function() {
+        if (this.value) {
+            addSelectedVehicle();
+        }
+    });
+
+    function renderSelectedVehicles() {
+        selectedVehicleInputs.innerHTML = '';
+        selectedVehicleList.innerHTML = '';
+
+        selectedVehicles.forEach((vehicle) => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'selected_vehicle_ids[]';
+            input.value = vehicle.id;
+            input.dataset.vehicleId = vehicle.id;
+            selectedVehicleInputs.appendChild(input);
+
+            const chip = document.createElement('span');
+            chip.className = 'selected-vehicle-chip';
+
+            const label = document.createElement('span');
+            label.textContent = vehicle.label;
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.setAttribute('aria-label', 'Remove ' + vehicle.label);
+            removeBtn.textContent = 'x';
+            removeBtn.addEventListener('click', () => {
+                selectedVehicles = selectedVehicles.filter((item) => item.id !== vehicle.id);
+                renderSelectedVehicles();
+            });
+
+            chip.appendChild(label);
+            chip.appendChild(removeBtn);
+            selectedVehicleList.appendChild(chip);
+        });
+
+        selectedVehicleEmpty.style.display = selectedVehicles.length === 0 ? 'block' : 'none';
+        selectedVehicleCount.textContent = selectedVehicles.length + (selectedVehicles.length === 1 ? ' selected' : ' selected');
+    }
+
+    function addSelectedVehicle() {
+        const selectedVariantOption = variantSelect.options[variantSelect.selectedIndex];
+        const vehicleId = selectedVariantOption?.dataset.vehicleId || '';
+        const model = modelSelect.value.trim();
+        const engine = engineSelect.value.trim();
+        const variant = variantSelect.value.trim();
+
+        if (!vehicleId || !model || !engine || !variant) {
+            variantSelect.setCustomValidity('Please select model, engine type, and variant before adding.');
+            variantSelect.reportValidity();
+            return false;
+        }
+
+        variantSelect.setCustomValidity('');
+
+        if (selectedVehicles.some((vehicle) => vehicle.id === vehicleId)) {
+            return true;
+        }
+
+        selectedVehicles.push({
+            id: vehicleId,
+            label: [model, engine, variant].filter(Boolean).join(' '),
+        });
+
+        renderSelectedVehicles();
+        return true;
+    }
 
     (function () {
         const provinceSelect = document.getElementById('provinceSelect');
@@ -448,6 +605,8 @@
     })();
 
     (function initializeVehicleSelections() {
+        renderSelectedVehicles();
+
         if (!oldModel) {
             return;
         }
@@ -460,12 +619,54 @@
         });
     })();
 
-    document.getElementById('enquiryForm').addEventListener('submit', function () {
+    document.getElementById('enquiryForm').addEventListener('submit', function (event) {
         const firstMobile = document.querySelector('input[name="mobiles[]"]');
         if (firstMobile) {
             firstMobile.value = firstMobile.value.trim();
         }
+
+        if (selectedVehicles.length === 0) {
+            const addedVehicle = addSelectedVehicle();
+            if (!addedVehicle) {
+                event.preventDefault();
+            }
+        }
     });
+
+    document.getElementById('enquiryForm').addEventListener('reset', function () {
+        setTimeout(() => {
+            selectedVehicles = [];
+            renderSelectedVehicles();
+            resetSelect(engineSelect, 'Select engine type');
+            resetSelect(variantSelect, 'Select variant');
+        }, 0);
+    });
+
+    (function initializeCreatedLeadModal() {
+        const modal = document.getElementById('createdLeadModal');
+        const closeBtn = document.getElementById('createdLeadCloseBtn');
+
+        if (!modal) {
+            return;
+        }
+
+        function closeModal() {
+            modal.classList.add('hidden');
+        }
+
+        closeBtn?.addEventListener('click', closeModal);
+        modal.addEventListener('click', function (event) {
+            if (event.target === modal) {
+                closeModal();
+            }
+        });
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                closeModal();
+            }
+        });
+    })();
 
 </script>
 @endsection

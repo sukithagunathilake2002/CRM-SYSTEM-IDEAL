@@ -118,7 +118,11 @@
                 $mobiles = is_array(optional($customer)->mobile_numbers) ? $customer->mobile_numbers : [];
                 $primaryPhone = count($mobiles) ? (string) $mobiles[0] : 'N/A';
                 $customerName = trim((optional($customer)->title ? optional($customer)->title . '. ' : '') . (optional($customer)->name ?? 'Unknown'));
-                $vehicleName = trim((optional($vehicle)->model ?? '') . ' ' . (optional($vehicle)->variant ?? ''));
+                $vehicleItems = $e->selectedVehicleItems();
+                $vehicleName = $e->selectedVehicleDisplay();
+                if ($vehicleName === '') {
+                    $vehicleName = trim((optional($vehicle)->model ?? '') . ' ' . (optional($vehicle)->variant ?? ''));
+                }
                 $inquiryDate = optional($e->created_at)->format('d F Y');
                 $inquiryDateIso = optional($e->created_at)->format('Y-m-d');
                 $followLabel = $e->follow_type ? $e->follow_type . ' On' : 'Followup On';
@@ -135,6 +139,8 @@
                 $ownerIdValue = $ownerUser?->id ? (string) $ownerUser->id : '';
                 $leadStatus = strtolower(trim((string) ($e->prospectSheet?->lead_status ?? '')));
                 $leadStatusLabel = in_array($leadStatus, ['hot', 'warm', 'cold'], true) ? ucfirst($leadStatus) : '';
+                $terminalLeadResult = $e->terminalLeadResult();
+                $terminalLeadLabel = $terminalLeadResult ? ucfirst($terminalLeadResult) . ' Lead' : '';
                 $whatsAppPhone = preg_replace('/\D+/', '', $primaryPhone);
                 if (substr($whatsAppPhone, 0, 1) === '0') {
                     $whatsAppPhone = '94' . substr($whatsAppPhone, 1);
@@ -170,6 +176,9 @@
                         @endif
                         @if($leadStatusLabel !== '')
                             <span class="flag-pill {{ $leadStatus }}" title="Lead Status">{{ $leadStatusLabel }}</span>
+                        @endif
+                        @if($terminalLeadLabel !== '')
+                            <span class="flag-pill terminal {{ $terminalLeadResult }}" title="Lead Result">{{ $terminalLeadLabel }}</span>
                         @endif
                     </div>
 
@@ -210,16 +219,32 @@
                             <div class="epr-vehicle-text">
                                 <p class="epr-meta-label">VEHICLE / INTEREST</p>
                                 <p class="vehicle-line">{{ strtoupper($vehicleName ?: 'VEHICLE NOT SET') }}</p>
+                                @if(count($vehicleItems) > 1)
+                                    <div class="vehicle-selection-list" aria-label="Selected vehicle models">
+                                        @foreach($vehicleItems as $vehicleItem)
+                                            @php
+                                                $vehicleItemLabel = trim((string) ($vehicleItem['label'] ?? ''));
+                                            @endphp
+                                            @if($vehicleItemLabel !== '')
+                                                <span>{{ strtoupper($vehicleItemLabel) }}</span>
+                                            @endif
+                                        @endforeach
+                                    </div>
+                                @endif
                             </div>
                         </div>
 
                         <div class="card-footer">
                             <div class="chip-row">
-                                <a href="{{ route('followup.show', $e->id) }}" class="chip-btn">Followup</a>
-                                <a href="{{ route('prospect.show', $e->id) }}" class="chip-btn">Prospect Sheet</a>
-                                <a href="{{ route('booking.show', $e->id) }}" class="chip-btn">Booking</a>
-                                <a href="{{ route('delivery.show', $e->id) }}" class="chip-btn">Delivery</a>
-                                @if(auth()->user()?->role === \App\Models\User::ROLE_SALES_CONSULTANT && (int) $e->user_id === (int) auth()->id())
+                                @if($terminalLeadResult)
+                                    <span class="terminal-lead-note">{{ $terminalLeadLabel }} - workflow closed</span>
+                                @else
+                                    <a href="{{ route('followup.show', $e->id) }}" class="chip-btn">Followup</a>
+                                    <a href="{{ route('prospect.show', $e->id) }}" class="chip-btn">Prospect Sheet</a>
+                                    <a href="{{ route('booking.show', $e->id) }}" class="chip-btn">Booking</a>
+                                    <a href="{{ route('delivery.show', $e->id) }}" class="chip-btn">Delivery</a>
+                                @endif
+                                @if(!$terminalLeadResult && auth()->user()?->role === \App\Models\User::ROLE_SALES_CONSULTANT && (int) $e->user_id === (int) auth()->id())
                                     <a href="{{ route('lead_transfer.request.create', ['enquiry_id' => $e->id]) }}" class="chip-btn">Transfer</a>
                                 @endif
                             </div>

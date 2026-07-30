@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<link rel="stylesheet" href="{{ asset('css/booking.css') }}">
+<link rel="stylesheet" href="{{ asset('css/booking.css') }}?v={{ filemtime(public_path('css/booking.css')) }}">
 
 @php
     $summaryName = trim(($customer?->title ? $customer->title . ' ' : '') . ($customer?->name ?? 'N/A'));
@@ -10,6 +10,7 @@
     $summaryAddress = collect([$customer?->address1, $customer?->address2, $customer?->location, $customer?->district, $customer?->state])
         ->filter()
         ->implode(', ');
+    $summaryScName = $enquiry->user?->name ?? 'N/A';
 
     $customerTypeLabel = match ($prospect?->customer_type) {
         'individual' => 'Individual',
@@ -39,8 +40,16 @@
     $selectedAddress1 = old('address1', $defaultValues['address1']);
     $selectedAddress2 = old('address2', $defaultValues['address2']);
     $selectedCustomerType = old('customer_type', $defaultValues['customer_type']);
+    $selectedCorporateName = old('corporate_name', $defaultValues['corporate_name'] ?? null);
     $selectedProfession = old('profession', $defaultValues['profession']);
     $selectedDob = old('date_of_birth', $defaultValues['date_of_birth']);
+    $selectedMobileNumbers = collect(explode(',', (string) $selectedMobile))
+        ->map(fn($mobile) => trim($mobile))
+        ->filter()
+        ->values();
+    if ($selectedMobileNumbers->isEmpty()) {
+        $selectedMobileNumbers = collect(['']);
+    }
     $selectedInterestedModel = old('interested_model', $defaultValues['interested_model']);
     $selectedInterestedEngine = old('interested_engine', $defaultValues['interested_engine']);
     $selectedInterestedVariant = old('interested_variant', $defaultValues['interested_variant']);
@@ -73,12 +82,20 @@
     $selectedExistingYear = old('existing_vehicle_year', $defaultValues['existing_vehicle_year']);
     $selectedInterestedExchange = old('interested_in_exchange', $defaultValues['interested_in_exchange']);
     $selectedExchangeType = old('exchange_type', $defaultValues['exchange_type']);
+    $selectedExchangePurchaseValue = old('exchange_purchase_value', $defaultValues['exchange_purchase_value'] ?? null);
     $selectedExchangeBrand = old('exchange_vehicle_brand', $defaultValues['exchange_vehicle_brand']);
     $selectedExchangeModel = old('exchange_vehicle_model', $defaultValues['exchange_vehicle_model']);
     $selectedExchangeYear = old('exchange_manufacture_year', $defaultValues['exchange_manufacture_year']);
+    $selectedExchangeOwnership = old('exchange_ownership', $defaultValues['exchange_ownership'] ?? null);
+    $selectedExchangeInsuranceRaw = old('exchange_insurance_validity', $defaultValues['exchange_insurance_validity'] ?? null);
+    $selectedExchangeInsuranceValidity = $selectedExchangeInsuranceRaw
+        ? \Carbon\Carbon::parse($selectedExchangeInsuranceRaw)->format('Y-m-d')
+        : '';
     $selectedExchangeColor = old('exchange_color', $defaultValues['exchange_color']);
     $selectedExchangeMileage = old('exchange_mileage_km', $defaultValues['exchange_mileage_km']);
     $selectedExchangeRegNo = old('exchange_registration_no', $defaultValues['exchange_registration_no']);
+    $selectedExchangeTyreReplacements = old('exchange_tyre_replacements', $defaultValues['exchange_tyre_replacements'] ?? []);
+    $selectedExchangeTyreReplacements = is_array($selectedExchangeTyreReplacements) ? $selectedExchangeTyreReplacements : [];
     $selectedExchangeExpectedPrice = old('exchange_expected_price', $defaultValues['exchange_expected_price']);
     $selectedExchangeQuotedPrice = old('exchange_quoted_price', $defaultValues['exchange_quoted_price']);
     $selectedExchangeDifference = old('exchange_price_difference', $defaultValues['exchange_price_difference']);
@@ -95,7 +112,6 @@
     $backUrl = $currentStep > 1
         ? route('booking.show', ['enquiry' => $enquiry->id, 'step' => $currentStep - 1])
         : route('prospect.show', ['enquiry' => $enquiry->id, 'step' => 4]);
-    $isExchangeNoMode = $currentStep === 3 && $selectedInterestedExchange === 'no';
     $showExchangeDetails = $selectedInterestedExchange === 'yes' && in_array($selectedExchangeType, ['in_house', 'outhouse'], true);
     $selectedOfferUnitPrice = old('offer_unit_price', $defaultValues['offer_unit_price']);
     $selectedOfferUnitPriceDiscount = old('offer_unit_price_discount', $defaultValues['offer_unit_price_discount']);
@@ -106,12 +122,82 @@
     $selectedOfferTotalCost = old('offer_total_cost', $defaultValues['offer_total_cost']);
     $selectedOfferTotalDiscount = old('offer_total_discount', $defaultValues['offer_total_discount']);
     $selectedOfferFinalPrice = old('offer_final_price', $defaultValues['offer_final_price']);
+    $selectedOfferRemark = old('offer_remark', $defaultValues['offer_remark'] ?? '');
+    $hasOfferRemark = trim((string) $selectedOfferRemark) !== '';
     $isOfferEdit = old('edit_offer_details') === '1';
+    $dateInputValue = function ($value, $fallback = null): string {
+        $raw = $value ?: $fallback;
+        if (empty($raw)) {
+            return '';
+        }
+
+        try {
+            return \Carbon\Carbon::parse($raw)->format('Y-m-d');
+        } catch (\Throwable $e) {
+            return (string) $raw;
+        }
+    };
+    $selectedExpectedDeliveryDate = old('expected_delivery_date', $dateInputValue($defaultValues['expected_delivery_date'], now()->toDateString()));
+    $selectedBookingDate = old('booking_date', $dateInputValue($defaultValues['booking_date'], now()->toDateString()));
+    $selectedAmountCollected = old('amount_collected', $defaultValues['amount_collected'] ?? 0);
 
     $interestedVehicleLine = collect([$selectedInterestedModel, $selectedInterestedEngine, $selectedInterestedVariant])
         ->filter()
         ->implode(' / ');
     $interestedVehicleLine = $interestedVehicleLine ?: 'Not selected';
+    $buyingYesNoLabel = fn($value) => match ($value) {
+        'yes' => 'Yes',
+        'no' => 'No',
+        default => '',
+    };
+    $competitionVehicleLine = collect([$selectedCompetitionBrand, $selectedCompetitionModel])->filter()->implode(' ');
+    $competitionSummaryLabel = match ($selectedCompetition) {
+        'yes' => $competitionVehicleLine ? 'Yes - ' . $competitionVehicleLine : 'Yes',
+        'no' => 'No',
+        'not_asked' => 'I did not ask',
+        default => '',
+    };
+    $purchaseModeLabel = match ($selectedPurchaseMode) {
+        'cash' => 'Cash',
+        'finance' => 'Finance',
+        default => '',
+    };
+    $financeFormLabel = match ($selectedFinanceForm) {
+        'in_house' => 'In House',
+        'self' => 'Self',
+        'other' => 'Other',
+        default => '',
+    };
+    $selectedCustomerTypeLabel = match ($selectedCustomerType) {
+        'individual' => 'Individual',
+        'corporate' => 'Corporate',
+        default => '',
+    };
+    $selectedProfessionLabel = match ($selectedProfession) {
+        'salaried' => 'Salaried',
+        'self_employed' => 'Self Employed',
+        'other' => 'Other',
+        'not_asked' => 'I Did Not Ask',
+        default => '',
+    };
+    $bookingScName = $enquiry->user?->name ?? 'N/A';
+    $bookingLeadSource = $enquiry->lead_source ?: 'N/A';
+    $bookingSourceInfo = $enquiry->source_of_information ?: ($prospect?->source_of_information ?: 'N/A');
+    $enquiryDateLabel = $enquiry->created_at ? \Carbon\Carbon::parse($enquiry->created_at)->format('F d, Y') : 'N/A';
+    $testDriveDetailsLabel = '';
+    if ($selectedTestDrive === 'yes') {
+        $testDriveDateLabel = $selectedTestDriveDate
+            ? \Carbon\Carbon::parse($selectedTestDriveDate)->format('M d,Y')
+            : '';
+        $testDriveDetailsLabel = collect([
+            $selectedTestDriveModel || $interestedVehicleLine !== 'Not selected' ? 'By ' . ($selectedTestDriveModel ?: $interestedVehicleLine) : '',
+            $selectedTestDriveToWhom ? 'to ' . $selectedTestDriveToWhom : '',
+            $testDriveDateLabel ? 'on ' . $testDriveDateLabel : '',
+        ])->filter()->implode(' ');
+    } elseif ($selectedTestDrive === 'no') {
+        $testDriveDetailsLabel = $selectedTestDriveReason ?: '';
+    }
+    $buyingSummaryRowClass = fn($value): string => trim((string) $value) === '' || trim((string) $value) === 'N/A' ? ' buying-summary-empty' : '';
     $exchangeVehicleLine = collect([$selectedExchangeBrand, $selectedExchangeModel])
         ->filter()
         ->implode(' ');
@@ -130,7 +216,7 @@
     $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
 @endphp
 
-<div class="booking-page">
+<div class="booking-page booking-step-{{ $currentStep }}">
     <header class="booking-topbar">
         <a href="{{ route('dashboard.main') }}" class="brand-logo-link" aria-label="Go to dashboard">
             <img src="{{ asset('icons/logo.png') }}" alt="Ideal Motors" class="brand-logo">
@@ -167,6 +253,17 @@
             </div>
         @endif
 
+        @if($currentStep === 1)
+            <div class="booking-personal-summary">
+                <div class="booking-personal-summary-row"><span>Customer Name</span><strong id="bookingSummaryCustomerName">{{ $summaryName }}</strong></div>
+                <div class="booking-personal-summary-row"><span>Address</span><strong id="bookingSummaryAddress">{{ $summaryAddress ?: 'N/A' }}</strong></div>
+                <div class="booking-personal-summary-row"><span>Mobile No</span><strong id="bookingSummaryMobile">{{ $summaryMobile }}</strong></div>
+                <div class="booking-personal-summary-row"><span>Type of Customer</span><strong id="bookingSummaryCustomerType">{{ $customerTypeLabel }}</strong></div>
+                <div class="booking-personal-summary-row {{ $selectedCustomerType === 'corporate' ? '' : 'hidden' }}" id="bookingSummaryCorporateRow"><span>Corporate Name</span><strong id="bookingSummaryCorporateName">{{ $selectedCorporateName ?: 'N/A' }}</strong></div>
+                <div class="booking-personal-summary-row"><span>Profession</span><strong id="bookingSummaryProfession">{{ $professionLabel }}</strong></div>
+            </div>
+        @endif
+
         @if($currentStep > 2)
             @if($currentStep !== 4)
                 <h2>{{ $pageTitle }}</h2>
@@ -178,7 +275,14 @@
                     <p>Customer Name: <strong>{{ $summaryName }}</strong></p>
                     <p>Interested in: <strong>{{ strtoupper($interestedVehicleLine) }}</strong></p>
                 </div>
-            @else
+            @elseif($currentStep === 3)
+                <div class="booking-summary exchange-summary">
+                    <div class="exchange-summary-row"><span>Customer Name</span><strong>{{ $summaryName }}</strong></div>
+                    <div class="exchange-summary-row"><span>Interested In</span><strong>{{ strtoupper($interestedVehicleLine) }}</strong></div>
+                    <div class="exchange-summary-row"><span>Mobile No</span><strong>{{ $summaryMobile }}</strong></div>
+                    <div class="exchange-summary-row"><span>Interested in Exchange?</span><strong>{{ $buyingYesNoLabel($selectedInterestedExchange) }}</strong></div>
+                </div>
+            @elseif($currentStep !== 5)
                 <div class="booking-summary">
                     <p>{{ $summaryName }}</p>
                     <p>{{ $summaryMobile }}</p>
@@ -199,7 +303,7 @@
                     <h3 class="section-heading">Personal Details</h3>
                     <label class="inline-edit-check">
                         <input type="checkbox" id="sameAsToggle" @checked(!$sameAsCustomer)>
-                        <span>Edit Buying Details</span>
+                        <span>Edit</span>
                     </label>
                     <input type="hidden" id="bookingSameAsCustomer" name="booking_same_as_customer" value="{{ $sameAsCustomer ? '1' : '0' }}">
                 </div>
@@ -227,14 +331,23 @@
 
                         <div class="field-contact">
                             <label>Contact No</label>
-                            <div class="contact-pill-wrap">
+                            <div class="contact-list" id="bookingContactList">
                                 <select name="contact_type" class="contact-type-select" data-personal-editable>
                                     @foreach(['Mobile', 'Home', 'Office'] as $contactTypeOption)
                                         <option value="{{ $contactTypeOption }}" @selected($selectedContactType === $contactTypeOption)>{{ $contactTypeOption }}</option>
                                     @endforeach
                                 </select>
-                                <input type="text" name="mobile_numbers" value="{{ $selectedMobile }}" data-personal-editable>
-                                <button type="button" class="mini-add-btn" aria-label="Add contact">+</button>
+                                <input type="hidden" name="mobile_numbers" id="bookingMobileNumbers" value="{{ $selectedMobile }}" data-personal-editable>
+                                @foreach($selectedMobileNumbers as $mobileIndex => $mobileNumber)
+                                    <div class="contact-pill-wrap">
+                                        <input type="text" class="booking-mobile-input" value="{{ $mobileNumber }}" data-personal-editable>
+                                        @if($mobileIndex === 0)
+                                            <button type="button" class="mini-add-btn" id="addBookingMobileBtn" aria-label="Add contact">+</button>
+                                        @else
+                                            <button type="button" class="mini-remove-btn" aria-label="Remove contact">&times;</button>
+                                        @endif
+                                    </div>
+                                @endforeach
                             </div>
                         </div>
                     </div>
@@ -242,7 +355,12 @@
                     <div class="row personal-row-two">
                         <div>
                             <label>District</label>
-                            <input type="text" name="district" value="{{ $selectedDistrict }}" data-personal-editable>
+                            <select name="district" data-personal-editable>
+                                <option value="">Select District</option>
+                                @foreach($districtOptions as $districtOption)
+                                    <option value="{{ $districtOption }}" @selected($selectedDistrict === $districtOption)>{{ $districtOption }}</option>
+                                @endforeach
+                            </select>
                         </div>
                         <div>
                             <label>Location</label>
@@ -261,7 +379,7 @@
                         </div>
                     </div>
 
-                    <div class="row">
+                    <div class="row personal-row-full">
                         <label>Address Line 2</label>
                         <input type="text" name="address2" value="{{ $selectedAddress2 }}" data-personal-editable>
                     </div>
@@ -274,7 +392,7 @@
 
                     <div id="corporateNameRow" class="row {{ $selectedCustomerType === 'corporate' ? '' : 'hidden' }}">
                         <label>Corporate Name</label>
-                        <input type="text" placeholder="Corporate Name" data-personal-editable>
+                        <input type="text" name="corporate_name" value="{{ $selectedCorporateName }}" placeholder="Corporate Name" data-personal-editable>
                     </div>
 
                     <label>Profession</label>
@@ -288,10 +406,25 @@
 
                 <div class="purchase-order-box personal-purchase-order">
                     <label for="purchase_order_image">Purchase Order</label>
-                    <input id="purchase_order_image" type="file" name="purchase_order_image" accept=".jpg,.jpeg,.png,.webp">
+                    <input type="hidden" id="remove_purchase_order_image" name="remove_purchase_order_image" value="0">
+                    <div class="purchase-order-upload-tile {{ !empty($booking->purchase_order_image) ? 'has-preview' : '' }}" id="purchaseOrderTile">
+                        <label class="purchase-order-upload-pill" for="purchase_order_image">
+                            <span aria-hidden="true"></span>
+                            <strong>Purchase Order</strong>
+                            <img
+                                id="purchaseOrderPreview"
+                                class="purchase-order-preview"
+                                alt="Purchase Order preview"
+                                src="{{ !empty($booking->purchase_order_image) ? asset('storage/' . $booking->purchase_order_image) : '' }}"
+                                @if(empty($booking->purchase_order_image)) hidden @endif
+                            >
+                        </label>
+                        <button type="button" class="purchase-order-remove" id="purchaseOrderRemove" aria-label="Remove purchase order image">&times;</button>
+                        <input id="purchase_order_image" type="file" name="purchase_order_image" accept=".jpg,.jpeg,.png,.webp">
+                    </div>
 
                     @if(!empty($booking->purchase_order_image))
-                        <p class="existing-file">
+                        <p class="existing-file" id="purchaseOrderExistingFile">
                             Uploaded:
                             <a href="{{ asset('storage/' . $booking->purchase_order_image) }}" target="_blank" rel="noopener">
                                 View Current File
@@ -302,88 +435,110 @@
             </section>
 
             <section class="booking-section buying-section {{ $currentStep === 2 ? 'active' : '' }}">
-                <div class="buying-lead-summary">
-                    <p><strong>Name :</strong> {{ $summaryName }}</p>
-                    <p><strong>Interested In :</strong> {{ strtoupper($interestedVehicleLine) }}</p>
-                    <p><strong>Mobile No :</strong> {{ $summaryMobile }}</p>
-                    <p><strong>Dist :</strong> {{ $selectedDistrict ?: 'N/A' }}</p>
+                <div class="buying-details-summary">
+                    <div class="buying-summary-row{{ $buyingSummaryRowClass($summaryName) }}"><span>Customer Name</span><strong id="buyingSummaryCustomerName">{{ $summaryName }}</strong></div>
+                    <div class="buying-summary-row{{ $buyingSummaryRowClass($summaryAddress) }}"><span>Address</span><strong id="buyingSummaryAddress">{{ $summaryAddress }}</strong></div>
+                    <div class="buying-summary-row{{ $buyingSummaryRowClass($summaryMobile) }}"><span>Mobile No</span><strong id="buyingSummaryMobile">{{ $summaryMobile }}</strong></div>
+                    <div class="buying-summary-row{{ $buyingSummaryRowClass($interestedVehicleLine === 'Not selected' ? '' : $interestedVehicleLine) }}"><span>Interested In</span><strong id="buyingSummaryInterested">{{ $interestedVehicleLine === 'Not selected' ? '' : $interestedVehicleLine }}</strong></div>
+                    <div class="buying-summary-row{{ $buyingSummaryRowClass($selectedVehicleColor) }}"><span>Color</span><strong id="buyingSummaryColor">{{ $selectedVehicleColor }}</strong></div>
+                    <div class="buying-summary-row{{ $buyingSummaryRowClass($buyingYesNoLabel($selectedQuote)) }}"><span>Did the customer take quote?</span><strong id="buyingSummaryQuote">{{ $buyingYesNoLabel($selectedQuote) }}</strong></div>
+                    <div class="buying-summary-row{{ $buyingSummaryRowClass($buyingYesNoLabel($selectedTestDrive)) }}"><span>Test Driven Given</span><strong id="buyingSummaryTestDrive">{{ $buyingYesNoLabel($selectedTestDrive) }}</strong></div>
+                    <div class="buying-summary-row{{ $buyingSummaryRowClass($testDriveDetailsLabel) }}"><span>Test Drive Details</span><strong id="buyingSummaryTestDriveDetails">{{ $testDriveDetailsLabel }}</strong></div>
+                    <div class="buying-summary-row{{ $buyingSummaryRowClass($competitionSummaryLabel) }}"><span>Interested In Competition</span><strong id="buyingSummaryCompetition">{{ $competitionSummaryLabel }}</strong></div>
+                    <div class="buying-summary-row{{ $buyingSummaryRowClass($buyingYesNoLabel($selectedFirstTimeBuyer)) }}"><span>First Time Buyer</span><strong id="buyingSummaryFirstTime">{{ $buyingYesNoLabel($selectedFirstTimeBuyer) }}</strong></div>
+                    <div class="buying-summary-row{{ $buyingSummaryRowClass($purchaseModeLabel) }}"><span>Mode of Purchase</span><strong id="buyingSummaryPurchaseMode">{{ $purchaseModeLabel }}</strong></div>
                 </div>
 
-                <div class="section-head-inline">
-                    <h3 class="section-heading">Buying Details</h3>
-                    <label class="inline-edit-check">
+                <div class="buying-edit-switch-row">
+                    <label class="booking-toggle-label">
+                        <span>Edit Buying Details</span>
                         <input type="hidden" name="edit_buying_vehicle" value="0">
-                        <input type="checkbox" id="toggleBuyingVehicleEdit" name="edit_buying_vehicle" value="1" @checked($isBuyingVehicleEdit)>
-                        <span>Edit</span>
+                        <input type="checkbox" id="toggleBuyingVehicleEdit" name="edit_buying_vehicle" value="1" @checked($isBuyingVehicleEdit || $currentStep === 2)>
+                        <i aria-hidden="true"></i>
                     </label>
                 </div>
 
-                <div class="row">
-                    <label>Interested In Vehicle</label>
-                    <div id="vehicleReadPill" class="vehicle-pill-display">{{ $interestedVehicleLine }}</div>
-                </div>
-
-                <div id="vehicleEditFields" class="row triple {{ $isBuyingVehicleEdit ? '' : 'hidden' }}">
-                    <div>
-                        <label>Model</label>
-                        <select id="interested_model" name="interested_model" class="buying-select" data-selected-model="{{ $selectedInterestedModel }}">
-                            <option value="">Select Model</option>
-                            @foreach($vehicleModels as $modelOption)
-                                <option value="{{ $modelOption }}" @selected($selectedInterestedModel === $modelOption)>{{ $modelOption }}</option>
-                            @endforeach
-                        </select>
+                <div class="buying-edit-card">
+                    <div class="buying-card-head">
+                        <h3 class="section-heading">Interested In</h3>
+                        <span class="buying-card-edit-mark">Edit</span>
                     </div>
-                    <div>
-                        <label>Engine Type</label>
-                        <select id="interested_engine" name="interested_engine" class="buying-select" data-selected-engine="{{ $selectedInterestedEngine }}">
-                            <option value="">Select Engine Type</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label>Variant</label>
-                        <select id="interested_variant" name="interested_variant" class="buying-select" data-selected-variant="{{ $selectedInterestedVariant }}">
-                            <option value="">Select Variant</option>
-                        </select>
-                    </div>
-                </div>
 
-                <div class="row">
-                    <label>Select Color</label>
-                    <select name="interested_vehicle_color" class="vehicle-color-select">
-                        <option value="">Select Color</option>
-                        @foreach($vehicleColorOptions as $colorOption)
-                            <option value="{{ $colorOption }}" @selected($selectedVehicleColor === $colorOption)>{{ $colorOption }}</option>
-                        @endforeach
-                        @if(!empty($selectedVehicleColor) && !in_array($selectedVehicleColor, $vehicleColorOptions, true))
-                            <option value="{{ $selectedVehicleColor }}" selected>{{ $selectedVehicleColor }}</option>
-                        @endif
-                    </select>
-                </div>
-
-                <label>Did the customer take a quote?</label>
-                <div class="segment-row two">
-                    <label><input type="radio" name="quote_taken" value="yes" @checked($selectedQuote === 'yes')><span>Yes</span></label>
-                    <label><input type="radio" name="quote_taken" value="no" @checked($selectedQuote === 'no')><span>No</span></label>
-                </div>
-
-                <div class="row conditional" id="quoteDateWrap">
-                    <label>When?</label>
-                    <input type="date" name="quote_date" value="{{ $selectedQuoteDate }}">
-                </div>
-
-                <label>Test driven given?</label>
-                <div class="segment-row two">
-                    <label><input type="radio" name="test_drive_given" value="yes" @checked($selectedTestDrive === 'yes')><span>Yes</span></label>
-                    <label><input type="radio" name="test_drive_given" value="no" @checked($selectedTestDrive === 'no')><span>No</span></label>
-                </div>
-
-                <div class="conditional" id="testDriveYesWrap">
-                    <div class="row split">
-                        <div>
-                            <label>When?</label>
-                            <input type="date" name="test_drive_date" value="{{ $selectedTestDriveDate }}">
+                    <div id="vehicleEditFields" class="buying-vehicle-fields">
+                        <div class="row split">
+                            <div>
+                                <label>Select Model</label>
+                                <select id="interested_model" name="interested_model" class="buying-select" data-selected-model="{{ $selectedInterestedModel }}">
+                                    <option value="">Select Model</option>
+                                    @foreach($vehicleModels as $modelOption)
+                                        <option value="{{ $modelOption }}" @selected($selectedInterestedModel === $modelOption)>{{ $modelOption }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
+                                <label>Select Engine Type</label>
+                                <select id="interested_engine" name="interested_engine" class="buying-select" data-selected-engine="{{ $selectedInterestedEngine }}">
+                                    <option value="">Select Engine Type</option>
+                                </select>
+                            </div>
                         </div>
-                        <div>
+
+                        <div class="row buying-variant-row">
+                            <div>
+                                <label>Select Variant</label>
+                                <select id="interested_variant" name="interested_variant" class="buying-select" data-selected-variant="{{ $selectedInterestedVariant }}">
+                                    <option value="">Select Variant</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="buying-vehicle-pill-line">
+                        <div id="vehicleReadPill" class="vehicle-pill-display">{{ $interestedVehicleLine }}</div>
+                        <button type="button" class="vehicle-pill-remove" aria-label="Clear selected vehicle">&minus;</button>
+                    </div>
+
+                    <div class="row buying-color-row">
+                        <select name="interested_vehicle_color" class="vehicle-color-select">
+                            <option value="">Select Color</option>
+                            @foreach($vehicleColorOptions as $colorOption)
+                                <option value="{{ $colorOption }}" @selected($selectedVehicleColor === $colorOption)>{{ $colorOption }}</option>
+                            @endforeach
+                            @if(!empty($selectedVehicleColor) && !in_array($selectedVehicleColor, $vehicleColorOptions, true))
+                                <option value="{{ $selectedVehicleColor }}" selected>{{ $selectedVehicleColor }}</option>
+                            @endif
+                        </select>
+                    </div>
+
+                    <label>Did the customer take a quote?</label>
+                    <div class="segment-row two buying-short-segment">
+                        <label><input type="radio" name="quote_taken" value="yes" @checked($selectedQuote === 'yes')><span>Yes</span></label>
+                        <label><input type="radio" name="quote_taken" value="no" @checked($selectedQuote === 'no')><span>No</span></label>
+                    </div>
+
+                    <div class="row conditional buying-date-row" id="quoteDateWrap">
+                        <label>When?</label>
+                        <input type="date" name="quote_date" value="{{ $selectedQuoteDate }}">
+                    </div>
+
+                    <label>Test Drive Given?</label>
+                    <div class="segment-row two buying-short-segment">
+                        <label><input type="radio" name="test_drive_given" value="yes" @checked($selectedTestDrive === 'yes')><span>Yes</span></label>
+                        <label><input type="radio" name="test_drive_given" value="no" @checked($selectedTestDrive === 'no')><span>No</span></label>
+                    </div>
+
+                    <div class="conditional" id="testDriveYesWrap">
+                        <div class="row split buying-test-row">
+                            <div>
+                                <label>To Whom?</label>
+                                <input type="text" name="test_drive_to_whom" value="{{ $selectedTestDriveToWhom }}" placeholder="Name">
+                            </div>
+                            <div>
+                                <label>When?</label>
+                                <input type="date" name="test_drive_date" value="{{ $selectedTestDriveDate }}">
+                            </div>
+                        </div>
+                        <div class="row">
                             <label>Vehicle Used?</label>
                             <select name="test_drive_vehicle_model" class="buying-select">
                                 <option value="">Select Model</option>
@@ -396,105 +551,100 @@
                             </select>
                         </div>
                     </div>
-                    <div class="row">
-                        <label>Name</label>
-                        <input type="text" name="test_drive_to_whom" value="{{ $selectedTestDriveToWhom }}">
+
+                    <div class="row conditional" id="testDriveNoWrap">
+                        <label>Why Not Given?</label>
+                        <select name="test_drive_not_given_reason" class="buying-select">
+                            <option value="">Select reason</option>
+                            @foreach($testDriveNoReasons as $reasonOption)
+                                <option value="{{ $reasonOption }}" @selected($selectedTestDriveReason === $reasonOption)>{{ $reasonOption }}</option>
+                            @endforeach
+                            @if(!empty($selectedTestDriveReason) && !in_array($selectedTestDriveReason, $testDriveNoReasons, true))
+                                <option value="{{ $selectedTestDriveReason }}" selected>{{ $selectedTestDriveReason }}</option>
+                            @endif
+                        </select>
                     </div>
-                </div>
 
-                <div class="row conditional" id="testDriveNoWrap">
-                    <label>Why Not Given?</label>
-                    <select name="test_drive_not_given_reason" class="buying-select">
-                        <option value="">Select reason</option>
-                        @foreach($testDriveNoReasons as $reasonOption)
-                            <option value="{{ $reasonOption }}" @selected($selectedTestDriveReason === $reasonOption)>{{ $reasonOption }}</option>
-                        @endforeach
-                        @if(!empty($selectedTestDriveReason) && !in_array($selectedTestDriveReason, $testDriveNoReasons, true))
-                            <option value="{{ $selectedTestDriveReason }}" selected>{{ $selectedTestDriveReason }}</option>
-                        @endif
-                    </select>
-                </div>
+                    <label>Interested in Competition</label>
+                    <div class="segment-row three buying-medium-segment">
+                        <label><input type="radio" name="interested_in_competition" value="yes" @checked($selectedCompetition === 'yes')><span>Yes</span></label>
+                        <label><input type="radio" name="interested_in_competition" value="no" @checked($selectedCompetition === 'no')><span>No</span></label>
+                        <label><input type="radio" name="interested_in_competition" value="not_asked" @checked($selectedCompetition === 'not_asked')><span>I Did Not Ask</span></label>
+                    </div>
 
-                <label>Mode of Purchase</label>
-                <div class="segment-row two">
-                    <label><input type="radio" name="purchase_mode" value="cash" @checked($selectedPurchaseMode === 'cash')><span>Cash</span></label>
-                    <label><input type="radio" name="purchase_mode" value="finance" @checked($selectedPurchaseMode === 'finance')><span>Finance</span></label>
-                </div>
-
-                <div class="row conditional" id="financeFormWrap">
-                    <label>Finance form</label>
-                    <select name="finance_form">
-                        <option value="">Select finance form</option>
-                        <option value="in_house" @selected($selectedFinanceForm === 'in_house')>In House</option>
-                        <option value="self" @selected($selectedFinanceForm === 'self')>Self</option>
-                        <option value="other" @selected($selectedFinanceForm === 'other')>Other</option>
-                    </select>
-                </div>
-
-                <label>Interested in Competition</label>
-                <div class="segment-row three">
-                    <label><input type="radio" name="interested_in_competition" value="yes" @checked($selectedCompetition === 'yes')><span>Yes</span></label>
-                    <label><input type="radio" name="interested_in_competition" value="no" @checked($selectedCompetition === 'no')><span>No</span></label>
-                    <label><input type="radio" name="interested_in_competition" value="not_asked" @checked($selectedCompetition === 'not_asked')><span>I Did Not Ask</span></label>
-                </div>
-
-                <div class="conditional" id="competitionWrap">
-                    <div class="row split">
-                        <div>
-                            <label>Competition Brand</label>
-                            <select id="competition_brand" name="competition_brand" class="buying-select">
-                                <option value="">Select Brand</option>
-                                @foreach($competitionBrands as $brandOption)
-                                    <option value="{{ $brandOption }}" @selected($selectedCompetitionBrand === $brandOption)>{{ $brandOption }}</option>
-                                @endforeach
-                                @if(!empty($selectedCompetitionBrand) && !in_array($selectedCompetitionBrand, $competitionBrands, true))
-                                    <option value="{{ $selectedCompetitionBrand }}" selected>{{ $selectedCompetitionBrand }}</option>
-                                @endif
-                            </select>
-                        </div>
-                        <div>
-                            <label>Competition Model</label>
-                            <select id="competition_model" name="competition_model" class="buying-select" data-selected-model="{{ $selectedCompetitionModel }}">
-                                <option value="">Select Model</option>
-                            </select>
+                    <div class="conditional" id="competitionWrap">
+                        <div class="row three buying-soft-row">
+                            <div>
+                                <select id="competition_brand" name="competition_brand" class="buying-select">
+                                    <option value="">Select brand</option>
+                                    @foreach($competitionBrands as $brandOption)
+                                        <option value="{{ $brandOption }}" @selected($selectedCompetitionBrand === $brandOption)>{{ $brandOption }}</option>
+                                    @endforeach
+                                    @if(!empty($selectedCompetitionBrand) && !in_array($selectedCompetitionBrand, $competitionBrands, true))
+                                        <option value="{{ $selectedCompetitionBrand }}" selected>{{ $selectedCompetitionBrand }}</option>
+                                    @endif
+                                </select>
+                            </div>
+                            <div>
+                                <select id="competition_model" name="competition_model" class="buying-select" data-selected-model="{{ $selectedCompetitionModel }}">
+                                    <option value="">Select model</option>
+                                </select>
+                            </div>
+                            <div>
+                                <select class="buying-select" aria-label="Competition model year" disabled>
+                                    <option value="">Model year</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <label>First time buyer?</label>
-                <div class="segment-row two">
-                    <label><input type="radio" name="first_time_buyer" value="yes" @checked($selectedFirstTimeBuyer === 'yes')><span>Yes</span></label>
-                    <label><input type="radio" name="first_time_buyer" value="no" @checked($selectedFirstTimeBuyer === 'no')><span>No</span></label>
-                </div>
+                    <label>First time buyer?</label>
+                    <div class="segment-row two buying-short-segment">
+                        <label><input type="radio" name="first_time_buyer" value="yes" @checked($selectedFirstTimeBuyer === 'yes')><span>Yes</span></label>
+                        <label><input type="radio" name="first_time_buyer" value="no" @checked($selectedFirstTimeBuyer === 'no')><span>No</span></label>
+                    </div>
 
-                <div class="conditional" id="existingVehicleWrap">
-                    <div class="row three">
-                        <div>
-                            <label>Existing Vehicle Brand</label>
-                            <select id="existing_vehicle_brand" name="existing_vehicle_brand" class="buying-select">
-                                <option value="">Select Brand</option>
-                                @foreach($competitionBrands as $brandOption)
-                                    <option value="{{ $brandOption }}" @selected($selectedExistingBrand === $brandOption)>{{ $brandOption }}</option>
-                                @endforeach
-                                @if(!empty($selectedExistingBrand) && !in_array($selectedExistingBrand, $competitionBrands, true))
-                                    <option value="{{ $selectedExistingBrand }}" selected>{{ $selectedExistingBrand }}</option>
-                                @endif
-                            </select>
+                    <div class="conditional" id="existingVehicleWrap">
+                        <div class="row three buying-soft-row">
+                            <div>
+                                <select id="existing_vehicle_brand" name="existing_vehicle_brand" class="buying-select">
+                                    <option value="">Select brand</option>
+                                    @foreach($competitionBrands as $brandOption)
+                                        <option value="{{ $brandOption }}" @selected($selectedExistingBrand === $brandOption)>{{ $brandOption }}</option>
+                                    @endforeach
+                                    @if(!empty($selectedExistingBrand) && !in_array($selectedExistingBrand, $competitionBrands, true))
+                                        <option value="{{ $selectedExistingBrand }}" selected>{{ $selectedExistingBrand }}</option>
+                                    @endif
+                                </select>
+                            </div>
+                            <div>
+                                <select id="existing_vehicle_model" name="existing_vehicle_model" class="buying-select" data-selected-model="{{ $selectedExistingModel }}">
+                                    <option value="">Select model</option>
+                                </select>
+                            </div>
+                            <div>
+                                <select name="existing_vehicle_year" class="buying-select">
+                                    <option value="">Model year</option>
+                                    @for($year = now()->year + 1; $year >= 1950; $year--)
+                                        <option value="{{ $year }}" @selected((string) $selectedExistingYear === (string) $year)>{{ $year }}</option>
+                                    @endfor
+                                </select>
+                            </div>
                         </div>
-                        <div>
-                            <label>Existing Vehicle Model</label>
-                            <select id="existing_vehicle_model" name="existing_vehicle_model" class="buying-select" data-selected-model="{{ $selectedExistingModel }}">
-                                <option value="">Select Model</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label>Existing Vehicle Year</label>
-                            <select name="existing_vehicle_year" class="buying-select">
-                                <option value="">Select Year</option>
-                                @for($year = now()->year + 1; $year >= 1950; $year--)
-                                    <option value="{{ $year }}" @selected((string) $selectedExistingYear === (string) $year)>{{ $year }}</option>
-                                @endfor
-                            </select>
+                    </div>
+
+                    <label>Mode of Purchase</label>
+                    <div class="segment-row two buying-short-segment">
+                        <label><input type="radio" name="purchase_mode" value="cash" @checked($selectedPurchaseMode === 'cash')><span>Cash</span></label>
+                        <label><input type="radio" name="purchase_mode" value="finance" @checked($selectedPurchaseMode === 'finance')><span>Finance</span></label>
+                    </div>
+
+                    <div class="conditional" id="financeFormWrap">
+                        <label>Finance From</label>
+                        <div class="segment-row three buying-medium-segment">
+                            <label><input type="radio" name="finance_form" value="in_house" @checked($selectedFinanceForm === 'in_house')><span>In-House</span></label>
+                            <label><input type="radio" name="finance_form" value="self" @checked($selectedFinanceForm === 'self')><span>Self</span></label>
+                            <label><input type="radio" name="finance_form" value="other" @checked($selectedFinanceForm === 'other')><span>Other</span></label>
                         </div>
                     </div>
                 </div>
@@ -503,23 +653,20 @@
             <section class="booking-section exchange-section {{ $currentStep === 3 ? 'active' : '' }}">
                 <h3 class="section-heading">Exchange Details</h3>
 
-                <label>Interested In Exchange</label>
-                <div class="segment-row two">
+                <label class="exchange-question-label">Interested in Exchange?</label>
+                <div class="segment-row two exchange-interest-segment">
                     <label><input type="radio" name="interested_in_exchange" value="yes" @checked($selectedInterestedExchange === 'yes')><span>Yes</span></label>
                     <label><input type="radio" name="interested_in_exchange" value="no" @checked($selectedInterestedExchange === 'no')><span>No</span></label>
                 </div>
 
-                <div id="exchangeTypeRow" class="exchange-mode-row {{ $selectedInterestedExchange === 'yes' ? '' : 'hidden' }}">
-                    <div class="segment-row two">
-                        <label><input type="radio" name="exchange_type" value="in_house" @checked($selectedExchangeType === 'in_house') @disabled($selectedInterestedExchange !== 'yes')><span>In-House</span></label>
-                        <label><input type="radio" name="exchange_type" value="outhouse" @checked($selectedExchangeType === 'outhouse') @disabled($selectedInterestedExchange !== 'yes')><span>Outhouse</span></label>
-                    </div>
+                <div id="exchangeTypeRow" class="exchange-system-fields {{ $selectedInterestedExchange === 'yes' ? '' : 'hidden' }}">
+                    <label><input type="radio" name="exchange_type" value="in_house" @checked($selectedExchangeType !== 'outhouse') @disabled($selectedInterestedExchange !== 'yes')><span>In-House</span></label>
+                    <label><input type="radio" name="exchange_type" value="outhouse" @checked($selectedExchangeType === 'outhouse') @disabled($selectedInterestedExchange !== 'yes')><span>Out-House</span></label>
                 </div>
 
                 <div id="exchangeDetailsWrap" class="exchange-detail-wrap {{ $showExchangeDetails ? '' : 'hidden' }}">
-
                     <div class="section-head-inline">
-                        <label>Exchange detail</label>
+                        <label>Exchange Details</label>
                         <label class="inline-edit-check">
                             <input type="hidden" name="edit_exchange_details" value="0">
                             <input type="checkbox" id="toggleExchangeEdit" name="edit_exchange_details" value="1" @checked($isExchangeEdit)>
@@ -527,15 +674,19 @@
                         </label>
                     </div>
 
+                    <input type="hidden" name="exchange_purchase_value" value="{{ $selectedExchangePurchaseValue }}">
+
                     <div id="exchangeEditFields" class="exchange-edit-fields {{ $showExchangeDetails ? '' : 'hidden' }}">
                         <div class="row exchange-interested-row">
-                            <label>Interested In</label>
-                            <div class="vehicle-pill-display">{{ $interestedVehicleLine }}</div>
+                            <label>Exchange Details</label>
+                            <div class="vehicle-pill-display">
+                                <span>{{ strtoupper($exchangeVehicleLine) }}</span>
+                            </div>
                         </div>
 
                         <div class="row split">
                             <div>
-                                <label>Brand</label>
+                                <label>Select Brand</label>
                                 <select id="exchange_vehicle_brand" name="exchange_vehicle_brand" class="buying-select">
                                     <option value="">Select Brand</option>
                                     @foreach($competitionBrands as $brandOption)
@@ -547,7 +698,7 @@
                                 </select>
                             </div>
                             <div>
-                                <label>Model</label>
+                                <label>Select Model</label>
                                 <select id="exchange_vehicle_model" name="exchange_vehicle_model" class="buying-select" data-selected-model="{{ $selectedExchangeModel }}">
                                     <option value="">Select Model</option>
                                 </select>
@@ -556,7 +707,7 @@
 
                         <div class="row split">
                             <div>
-                                <label>Year</label>
+                                <label>Model Year</label>
                                 <select name="exchange_manufacture_year" class="buying-select">
                                     <option value="">Select Year</option>
                                     @for($year = now()->year + 1; $year >= 1950; $year--)
@@ -565,33 +716,60 @@
                                 </select>
                             </div>
                             <div>
-                                <label>Color</label>
-                                <input type="text" name="exchange_color" value="{{ $selectedExchangeColor }}" placeholder="Color">
+                                <label>Select Ownership</label>
+                                <select name="exchange_ownership" class="buying-select">
+                                    <option value="">Select</option>
+                                    <option value="1st Owner" @selected($selectedExchangeOwnership === '1st Owner')>1st Owner</option>
+                                    <option value="2nd Owner" @selected($selectedExchangeOwnership === '2nd Owner')>2nd Owner</option>
+                                    <option value="3rd Owner" @selected($selectedExchangeOwnership === '3rd Owner')>3rd Owner</option>
+                                </select>
                             </div>
+                        </div>
+
+                        <div class="row exchange-wide-field">
+                            <label>Insurance Validity</label>
+                            <input type="date" name="exchange_insurance_validity" value="{{ $selectedExchangeInsuranceValidity }}">
+                        </div>
+
+                        <div class="exchange-tyre-row">
+                            <label>Tyre Replacement</label>
+                            <label class="exchange-image-switch">
+                                <input type="checkbox" checked>
+                                <span></span>
+                            </label>
+                        </div>
+
+                        <div class="segment-row four exchange-tyre-segment">
+                            <label><input type="checkbox" name="exchange_tyre_replacements[]" value="front_lhs" @checked(in_array('front_lhs', $selectedExchangeTyreReplacements, true))><span>Front LHS</span></label>
+                            <label><input type="checkbox" name="exchange_tyre_replacements[]" value="front_rhs" @checked(in_array('front_rhs', $selectedExchangeTyreReplacements, true))><span>Front RHS</span></label>
+                            <label><input type="checkbox" name="exchange_tyre_replacements[]" value="rear_lhs" @checked(in_array('rear_lhs', $selectedExchangeTyreReplacements, true))><span>Rear LHS</span></label>
+                            <label><input type="checkbox" name="exchange_tyre_replacements[]" value="rear_rhs" @checked(in_array('rear_rhs', $selectedExchangeTyreReplacements, true))><span>Rear RHS</span></label>
                         </div>
 
                         <div class="row split">
                             <div>
-                                <label>Mileage Km</label>
-                                <input type="number" min="0" name="exchange_mileage_km" value="{{ $selectedExchangeMileage }}" placeholder="Mileage KM">
+                                <label>Color</label>
+                                <input type="text" name="exchange_color" value="{{ $selectedExchangeColor }}">
                             </div>
                             <div>
-                                <label>Registration No.</label>
-                                <input type="text" name="exchange_registration_no" value="{{ $selectedExchangeRegNo }}" placeholder="Registration No.">
+                                <label>Total KM</label>
+                                <input type="number" min="0" name="exchange_mileage_km" value="{{ $selectedExchangeMileage }}">
                             </div>
+                        </div>
+
+                        <div class="row exchange-wide-field">
+                            <label>Registration No</label>
+                            <input type="text" name="exchange_registration_no" value="{{ $selectedExchangeRegNo }}">
                         </div>
 
                         <div class="row triple">
                             <div>
-                                <label>Expected Price</label>
                                 <input type="number" step="0.01" min="0" id="exchange_expected_price" name="exchange_expected_price" value="{{ $selectedExchangeExpectedPrice }}" placeholder="Expected Price">
                             </div>
                             <div>
-                                <label>Quoted Price</label>
                                 <input type="number" step="0.01" min="0" id="exchange_quoted_price" name="exchange_quoted_price" value="{{ $selectedExchangeQuotedPrice }}" placeholder="Quoted Price">
                             </div>
                             <div>
-                                <label>Difference</label>
                                 <input type="number" step="0.01" id="exchange_price_difference" name="exchange_price_difference" class="exchange-difference-input" value="{{ $selectedExchangeDifference }}" placeholder="Difference" readonly>
                             </div>
                         </div>
@@ -709,10 +887,10 @@
                     <div class="offer-remarks">
                         <label class="offer-remarks-toggle">
                             <span>Add Remarks</span>
-                            <input type="checkbox" id="offerRemarksToggle" checked>
+                            <input type="checkbox" id="offerRemarksToggle" @checked($hasOfferRemark)>
                             <i></i>
                         </label>
-                        <textarea id="offerRemarksText" rows="4" placeholder="Type comment here......"></textarea>
+                        <textarea id="offerRemarksText" name="offer_remark" rows="4" placeholder="Type comment here......">{{ $selectedOfferRemark }}</textarea>
                     </div>
                 </div>
 
@@ -728,7 +906,7 @@
                                 <input type="checkbox" name="offer_unit_price_free" id="offer_unit_price_free" value="1" @checked($selectedOfferUnitPriceFree)>
                                 <span>Free</span>
                             </label>
-                            <input type="number" step="0.01" min="0" name="offer_unit_price_discount" id="offer_unit_price_discount" value="{{ $selectedOfferUnitPriceDiscount }}">
+                            <input type="number" step="0.01" min="0" name="offer_unit_price_discount" id="offer_unit_price_discount" value="{{ $selectedOfferUnitPriceDiscount }}" placeholder="Discount amount">
                         </div>
                     </div>
 
@@ -743,7 +921,7 @@
                                 <input type="checkbox" name="offer_vat_free" id="offer_vat_free" value="1" @checked($selectedOfferVatFree)>
                                 <span>Free</span>
                             </label>
-                            <input type="number" step="0.01" min="0" name="offer_vat_discount" id="offer_vat_discount" value="{{ $selectedOfferVatDiscount }}">
+                            <input type="number" step="0.01" min="0" name="offer_vat_discount" id="offer_vat_discount" value="{{ $selectedOfferVatDiscount }}" placeholder="Discount amount">
                         </div>
                     </div>
 
@@ -769,73 +947,112 @@
             </section>
 
             <section class="booking-section booking-form-section {{ $currentStep === 5 ? 'active' : '' }}">
-                <h3 class="section-heading">Part 5 - Booking Form</h3>
-                <div class="booking-review-stack">
-                    <article class="booking-review-card">
+                <div class="booking-form-review">
+                    <article class="booking-form-card">
+                        <h4>Booking Details</h4>
+                        <div class="booking-form-card-rows">
+                            <p><i></i><strong>SC Name</strong><em>:</em><span>{{ $bookingScName }}</span></p>
+                            <p><i></i><strong>Lead Source</strong><em>:</em><span>{{ $bookingLeadSource }}</span></p>
+                            <p><i></i><strong>Source of Information</strong><em>:</em><span>{{ $bookingSourceInfo }}</span></p>
+                            <p><i></i><strong>Model</strong><em>:</em><span>{{ strtoupper($selectedInterestedModel ?: 'N/A') }}</span></p>
+                            <p><i></i><strong>Variant</strong><em>:</em><span>{{ $selectedInterestedVariant ?: 'N/A' }}</span></p>
+                            <p><i></i><strong>Color</strong><em>:</em><span>{{ $selectedVehicleColor ?: 'N/A' }}</span></p>
+                        </div>
+                    </article>
+
+                    <article class="booking-form-card">
                         <h4>Enquiry Details</h4>
-                        <div class="booking-review-grid">
-                            <p><strong>Name</strong><span>{{ $summaryName }}</span></p>
-                            <p><strong>Mobile No</strong><span>{{ $summaryMobile }}</span></p>
-                            <p><strong>Interested In</strong><span>{{ strtoupper($interestedVehicleLine) }}</span></p>
+                        <div class="booking-form-card-rows compact">
+                            <p><i></i><strong>Date of Enquiry</strong><em>:</em><span>{{ $enquiryDateLabel }}</span></p>
+                            <p><i></i><strong>Name</strong><em>:</em><span>{{ $summaryName }}</span></p>
                         </div>
                     </article>
 
-                    <article class="booking-review-card">
+                    <article class="booking-form-card">
                         <h4>Personal Details</h4>
-                        <div class="booking-review-grid">
-                            <p><strong>DOB</strong><span>{{ $selectedDob ?: 'N/A' }}</span></p>
-                            <p><strong>District</strong><span>{{ $selectedDistrict ?: 'N/A' }}</span></p>
-                            <p><strong>Location</strong><span>{{ $selectedLocation ?: 'N/A' }}</span></p>
-                            <p><strong>Address</strong><span>{{ $selectedAddress1 ?: 'N/A' }}</span></p>
-                            <p><strong>Customer Type</strong><span>{{ ucfirst(str_replace('_', ' ', $selectedCustomerType ?: 'N/A')) }}</span></p>
-                            <p><strong>Profession</strong><span>{{ ucfirst(str_replace('_', ' ', $selectedProfession ?: 'N/A')) }}</span></p>
+                        <div class="booking-form-card-rows">
+                            <p><i></i><strong>Customer Name</strong><em>:</em><span>{{ $selectedName ?: $summaryName }}</span></p>
+                            <p><i></i><strong>Mobile No</strong><em>:</em><span>{{ $summaryMobile }}</span></p>
+                            <p><i></i><strong>Address</strong><em>:</em><span>{{ $summaryAddress ?: 'N/A' }}</span></p>
+                            <p><i></i><strong>Type of Customer</strong><em>:</em><span>{{ $selectedCustomerTypeLabel ?: 'N/A' }}</span></p>
+                            <p><i></i><strong>Profession</strong><em>:</em><span>{{ $selectedProfessionLabel ?: 'N/A' }}</span></p>
                         </div>
                     </article>
 
-                    <article class="booking-review-card">
+                    <article class="booking-form-card">
                         <h4>Buying Details</h4>
-                        <div class="booking-review-grid">
-                            <p><strong>Quote Taken</strong><span>{{ ucfirst($selectedQuote ?: 'N/A') }}</span></p>
-                            <p><strong>Test Drive</strong><span>{{ ucfirst($selectedTestDrive ?: 'N/A') }}</span></p>
-                            <p><strong>Purchase Mode</strong><span>{{ ucfirst($selectedPurchaseMode ?: 'N/A') }}</span></p>
-                            <p><strong>Finance Form</strong><span>{{ $selectedFinanceForm ?: 'N/A' }}</span></p>
-                            <p><strong>Competition</strong><span>{{ ucfirst($selectedCompetition ?: 'N/A') }}</span></p>
-                            <p><strong>First Time Buyer</strong><span>{{ ucfirst($selectedFirstTimeBuyer ?: 'N/A') }}</span></p>
+                        <div class="booking-form-card-rows compact">
+                            <p><i></i><strong>First Time Buyer</strong><em>:</em><span>{{ $buyingYesNoLabel($selectedFirstTimeBuyer) ?: 'N/A' }}</span></p>
+                            <p><i></i><strong>Mode of Purchase</strong><em>:</em><span>{{ $purchaseModeLabel ?: 'N/A' }}</span></p>
+                            @if($selectedPurchaseMode === 'finance')
+                                <p><i></i><strong>Finance From</strong><em>:</em><span>{{ $financeFormLabel ?: 'N/A' }}</span></p>
+                            @endif
                         </div>
                     </article>
 
-                    <article class="booking-review-card">
+                    <article class="booking-form-card">
                         <h4>Exchange Details</h4>
-                        <div class="booking-review-grid">
-                            <p><strong>Interested In Exchange</strong><span>{{ ucfirst($selectedInterestedExchange ?: 'N/A') }}</span></p>
-                            <p><strong>Exchange Type</strong><span>{{ $selectedExchangeType ? ucfirst(str_replace('_', '-', $selectedExchangeType)) : 'N/A' }}</span></p>
-                            <p><strong>Vehicle</strong><span>{{ strtoupper($exchangeVehicleLine) }}</span></p>
-                            <p><strong>Expected Price</strong><span>{{ $money($selectedExchangeExpectedPrice) }}</span></p>
-                            <p><strong>Quoted Price</strong><span>{{ $money($selectedExchangeQuotedPrice) }}</span></p>
-                            <p><strong>Difference</strong><span>{{ $money($selectedExchangeDifference) }}</span></p>
+                        <div class="booking-form-card-rows compact">
+                            <p><i></i><strong>Interested in Exchange</strong><em>:</em><span>{{ $buyingYesNoLabel($selectedInterestedExchange) ?: 'N/A' }}</span></p>
                         </div>
                     </article>
 
-                    <article class="booking-review-card">
+                    <article class="booking-form-card offer-review-card">
                         <h4>Offer Details</h4>
-                        <div class="booking-review-grid">
-                            <p><strong>Total Cost</strong><span>{{ $money($selectedOfferTotalCost) }}</span></p>
-                            <p><strong>Total Discount</strong><span>{{ $money($selectedOfferTotalDiscount) }}</span></p>
-                            <p><strong>Final Offer Price</strong><span>{{ $money($selectedOfferFinalPrice) }}</span></p>
-                            <p><strong>Purchase Order</strong><span>{{ empty($booking->purchase_order_image) ? 'Not uploaded' : 'Uploaded' }}</span></p>
+                        <div class="booking-offer-review">
+                            <div class="booking-offer-head">
+                                <span></span>
+                                <span>Cost</span>
+                                <span>Offer</span>
+                                <span>Payable</span>
+                            </div>
+                            <div class="booking-offer-row">
+                                <strong>Vat</strong>
+                                <span>{{ number_format((float) ($selectedOfferVatAmount ?? 0), 0) }}</span>
+                                <span>{{ number_format((float) ($selectedOfferVatDiscount ?? 0), 0) }}</span>
+                                <span>{{ number_format(max(0, (float) ($selectedOfferVatAmount ?? 0) - (float) ($selectedOfferVatDiscount ?? 0)), 0) }}</span>
+                            </div>
+                            <div class="booking-offer-row">
+                                <strong>Unit price (without vat)</strong>
+                                <span>{{ number_format((float) ($selectedOfferUnitPrice ?? 0), 0) }}</span>
+                                <span>{{ number_format((float) ($selectedOfferUnitPriceDiscount ?? 0), 0) }}</span>
+                                <span>{{ number_format(max(0, (float) ($selectedOfferUnitPrice ?? 0) - (float) ($selectedOfferUnitPriceDiscount ?? 0)), 0) }}</span>
+                            </div>
+                            <div class="booking-offer-total">
+                                <strong>Total</strong>
+                                <span>{{ number_format((float) ($selectedOfferTotalCost ?? 0), 0) }}</span>
+                                <span>{{ number_format((float) ($selectedOfferTotalDiscount ?? 0), 0) }}</span>
+                                <span>{{ number_format((float) ($selectedOfferFinalPrice ?? 0), 0) }}</span>
+                            </div>
                         </div>
                     </article>
                 </div>
+
+                <div class="booking-form-fields">
+                    <div>
+                        <label>Expected Date of Delivery</label>
+                        <input type="date" name="expected_delivery_date" value="{{ $selectedExpectedDeliveryDate }}">
+                    </div>
+                    <div>
+                        <label>Date of Booking</label>
+                        <input type="date" name="booking_date" value="{{ $selectedBookingDate }}">
+                    </div>
+                    <div>
+                        <label>Amount Collected</label>
+                        <input type="number" min="0" step="0.01" name="amount_collected" value="{{ $selectedAmountCollected }}">
+                    </div>
+                </div>
             </section>
 
-            <div id="actionRow" class="action-row {{ $currentStep === 5 ? 'step-five' : '' }} {{ $isExchangeNoMode ? 'next-only' : '' }}">
-                <a id="backAction" href="{{ $backUrl }}" class="action-btn back-btn {{ $isExchangeNoMode ? 'hidden' : '' }}">Back</a>
+            <div id="actionRow" class="action-row {{ $currentStep === 5 ? 'step-five' : '' }}">
                 @if($currentStep === 5)
-                    <button type="submit" name="action_type" value="save" class="action-btn save-action-btn">Save</button>
-                    <button id="saveExitAction" type="submit" name="action_type" value="save_exit" class="action-btn save-exit-btn {{ $isExchangeNoMode ? 'hidden' : '' }}">Save & Exit</button>
-                    <button type="submit" name="action_type" value="submit" class="action-btn submit-action-btn">Submit</button>
+                    <a id="backAction" href="{{ $backUrl }}" class="booking-form-nav-btn">Back</a>
+                    <button type="submit" name="action_type" value="submit" class="booking-book-now-btn">Book Now</button>
                 @else
-                    <button id="saveExitAction" type="submit" name="action_type" value="save_exit" class="action-btn save-exit-btn {{ $isExchangeNoMode ? 'hidden' : '' }}">Save & Exit</button>
+                    @if($currentStep > 1)
+                        <a id="backAction" href="{{ $backUrl }}" class="action-btn back-btn">Back</a>
+                    @endif
+                    <button id="saveExitAction" type="submit" name="action_type" value="save_exit" class="action-btn save-exit-btn">Save & Exit</button>
                     <button type="submit" name="action_type" value="next" class="action-btn next-action-btn">Save & Next</button>
                 @endif
             </div>
@@ -872,13 +1089,36 @@
 
     (function () {
         const toggle = document.getElementById('sameAsToggle');
+        const bookingForm = document.getElementById('bookingForm');
         const editBlock = document.getElementById('editBlock');
         const bookingSameAsCustomerInput = document.getElementById('bookingSameAsCustomer');
         const personalEditableInputs = document.querySelectorAll('[data-personal-editable]');
         const corporateNameRow = document.getElementById('corporateNameRow');
+        const bookingContactList = document.getElementById('bookingContactList');
+        const bookingMobileNumbersInput = document.getElementById('bookingMobileNumbers');
+        const addBookingMobileBtn = document.getElementById('addBookingMobileBtn');
+        const bookingSummaryCustomerName = document.getElementById('bookingSummaryCustomerName');
+        const bookingSummaryAddress = document.getElementById('bookingSummaryAddress');
+        const bookingSummaryMobile = document.getElementById('bookingSummaryMobile');
+        const bookingSummaryCustomerType = document.getElementById('bookingSummaryCustomerType');
+        const bookingSummaryCorporateRow = document.getElementById('bookingSummaryCorporateRow');
+        const bookingSummaryCorporateName = document.getElementById('bookingSummaryCorporateName');
+        const bookingSummaryProfession = document.getElementById('bookingSummaryProfession');
         const toggleBuyingVehicleEdit = document.getElementById('toggleBuyingVehicleEdit');
         const vehicleEditFields = document.getElementById('vehicleEditFields');
         const vehicleReadPill = document.getElementById('vehicleReadPill');
+        const vehiclePillRemove = document.querySelector('.vehicle-pill-remove');
+        const buyingSummaryCustomerName = document.getElementById('buyingSummaryCustomerName');
+        const buyingSummaryAddress = document.getElementById('buyingSummaryAddress');
+        const buyingSummaryMobile = document.getElementById('buyingSummaryMobile');
+        const buyingSummaryInterested = document.getElementById('buyingSummaryInterested');
+        const buyingSummaryColor = document.getElementById('buyingSummaryColor');
+        const buyingSummaryQuote = document.getElementById('buyingSummaryQuote');
+        const buyingSummaryTestDrive = document.getElementById('buyingSummaryTestDrive');
+        const buyingSummaryTestDriveDetails = document.getElementById('buyingSummaryTestDriveDetails');
+        const buyingSummaryCompetition = document.getElementById('buyingSummaryCompetition');
+        const buyingSummaryFirstTime = document.getElementById('buyingSummaryFirstTime');
+        const buyingSummaryPurchaseMode = document.getElementById('buyingSummaryPurchaseMode');
         const interestedModelInput = document.getElementById('interested_model');
         const interestedEngineInput = document.getElementById('interested_engine');
         const interestedVariantInput = document.getElementById('interested_variant');
@@ -906,6 +1146,13 @@
         const bookingAddMoreImagesBtn = document.getElementById('bookingAddMoreImagesBtn');
         const bookingExtraImageGrid = document.getElementById('bookingExtraImageGrid');
         const exchangePreviewObjectUrls = new WeakMap();
+        const purchaseOrderTile = document.getElementById('purchaseOrderTile');
+        const purchaseOrderInput = document.getElementById('purchase_order_image');
+        const purchaseOrderPreview = document.getElementById('purchaseOrderPreview');
+        const purchaseOrderRemove = document.getElementById('purchaseOrderRemove');
+        const purchaseOrderRemoveInput = document.getElementById('remove_purchase_order_image');
+        const purchaseOrderExistingFile = document.getElementById('purchaseOrderExistingFile');
+        let purchaseOrderObjectUrl = null;
         const toggleOfferEdit = document.getElementById('toggleOfferEdit');
         const offerEditGroup = document.getElementById('offerEditGroup');
         const offerUnitPriceInput = document.getElementById('offer_unit_price');
@@ -947,6 +1194,10 @@
             }
 
             personalEditableInputs.forEach((input) => {
+                if (input.id === 'bookingMobileNumbers') {
+                    return;
+                }
+
                 if (input.tagName === 'INPUT' && input.type === 'radio') {
                     input.disabled = !editable;
                     return;
@@ -961,11 +1212,113 @@
                     input.readOnly = !editable;
                 }
             });
+
+            document.querySelectorAll('.booking-mobile-input').forEach((input) => {
+                input.readOnly = !editable;
+            });
+
+            document.querySelectorAll('.mini-add-btn, .mini-remove-btn').forEach((button) => {
+                button.disabled = !editable;
+            });
         }
 
         function syncCorporateRow() {
             if (!corporateNameRow) return;
             corporateNameRow.classList.toggle('hidden', picked('customer_type') !== 'corporate');
+        }
+
+        function syncBookingMobileNumbers() {
+            if (!bookingContactList || !bookingMobileNumbersInput) return;
+            const numbers = Array.from(bookingContactList.querySelectorAll('.booking-mobile-input'))
+                .map((input) => input.value.trim())
+                .filter(Boolean);
+            bookingMobileNumbersInput.value = numbers.join(', ');
+        }
+
+        function fieldValue(name) {
+            const field = document.querySelector(`[name="${name}"]`);
+            return field ? field.value.trim() : '';
+        }
+
+        function checkedValue(name) {
+            const field = document.querySelector(`input[name="${name}"]:checked`);
+            return field ? field.value : '';
+        }
+
+        function setSummaryText(target, value) {
+            if (target) {
+                const normalized = String(value || '').trim();
+                const isEmpty = normalized === '' || normalized === 'N/A';
+                target.textContent = isEmpty ? '' : normalized;
+
+                const buyingRow = target.closest('.buying-summary-row');
+                if (buyingRow) {
+                    buyingRow.classList.toggle('buying-summary-empty', isEmpty);
+                }
+            }
+        }
+
+        function syncBookingPersonalSummary() {
+            const customerTypeLabels = {
+                individual: 'Individual',
+                corporate: 'Corporate',
+            };
+            const professionLabels = {
+                salaried: 'Salaried',
+                self_employed: 'Self Employed',
+                other: 'Other',
+                not_asked: 'I Did Not Ask',
+            };
+
+            syncBookingMobileNumbers();
+
+            const customerName = [fieldValue('title'), fieldValue('name')]
+                .filter(Boolean)
+                .join(' ');
+            const address = ['address1', 'address2', 'location', 'district', 'state']
+                .map(fieldValue)
+                .filter(Boolean)
+                .join(', ');
+
+            setSummaryText(bookingSummaryCustomerName, customerName);
+            setSummaryText(bookingSummaryAddress, address);
+            setSummaryText(bookingSummaryMobile, bookingMobileNumbersInput ? bookingMobileNumbersInput.value.trim() : '');
+            setSummaryText(buyingSummaryCustomerName, customerName);
+            setSummaryText(buyingSummaryAddress, address);
+            setSummaryText(buyingSummaryMobile, bookingMobileNumbersInput ? bookingMobileNumbersInput.value.trim() : '');
+            setSummaryText(bookingSummaryCustomerType, customerTypeLabels[checkedValue('customer_type')] || '');
+            const isCorporate = checkedValue('customer_type') === 'corporate';
+            if (bookingSummaryCorporateRow) {
+                bookingSummaryCorporateRow.classList.toggle('hidden', !isCorporate);
+            }
+            setSummaryText(bookingSummaryCorporateName, isCorporate ? fieldValue('corporate_name') : '');
+            setSummaryText(bookingSummaryProfession, professionLabels[checkedValue('profession')] || '');
+        }
+
+        function addBookingMobileInput(value = '') {
+            if (!bookingContactList) return;
+
+            const row = document.createElement('div');
+            row.className = 'contact-pill-wrap';
+            row.innerHTML = `
+                <input type="text" class="booking-mobile-input" value="">
+                <button type="button" class="mini-remove-btn" aria-label="Remove contact">&times;</button>
+            `;
+
+            const input = row.querySelector('.booking-mobile-input');
+            const removeButton = row.querySelector('.mini-remove-btn');
+            if (input) {
+                input.value = value;
+                input.readOnly = toggle ? !toggle.checked : false;
+                input.addEventListener('input', syncBookingPersonalSummary);
+            }
+            if (removeButton) {
+                removeButton.disabled = toggle ? !toggle.checked : false;
+            }
+
+            bookingContactList.appendChild(row);
+            syncBookingPersonalSummary();
+            input?.focus();
         }
 
         function syncVehicleEditState() {
@@ -982,6 +1335,86 @@
             ].filter(Boolean);
 
             vehicleReadPill.textContent = parts.length ? parts.join(' / ') : 'Not selected';
+            syncBuyingDetailsSummary();
+        }
+
+        function yesNoSummary(value) {
+            if (value === 'yes') return 'Yes';
+            if (value === 'no') return 'No';
+            return '';
+        }
+
+        function selectText(name) {
+            const select = document.querySelector(`[name="${name}"]`);
+            if (!select || !select.value) return '';
+            const option = select.options ? select.options[select.selectedIndex] : null;
+            return option ? option.text.trim() : select.value.trim();
+        }
+
+        function formatShortDate(value) {
+            if (!value) return '';
+            const date = new Date(value + 'T00:00:00');
+            if (Number.isNaN(date.getTime())) return value;
+            const month = date.toLocaleString('en-US', { month: 'short' });
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${month} ${day},${date.getFullYear()}`;
+        }
+
+        function syncBuyingDetailsSummary() {
+            const interested = vehicleReadPill ? vehicleReadPill.textContent.trim() : '';
+            const quote = picked('quote_taken');
+            const testDrive = picked('test_drive_given');
+            const competition = picked('interested_in_competition');
+            const firstTimeBuyer = picked('first_time_buyer');
+            const purchaseMode = picked('purchase_mode');
+
+            setSummaryText(buyingSummaryInterested, interested && interested !== 'Not selected' ? interested : '');
+            setSummaryText(buyingSummaryColor, selectText('interested_vehicle_color'));
+            if (quote === 'yes') {
+                setSummaryText(buyingSummaryQuote, `Yes - ${formatShortDate(fieldValue('quote_date'))}`);
+            } else {
+                setSummaryText(buyingSummaryQuote, yesNoSummary(quote));
+            }
+            setSummaryText(buyingSummaryTestDrive, yesNoSummary(testDrive));
+
+            if (testDrive === 'yes') {
+                const vehicle = selectText('test_drive_vehicle_model') || (interested && interested !== 'Not selected' ? interested : '');
+                const toWhom = fieldValue('test_drive_to_whom');
+                const date = formatShortDate(fieldValue('test_drive_date'));
+                setSummaryText(
+                    buyingSummaryTestDriveDetails,
+                    [
+                        vehicle ? `By ${vehicle}` : '',
+                        toWhom ? `to ${toWhom}` : '',
+                        date ? `on ${date}` : '',
+                    ].filter(Boolean).join(' ')
+                );
+            } else if (testDrive === 'no') {
+                setSummaryText(buyingSummaryTestDriveDetails, selectText('test_drive_not_given_reason'));
+            } else {
+                setSummaryText(buyingSummaryTestDriveDetails, '');
+            }
+
+            if (competition === 'yes') {
+                const competitionVehicle = [selectText('competition_brand'), selectText('competition_model')].filter(Boolean).join(' ');
+                setSummaryText(buyingSummaryCompetition, competitionVehicle ? `Yes - ${competitionVehicle}` : 'Yes');
+            } else if (competition === 'not_asked') {
+                setSummaryText(buyingSummaryCompetition, 'I did not ask');
+            } else {
+                setSummaryText(buyingSummaryCompetition, yesNoSummary(competition));
+            }
+
+            if (firstTimeBuyer === 'no') {
+                const existingVehicle = [
+                    selectText('existing_vehicle_brand'),
+                    selectText('existing_vehicle_model'),
+                    selectText('existing_vehicle_year'),
+                ].filter(Boolean).join(' ');
+                setSummaryText(buyingSummaryFirstTime, existingVehicle ? `No - ${existingVehicle}` : 'No');
+            } else {
+                setSummaryText(buyingSummaryFirstTime, yesNoSummary(firstTimeBuyer));
+            }
+            setSummaryText(buyingSummaryPurchaseMode, purchaseMode === 'finance' ? 'Finance' : (purchaseMode === 'cash' ? 'Cash' : ''));
         }
 
         function setSelectOptions(selectEl, values, placeholder, selectedValue) {
@@ -1081,8 +1514,15 @@
                     input.disabled = !showExchangeType;
                 });
 
+                const exchangeTypeRadios = exchangeTypeRow.querySelectorAll('input[name="exchange_type"]');
+                if (showExchangeType && !picked('exchange_type')) {
+                    const defaultExchangeType = exchangeTypeRow.querySelector('input[name="exchange_type"][value="in_house"]');
+                    if (defaultExchangeType) {
+                        defaultExchangeType.checked = true;
+                    }
+                }
+
                 if (!showExchangeType) {
-                    const exchangeTypeRadios = exchangeTypeRow.querySelectorAll('input[name="exchange_type"]');
                     exchangeTypeRadios.forEach((radio) => {
                         radio.checked = false;
                     });
@@ -1102,6 +1542,7 @@
             }
 
             syncExchangeNoActionMode();
+            syncBuyingDetailsSummary();
         }
 
         function syncExchangeEditState() {
@@ -1120,6 +1561,7 @@
 
             setSelectOptions(competitionModelSelect, models, 'Select Model', selectedModel);
             competitionModelSelect.dataset.selectedModel = '';
+            syncBuyingDetailsSummary();
         }
 
         function syncExistingVehicleModels() {
@@ -1132,6 +1574,7 @@
 
             setSelectOptions(existingVehicleModelSelect, models, 'Select Model', selectedModel);
             existingVehicleModelSelect.dataset.selectedModel = '';
+            syncBuyingDetailsSummary();
         }
 
         function syncExchangeModels() {
@@ -1250,6 +1693,42 @@
             });
         }
 
+        function clearPurchaseOrderObjectUrl() {
+            if (purchaseOrderObjectUrl) {
+                URL.revokeObjectURL(purchaseOrderObjectUrl);
+                purchaseOrderObjectUrl = null;
+            }
+        }
+
+        function setPurchaseOrderPreview(sourceUrl) {
+            if (!purchaseOrderTile || !purchaseOrderPreview) return;
+
+            if (!sourceUrl) {
+                purchaseOrderTile.classList.remove('has-preview');
+                purchaseOrderPreview.hidden = true;
+                purchaseOrderPreview.removeAttribute('src');
+                return;
+            }
+
+            purchaseOrderPreview.src = sourceUrl;
+            purchaseOrderPreview.hidden = false;
+            purchaseOrderTile.classList.add('has-preview');
+        }
+
+        function clearPurchaseOrderPreview() {
+            clearPurchaseOrderObjectUrl();
+            if (purchaseOrderInput) {
+                purchaseOrderInput.value = '';
+            }
+            if (purchaseOrderRemoveInput) {
+                purchaseOrderRemoveInput.value = '1';
+            }
+            if (purchaseOrderExistingFile) {
+                purchaseOrderExistingFile.hidden = true;
+            }
+            setPurchaseOrderPreview('');
+        }
+
         function syncBookingImageBody() {
             if (!bookingImagesToggle || !bookingImageBody) return;
             bookingImageBody.classList.toggle('hidden', !bookingImagesToggle.checked);
@@ -1258,15 +1737,14 @@
         function syncExchangeNoActionMode() {
             if (!bookingStepInput || bookingStepInput.value !== '3') return;
 
-            const onlyNext = picked('interested_in_exchange') === 'no';
             if (actionRow) {
-                actionRow.classList.toggle('next-only', onlyNext);
+                actionRow.classList.remove('next-only');
             }
             if (backAction) {
-                backAction.classList.toggle('hidden', onlyNext);
+                backAction.classList.remove('hidden');
             }
             if (saveExitAction) {
-                saveExitAction.classList.toggle('hidden', onlyNext);
+                saveExitAction.classList.remove('hidden');
             }
         }
 
@@ -1328,9 +1806,11 @@
                     offerUnitPriceDiscountInput.value = unit.toFixed(2);
                 }
             } else {
-                unitDiscount = Math.min(unitDiscount, unit);
-                if (offerUnitPriceDiscountInput) {
-                    offerUnitPriceDiscountInput.value = unitDiscount.toFixed(2);
+                if (unitDiscount > unit) {
+                    unitDiscount = unit;
+                    if (offerUnitPriceDiscountInput) {
+                        offerUnitPriceDiscountInput.value = unitDiscount.toFixed(2);
+                    }
                 }
             }
 
@@ -1340,9 +1820,11 @@
                     offerVatDiscountInput.value = vat.toFixed(2);
                 }
             } else {
-                vatDiscount = Math.min(vatDiscount, vat);
-                if (offerVatDiscountInput) {
-                    offerVatDiscountInput.value = vatDiscount.toFixed(2);
+                if (vatDiscount > vat) {
+                    vatDiscount = vat;
+                    if (offerVatDiscountInput) {
+                        offerVatDiscountInput.value = vatDiscount.toFixed(2);
+                    }
                 }
             }
 
@@ -1374,6 +1856,43 @@
             syncEditState();
         }
 
+        if (bookingContactList) {
+            bookingContactList.querySelectorAll('.booking-mobile-input').forEach((input) => {
+                input.addEventListener('input', syncBookingPersonalSummary);
+            });
+
+            bookingContactList.addEventListener('click', (event) => {
+                const target = event.target;
+                if (!(target instanceof Element)) return;
+
+                const removeButton = target.closest('.mini-remove-btn');
+                if (!removeButton) return;
+
+                event.preventDefault();
+                removeButton.closest('.contact-pill-wrap')?.remove();
+                syncBookingPersonalSummary();
+            });
+        }
+
+        if (addBookingMobileBtn) {
+            addBookingMobileBtn.addEventListener('click', () => {
+                addBookingMobileInput('');
+            });
+        }
+
+        if (bookingForm) {
+            bookingForm.addEventListener('submit', syncBookingMobileNumbers);
+        }
+
+        document.querySelectorAll(
+            '[name="title"], [name="name"], [name="district"], [name="location"], [name="state"], [name="address1"], [name="address2"], [name="corporate_name"], input[name="customer_type"], input[name="profession"]'
+        ).forEach((input) => {
+            input.addEventListener('input', syncBookingPersonalSummary);
+            input.addEventListener('change', syncBookingPersonalSummary);
+        });
+
+        syncBookingPersonalSummary();
+
         document.querySelectorAll('input[name="customer_type"]').forEach((input) => {
             input.addEventListener('change', syncCorporateRow);
         });
@@ -1402,6 +1921,21 @@
         if (interestedVariantInput) {
             interestedVariantInput.addEventListener('change', syncVehiclePill);
         }
+
+        if (vehiclePillRemove) {
+            vehiclePillRemove.addEventListener('click', async () => {
+                if (interestedModelInput) {
+                    interestedModelInput.value = '';
+                }
+                await loadEngines('', '');
+                syncVehiclePill();
+            });
+        }
+
+        document.querySelectorAll('.buying-section input, .buying-section select').forEach((input) => {
+            input.addEventListener('input', syncBuyingDetailsSummary);
+            input.addEventListener('change', syncBuyingDetailsSummary);
+        });
 
         (async function initVehicleDropdowns() {
             if (!interestedModelInput) return;
@@ -1448,6 +1982,10 @@
             });
         }
 
+        if (existingVehicleModelSelect) {
+            existingVehicleModelSelect.addEventListener('change', syncBuyingDetailsSummary);
+        }
+
         if (toggleExchangeEdit) {
             toggleExchangeEdit.addEventListener('change', syncExchangeEditState);
             syncExchangeEditState();
@@ -1468,6 +2006,34 @@
 
         if (bookingImagesToggle) {
             bookingImagesToggle.addEventListener('change', syncBookingImageBody);
+        }
+
+        if (purchaseOrderInput) {
+            purchaseOrderInput.addEventListener('change', () => {
+                clearPurchaseOrderObjectUrl();
+                const file = purchaseOrderInput.files && purchaseOrderInput.files[0] ? purchaseOrderInput.files[0] : null;
+
+                if (!file) {
+                    return;
+                }
+
+                purchaseOrderObjectUrl = URL.createObjectURL(file);
+                if (purchaseOrderRemoveInput) {
+                    purchaseOrderRemoveInput.value = '0';
+                }
+                if (purchaseOrderExistingFile) {
+                    purchaseOrderExistingFile.hidden = true;
+                }
+                setPurchaseOrderPreview(purchaseOrderObjectUrl);
+            });
+        }
+
+        if (purchaseOrderRemove) {
+            purchaseOrderRemove.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                clearPurchaseOrderPreview();
+            });
         }
 
         if (bookingExtraImageGrid) {

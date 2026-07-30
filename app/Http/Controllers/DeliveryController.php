@@ -38,6 +38,10 @@ class DeliveryController extends Controller
     {
         $enquiry->load(['customer', 'vehicle', 'prospectSheet', 'booking', 'delivery', 'user']);
 
+        if ($enquiry->isTerminalLead()) {
+            return $this->redirectTerminalLead($enquiry);
+        }
+
         $delivery = $enquiry->delivery ?: new Delivery([
             'enquiry_id' => $enquiry->id,
         ]);
@@ -151,6 +155,10 @@ class DeliveryController extends Controller
     public function store(Request $request, Enquiry $enquiry)
     {
         $enquiry->load(['delivery', 'booking', 'prospectSheet']);
+
+        if ($enquiry->isTerminalLead()) {
+            return $this->redirectTerminalLead($enquiry);
+        }
 
         $documentValidation = [];
         foreach (self::DOCUMENT_FIELDS as $field) {
@@ -555,5 +563,12 @@ class DeliveryController extends Controller
         return redirect()
             ->route('delivery.show', ['enquiry' => $enquiry->id, 'step' => $currentStep])
             ->with('success', 'Delivery details saved.');
+    }
+
+    private function redirectTerminalLead(Enquiry $enquiry)
+    {
+        return redirect()
+            ->route('enquiries.list', $enquiry->terminalLeadRouteParameters())
+            ->with('success', $enquiry->terminalLeadLabel() . ' lead is finalized. Delivery is not available.');
     }
 }

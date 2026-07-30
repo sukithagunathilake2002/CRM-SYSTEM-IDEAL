@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\CompetitionVehicle;
 use App\Models\Enquiry;
 use App\Models\ProspectSheet;
+use App\Models\User;
 use App\Models\Vehicle;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class ProspectSheetController extends Controller
@@ -14,6 +16,10 @@ class ProspectSheetController extends Controller
     public function show(Enquiry $enquiry)
     {
         $enquiry->load(['customer', 'vehicle']);
+
+        if ($enquiry->isTerminalLead()) {
+            return $this->redirectTerminalLead($enquiry);
+        }
 
         $prospect = ProspectSheet::firstOrNew([
             'enquiry_id' => $enquiry->id,
@@ -45,6 +51,15 @@ class ProspectSheetController extends Controller
 
         $initialStep = (int) request()->query('step', 1);
         $initialStep = max(1, min(5, $initialStep));
+        $viewer = request()->user();
+        $districtOptions = $viewer instanceof User
+            ? $viewer->resolvePermittedDistricts()
+            : User::DISTRICT_OPTIONS;
+        $currentDistrict = trim((string) ($enquiry->customer?->district ?? ''));
+        if ($currentDistrict !== '' && !in_array($currentDistrict, $districtOptions, true)) {
+            $districtOptions[] = $currentDistrict;
+            sort($districtOptions);
+        }
 
         return view('prospect.show', compact(
             'enquiry',
@@ -52,17 +67,31 @@ class ProspectSheetController extends Controller
             'competitionMap',
             'vehicleModels',
             'sourceInfoMap',
+            'districtOptions',
             'initialStep'
         ));
     }
 
     public function store(Request $request, Enquiry $enquiry)
     {
+        if ($enquiry->isTerminalLead()) {
+            return $this->redirectTerminalLead($enquiry);
+        }
+
+        $viewer = $request->user();
+        $districtOptions = $viewer instanceof User
+            ? $viewer->resolvePermittedDistricts()
+            : User::DISTRICT_OPTIONS;
+        $currentDistrict = trim((string) ($enquiry->customer?->district ?? ''));
+        if ($currentDistrict !== '' && !in_array($currentDistrict, $districtOptions, true)) {
+            $districtOptions[] = $currentDistrict;
+        }
+
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:20'],
             'name' => ['required', 'string', 'max:255'],
             'mobile_numbers' => ['required', 'string', 'max:255'],
-            'district' => ['nullable', 'string', 'max:255'],
+            'district' => ['nullable', 'string', 'max:255', Rule::in($districtOptions)],
             'location' => ['nullable', 'string', 'max:255'],
             'state' => ['nullable', 'string', 'max:255'],
             'address1' => ['nullable', 'string', 'max:255'],
@@ -72,9 +101,9 @@ class ProspectSheetController extends Controller
             'profession' => ['required', Rule::in(['salaried', 'self_employed', 'other', 'not_asked'])],
             'date_of_birth' => ['nullable', 'date'],
             'edit_interested_vehicle' => ['nullable', 'in:1'],
-            'interested_model' => ['nullable', 'string', 'max:255', 'required_if:edit_interested_vehicle,1'],
-            'interested_engine' => ['nullable', 'string', 'max:255', 'required_if:edit_interested_vehicle,1'],
-            'interested_variant' => ['nullable', 'string', 'max:255', 'required_if:edit_interested_vehicle,1'],
+            'interested_model' => ['nullable', 'string', 'max:255'],
+            'interested_engine' => ['nullable', 'string', 'max:255'],
+            'interested_variant' => ['nullable', 'string', 'max:255'],
             'interested_vehicle_color' => ['nullable', 'string', 'max:50'],
             'lead_source' => ['nullable', Rule::in(['Walk-In', 'Tele-In', 'Activity', 'Digital', 'Referral', 'Press'])],
             'source_of_information' => ['nullable', 'string', 'max:255'],
@@ -93,6 +122,8 @@ class ProspectSheetController extends Controller
             'exchange_vehicle_brand' => ['nullable', 'string', 'max:255'],
             'exchange_vehicle_model' => ['nullable', 'string', 'max:255'],
             'exchange_manufacture_year' => ['nullable', 'integer', 'between:1950,2100', 'required_if:interested_in_exchange,yes'],
+            'exchange_ownership' => ['nullable', 'string', 'max:50'],
+            'exchange_insurance_validity' => ['nullable', 'date'],
             'exchange_color' => ['nullable', 'string', 'max:255', 'required_if:interested_in_exchange,yes'],
             'exchange_mileage_km' => ['nullable', 'integer', 'min:0', 'required_if:interested_in_exchange,yes'],
             'exchange_registration_no' => ['nullable', 'string', 'max:50', 'required_if:interested_in_exchange,yes'],
@@ -107,6 +138,12 @@ class ProspectSheetController extends Controller
             'car_pic_2_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'extra_exchange_images' => ['nullable', 'array'],
             'extra_exchange_images.*' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'remove_blue_book_image' => ['nullable', 'in:0,1'],
+            'remove_lot_no_image' => ['nullable', 'in:0,1'],
+            'remove_car_pic_1_image' => ['nullable', 'in:0,1'],
+            'remove_car_pic_2_image' => ['nullable', 'in:0,1'],
+            'remove_extra_exchange_images' => ['nullable', 'array'],
+            'remove_extra_exchange_images.*' => ['nullable', 'string', 'max:1000'],
 
             'offer_unit_price' => ['nullable', 'numeric', 'min:0'],
             'offer_unit_price_discount' => ['nullable', 'numeric', 'min:0'],
@@ -117,6 +154,7 @@ class ProspectSheetController extends Controller
             'offer_total_cost' => ['nullable', 'numeric', 'min:0'],
             'offer_total_discount' => ['nullable', 'numeric', 'min:0'],
             'offer_final_price' => ['nullable', 'numeric', 'min:0'],
+            'offer_remark' => ['nullable', 'string', 'max:1000'],
 
             'interested_in_competition' => ['nullable', Rule::in(['yes', 'no', 'not_asked'])],
             'competition_brand' => ['nullable', 'string', 'max:255', 'required_if:interested_in_competition,yes'],
@@ -131,6 +169,7 @@ class ProspectSheetController extends Controller
             'follow_type' => ['nullable', Rule::in(['Home Visit', 'Showroom Visit', 'Call']), 'required_if:reschedule_followup,1'],
             'follow_date' => ['nullable', 'date', 'required_if:reschedule_followup,1'],
             'follow_time' => ['nullable', 'date_format:H:i', 'required_if:reschedule_followup,1'],
+            'reschedule_reason' => ['nullable', 'string', 'max:1000', 'required_if:reschedule_followup,1'],
             'lead_status' => ['nullable', Rule::in(['hot', 'warm', 'cold'])],
             'customer_remark' => ['nullable', 'string', 'max:1000'],
 
@@ -157,7 +196,11 @@ class ProspectSheetController extends Controller
             $mobileNumbers = $customer->mobile_numbers;
         }
 
-        if (($validated['edit_interested_vehicle'] ?? '0') === '1') {
+        $hasInterestedVehicleSelection = !empty($validated['interested_model'])
+            && !empty($validated['interested_engine'])
+            && !empty($validated['interested_variant']);
+
+        if ($hasInterestedVehicleSelection) {
             $selectedVehicle = Vehicle::query()
                 ->where('model', $validated['interested_model'])
                 ->where('engine_type', $validated['interested_engine'])
@@ -205,7 +248,7 @@ class ProspectSheetController extends Controller
             'title' => $validated['title'],
             'name' => $validated['name'],
             'mobile_numbers' => $mobileNumbers,
-            'district' => $validated['district'] ?? null,
+            'district' => $validated['district'] ?? $customer->district ?? '',
             'location' => $validated['location'] ?? null,
             'state' => $validated['state'] ?? null,
             'address1' => $validated['address1'] ?? null,
@@ -252,6 +295,8 @@ class ProspectSheetController extends Controller
         $exchangeVehicleBrand = $existingProspect->exchange_vehicle_brand;
         $exchangeVehicleModel = $existingProspect->exchange_vehicle_model;
         $exchangeManufactureYear = $existingProspect->exchange_manufacture_year;
+        $exchangeOwnership = $existingProspect->exchange_ownership;
+        $exchangeInsuranceValidity = $existingProspect->exchange_insurance_validity;
         $exchangeColor = $existingProspect->exchange_color;
         $exchangeMileageKm = $existingProspect->exchange_mileage_km;
         $exchangeRegistrationNo = $existingProspect->exchange_registration_no;
@@ -270,6 +315,8 @@ class ProspectSheetController extends Controller
                 $exchangeVehicleBrand = $pick('exchange_vehicle_brand');
                 $exchangeVehicleModel = $pick('exchange_vehicle_model');
                 $exchangeManufactureYear = $pick('exchange_manufacture_year');
+                $exchangeOwnership = $pick('exchange_ownership');
+                $exchangeInsuranceValidity = $pick('exchange_insurance_validity');
                 $exchangeColor = $pick('exchange_color');
                 $exchangeMileageKm = $pick('exchange_mileage_km');
                 $exchangeRegistrationNo = $pick('exchange_registration_no');
@@ -285,6 +332,8 @@ class ProspectSheetController extends Controller
                 $exchangeVehicleBrand = null;
                 $exchangeVehicleModel = null;
                 $exchangeManufactureYear = null;
+                $exchangeOwnership = null;
+                $exchangeInsuranceValidity = null;
                 $exchangeColor = null;
                 $exchangeMileageKm = null;
                 $exchangeRegistrationNo = null;
@@ -299,21 +348,59 @@ class ProspectSheetController extends Controller
             }
         }
 
-        $addExchangeImages = $request->input('add_exchange_images') === '1';
+        $mainExchangeImageFields = [
+            'blue_book_image' => &$blueBookImage,
+            'lot_no_image' => &$lotNoImage,
+            'car_pic_1_image' => &$carPic1Image,
+            'car_pic_2_image' => &$carPic2Image,
+        ];
+        foreach ($mainExchangeImageFields as $field => &$storedImagePath) {
+            if ($request->input("remove_{$field}") === '1' && !empty($storedImagePath)) {
+                Storage::disk('public')->delete($storedImagePath);
+                $storedImagePath = null;
+            }
+        }
+        unset($storedImagePath);
+
+        $removeExtraExchangeImages = collect($request->input('remove_extra_exchange_images', []))
+            ->filter()
+            ->values()
+            ->all();
+        if (!empty($removeExtraExchangeImages)) {
+            $exchangeExtraImages = collect($exchangeExtraImages)
+                ->reject(function ($imagePath) use ($removeExtraExchangeImages) {
+                    $shouldRemove = in_array($imagePath, $removeExtraExchangeImages, true);
+                    if ($shouldRemove) {
+                        Storage::disk('public')->delete($imagePath);
+                    }
+                    return $shouldRemove;
+                })
+                ->values()
+                ->all();
+        }
+
+        $requiredImageFields = [
+            'blue_book_image' => 'Blue Book image is required.',
+            'lot_no_image' => 'Lot No image is required.',
+            'car_pic_1_image' => 'Car Pic 1 image is required.',
+            'car_pic_2_image' => 'Car Pic 2 image is required.',
+        ];
+        $hasUploadedExchangeImages = collect(array_keys($requiredImageFields))
+            ->contains(fn($field) => $request->hasFile($field))
+            || $request->hasFile('extra_exchange_images');
+        $addExchangeImages = $request->input('add_exchange_images') === '1' || $hasUploadedExchangeImages;
+
         if ($interestedInExchange !== 'yes') {
             $addExchangeImages = false;
         }
 
         if ($addExchangeImages) {
-            $requiredImageFields = [
-                'blue_book_image' => 'Blue Book image is required.',
-                'lot_no_image' => 'Lot No image is required.',
-                'car_pic_1_image' => 'Car Pic 1 image is required.',
-                'car_pic_2_image' => 'Car Pic 2 image is required.',
-            ];
-
             $missingErrors = [];
             foreach ($requiredImageFields as $field => $message) {
+                if ($request->input("remove_{$field}") === '1') {
+                    continue;
+                }
+
                 $existingValue = match ($field) {
                     'blue_book_image' => $blueBookImage,
                     'lot_no_image' => $lotNoImage,
@@ -332,15 +419,27 @@ class ProspectSheetController extends Controller
             }
 
             if ($request->hasFile('blue_book_image')) {
+                if (!empty($blueBookImage)) {
+                    Storage::disk('public')->delete($blueBookImage);
+                }
                 $blueBookImage = $request->file('blue_book_image')->store('prospect/exchange', 'public');
             }
             if ($request->hasFile('lot_no_image')) {
+                if (!empty($lotNoImage)) {
+                    Storage::disk('public')->delete($lotNoImage);
+                }
                 $lotNoImage = $request->file('lot_no_image')->store('prospect/exchange', 'public');
             }
             if ($request->hasFile('car_pic_1_image')) {
+                if (!empty($carPic1Image)) {
+                    Storage::disk('public')->delete($carPic1Image);
+                }
                 $carPic1Image = $request->file('car_pic_1_image')->store('prospect/exchange', 'public');
             }
             if ($request->hasFile('car_pic_2_image')) {
+                if (!empty($carPic2Image)) {
+                    Storage::disk('public')->delete($carPic2Image);
+                }
                 $carPic2Image = $request->file('car_pic_2_image')->store('prospect/exchange', 'public');
             }
 
@@ -450,6 +549,8 @@ class ProspectSheetController extends Controller
                 'exchange_vehicle_brand' => $exchangeVehicleBrand,
                 'exchange_vehicle_model' => $exchangeVehicleModel,
                 'exchange_manufacture_year' => $exchangeManufactureYear,
+                'exchange_ownership' => $exchangeOwnership,
+                'exchange_insurance_validity' => $exchangeInsuranceValidity,
                 'exchange_color' => $exchangeColor,
                 'exchange_mileage_km' => $exchangeMileageKm,
                 'exchange_registration_no' => $exchangeRegistrationNo,
@@ -470,6 +571,7 @@ class ProspectSheetController extends Controller
                 'offer_total_cost' => $offerTotalCost,
                 'offer_total_discount' => $offerTotalDiscount,
                 'offer_final_price' => $offerFinalPrice,
+                'offer_remark' => $pick('offer_remark', $existingProspect->offer_remark),
                 'interested_in_competition' => $competitionInterest,
                 'competition_brand' => $competitionBrand,
                 'competition_model' => $competitionModel,
@@ -478,6 +580,7 @@ class ProspectSheetController extends Controller
                 'existing_vehicle_model' => $existingVehicleModel,
                 'existing_vehicle_year' => $existingVehicleYear,
                 'reschedule_followup' => $rescheduleFollowup,
+                'reschedule_reason' => $rescheduleFollowup ? $pick('reschedule_reason', $existingProspect->reschedule_reason) : null,
                 'lead_status' => $pick('lead_status', $existingProspect->lead_status),
                 'customer_remark' => $pick('customer_remark', $existingProspect->customer_remark),
                 'current_step' => $currentStep,
@@ -512,10 +615,11 @@ class ProspectSheetController extends Controller
             ->route('prospect.show', ['enquiry' => $enquiry->id, 'step' => $nextStep])
             ->with('success', 'Step saved successfully.');
     }
+
+    private function redirectTerminalLead(Enquiry $enquiry)
+    {
+        return redirect()
+            ->route('enquiries.list', $enquiry->terminalLeadRouteParameters())
+            ->with('success', $enquiry->terminalLeadLabel() . ' lead is finalized. Prospect registration is not available.');
+    }
 }
-
-
-
-
-
-

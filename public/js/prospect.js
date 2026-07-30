@@ -12,7 +12,6 @@
     const nextBtn = document.getElementById('nextBtn');
     const saveExitBtn = document.getElementById('saveExitBtn');
 
-    const interestedEditToggle = document.getElementById('toggleInterestedVehicleEdit');
     const interestedEditFields = document.getElementById('interestedVehicleEditFields');
     const interestedModelSelect = document.getElementById('interested_model');
     const interestedEngineSelect = document.getElementById('interested_engine');
@@ -23,6 +22,8 @@
     const exchangeImageFields = document.getElementById('exchangeImageFields');
     const addMoreExchangeImagesBtn = document.getElementById('addMoreExchangeImagesBtn');
     const extraExchangeImagesContainer = document.getElementById('extraExchangeImagesContainer');
+    const exchangeBrandSelect = document.getElementById('exchange_vehicle_brand');
+    const exchangeModelSelect = document.getElementById('exchange_vehicle_model');
 
     const exchangeExpectedPriceInput = document.querySelector('input[name="exchange_expected_price"]');
     const exchangeQuotedPriceInput = document.querySelector('input[name="exchange_quoted_price"]');
@@ -40,6 +41,19 @@
     const offerTotalCostDisplay = document.getElementById('offerTotalCostDisplay');
     const offerTotalDiscountDisplay = document.getElementById('offerTotalDiscountDisplay');
     const offerFinalPriceDisplay = document.getElementById('offerFinalPriceDisplay');
+    const prospectOfferSummaryPanel = document.getElementById('prospectOfferSummaryPanel');
+    const prospectOfferEditGroup = document.getElementById('prospectOfferEditGroup');
+    const offerRemarksToggle = document.getElementById('offerRemarksToggle');
+    const offerRemarksText = document.getElementById('offerRemarksText');
+    const prospectOfferSummaryVatCost = document.getElementById('prospectOfferSummaryVatCost');
+    const prospectOfferSummaryVatOffer = document.getElementById('prospectOfferSummaryVatOffer');
+    const prospectOfferSummaryVatPayable = document.getElementById('prospectOfferSummaryVatPayable');
+    const prospectOfferSummaryUnitCost = document.getElementById('prospectOfferSummaryUnitCost');
+    const prospectOfferSummaryUnitOffer = document.getElementById('prospectOfferSummaryUnitOffer');
+    const prospectOfferSummaryUnitPayable = document.getElementById('prospectOfferSummaryUnitPayable');
+    const prospectOfferSummaryTotalCost = document.getElementById('prospectOfferSummaryTotalCost');
+    const prospectOfferSummaryTotalOffer = document.getElementById('prospectOfferSummaryTotalOffer');
+    const prospectOfferSummaryFinalPrice = document.getElementById('prospectOfferSummaryFinalPrice');
     const offerSummaryModal = document.getElementById('offerSummaryModal');
     const summaryLooksGoodBtn = document.getElementById('summaryLooksGoodBtn');
     const summaryModalCloseBtn = document.getElementById('summaryModalCloseBtn');
@@ -55,10 +69,22 @@
     const summaryFinalPrice = document.getElementById('summaryFinalPrice');
     const mobileNumbersInput = form.querySelector('input[name="mobile_numbers"]');
     const addContactNumberBtn = document.getElementById('addContactNumberBtn');
+    const prospectContactList = document.getElementById('prospectContactList');
     const customerRemarkPreset = document.getElementById('customerRemarkPreset');
     const rescheduleFollowupToggle = document.getElementById('rescheduleFollowupToggle');
     const rescheduleFields = document.getElementById('rescheduleFields');
+    const personalStep = document.querySelector('.personal-step');
+    const stepEditToggles = Array.from(document.querySelectorAll('[data-step-edit-toggle]'));
+    const summaryFields = {};
     const exchangePreviewObjectUrls = new WeakMap();
+
+    document.querySelectorAll('[data-summary-field]').forEach((field) => {
+        const key = field.dataset.summaryField;
+        if (!summaryFields[key]) {
+            summaryFields[key] = [];
+        }
+        summaryFields[key].push(field);
+    });
 
     let currentStep = parseInt(form.dataset.initialStep || '1', 10);
     if (Number.isNaN(currentStep) || currentStep < 1 || currentStep > 5) {
@@ -78,7 +104,9 @@
         });
 
         activeStepInput.value = currentStep;
+        form.closest('.prospect-page')?.setAttribute('data-current-step', String(currentStep));
         nextBtn.textContent = currentStep === 5 ? 'Submit' : 'Save & Next';
+        updateProspectSummary();
     }
 
     function selectedValue(name) {
@@ -86,12 +114,176 @@
         return selected ? selected.value : '';
     }
 
+    function fieldValue(selector) {
+        const field = form.querySelector(selector);
+        return field ? String(field.value || '').trim() : '';
+    }
+
+    function selectedText(selectEl) {
+        if (!selectEl) {
+            return '';
+        }
+
+        const option = selectEl.options[selectEl.selectedIndex];
+        return option && option.value ? option.textContent.trim() : '';
+    }
+
+    function displayChoice(value) {
+        return String(value || '')
+            .replace(/[_-]+/g, ' ')
+            .split(/\s+/)
+            .filter(Boolean)
+            .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+            .join(' ');
+    }
+
+    function moneyValue(value) {
+        const parsed = parseFloat(value);
+        if (!Number.isFinite(parsed)) {
+            return '';
+        }
+
+        return parsed.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        });
+    }
+
+    function setSummaryField(key, value) {
+        const fields = summaryFields[key];
+        if (!fields) {
+            return;
+        }
+
+        const normalized = String(value || '').trim();
+        fields.forEach((field) => {
+            field.textContent = normalized || 'N/A';
+
+            const row = field.closest('.summary-row');
+            if (row && row.classList.contains('summary-detail-row')) {
+                row.classList.toggle('summary-empty', normalized === '' || normalized === 'N/A');
+            }
+        });
+    }
+
+    function updateProspectSummary() {
+        const title = fieldValue('select[name="title"]');
+        const name = fieldValue('input[name="name"]');
+        const mobileNumbers = fieldValue('input[name="mobile_numbers"]');
+        const dateOfBirth = fieldValue('input[name="date_of_birth"]');
+        const location = fieldValue('input[name="location"]');
+        const district = fieldValue('select[name="district"]');
+        const customerType = selectedValue('customer_type');
+        const profession = selectedValue('profession');
+
+        const selectedInterestedModel = selectedText(interestedModelSelect);
+        const selectedInterestedEngine = selectedText(interestedEngineSelect);
+        const selectedInterestedVariant = selectedText(interestedVariantSelect);
+        const editedVehicle = [selectedInterestedModel, selectedInterestedEngine, selectedInterestedVariant].filter(Boolean).join(' ');
+        const currentVehicle = editedVehicle || document.querySelector('.buying-step .vehicle-pill')?.textContent?.replace(/\s*\/\s*/g, ' ').trim() || '';
+
+        const leadSource = selectedValue('lead_source');
+        const sourceInfo = sourceInfoSelect?.value || '';
+        const quoteTaken = selectedValue('quote_taken');
+        const quoteDate = fieldValue('input[name="quote_date"]');
+        const testDriveGiven = selectedValue('test_drive_given');
+        const testDriveDate = fieldValue('input[name="test_drive_date"]');
+        const testDriveToWhom = fieldValue('input[name="test_drive_to_whom"]');
+        const testDriveReason = fieldValue('input[name="test_drive_not_given_reason"]');
+        const competitionInterest = selectedValue('interested_in_competition');
+        const competitionBrand = selectedText(document.getElementById('competition_brand'));
+        const competitionModel = selectedText(document.getElementById('competition_model'));
+        const firstTimeBuyer = selectedValue('first_time_buyer');
+        const existingVehicleDetails = [
+            fieldValue('input[name="existing_vehicle_brand"]'),
+            fieldValue('input[name="existing_vehicle_model"]'),
+            fieldValue('input[name="existing_vehicle_year"]'),
+        ].filter(Boolean).join(' ');
+
+        const exchangeInterest = selectedValue('interested_in_exchange');
+        const exchangeBrand = selectedText(exchangeBrandSelect);
+        const exchangeModel = selectedText(exchangeModelSelect);
+        const exchangeYear = fieldValue('select[name="exchange_manufacture_year"]');
+        const exchangeOwnership = fieldValue('select[name="exchange_ownership"]');
+        const exchangeInsuranceValidity = fieldValue('input[name="exchange_insurance_validity"]');
+        const exchangeRegNo = fieldValue('input[name="exchange_registration_no"]');
+        const exchangeMileageKm = fieldValue('input[name="exchange_mileage_km"]');
+        const exchangeExpected = fieldValue('input[name="exchange_expected_price"]');
+        const exchangeQuoted = fieldValue('input[name="exchange_quoted_price"]');
+
+        const rescheduled = !!rescheduleFollowupToggle?.checked;
+        const followType = selectedValue('follow_type');
+        const followDate = fieldValue('input[name="follow_date"]');
+        const followTime = fieldValue('input[name="follow_time"]');
+        const rescheduleReason = fieldValue('textarea[name="reschedule_reason"]');
+
+        setSummaryField('name', [title, name].filter(Boolean).join(' '));
+        setSummaryField('interested_in', currentVehicle);
+        setSummaryField('mobile_numbers', mobileNumbers);
+        setSummaryField('date_of_birth', dateOfBirth);
+        setSummaryField('location', [location, district].filter(Boolean).join(', '));
+        setSummaryField('customer_type', displayChoice(customerType));
+        setSummaryField('profession', displayChoice(profession));
+        setSummaryField('interested_vehicle_color', fieldValue('select[name="interested_vehicle_color"]'));
+        setSummaryField('lead_source', [leadSource, sourceInfo].filter(Boolean).join(' - '));
+        setSummaryField('quote_taken', quoteTaken ? [displayChoice(quoteTaken), quoteDate ? `on ${quoteDate}` : ''].filter(Boolean).join(' ') : '');
+        setSummaryField(
+            'test_drive_given',
+            testDriveGiven === 'yes'
+                ? ['Yes', testDriveDate ? `on ${testDriveDate}` : '', testDriveToWhom ? `to ${testDriveToWhom}` : ''].filter(Boolean).join(' ')
+                : testDriveGiven === 'no'
+                    ? ['No', testDriveReason].filter(Boolean).join(' - ')
+                    : ''
+        );
+        setSummaryField('purchase_mode', displayChoice(selectedValue('purchase_mode')));
+        setSummaryField(
+            'competition',
+            competitionInterest === 'yes'
+                ? ['Yes', [competitionBrand, competitionModel].filter(Boolean).join(' ')].filter(Boolean).join(' - ')
+                : displayChoice(competitionInterest)
+        );
+        setSummaryField(
+            'first_time_buyer',
+            firstTimeBuyer === 'yes'
+                ? 'Yes'
+                : firstTimeBuyer === 'no'
+                    ? ['No', existingVehicleDetails || 'Vehicle Details'].filter(Boolean).join(' - ')
+                    : ''
+        );
+        setSummaryField('exchange_mobile', mobileNumbers);
+        setSummaryField('interested_in_exchange', displayChoice(exchangeInterest));
+        setSummaryField('exchange_vehicle', [exchangeBrand, exchangeModel].filter(Boolean).join(' '));
+        setSummaryField('exchange_year', exchangeYear);
+        setSummaryField('exchange_ownership', exchangeOwnership);
+        setSummaryField('exchange_insurance_validity', exchangeInsuranceValidity);
+        setSummaryField('exchange_registration_no', exchangeRegNo);
+        setSummaryField(
+            'exchange_price',
+            exchangeExpected || exchangeQuoted
+                ? ['Expected: ' + (exchangeExpected || 'N/A'), 'Quoted: ' + (exchangeQuoted || 'N/A')].join(' / ')
+                : ''
+        );
+        setSummaryField('exchange_mileage_km', exchangeMileageKm);
+        setSummaryField('offer_unit_price', moneyValue(offerUnitPriceInput?.value));
+        setSummaryField('offer_vat_amount', moneyValue(offerVatAmountInput?.value));
+        setSummaryField('offer_total_cost', moneyValue(offerTotalCostInput?.value));
+        setSummaryField('offer_total_discount', moneyValue(offerTotalDiscountInput?.value));
+        setSummaryField('offer_final_price', moneyValue(offerFinalPriceInput?.value));
+        setSummaryField('offer_remark', fieldValue('textarea[name="offer_remark"]'));
+        setSummaryField('reschedule_followup', rescheduled ? 'Yes' : 'No');
+        setSummaryField('followup_plan', rescheduled ? [followType, followDate ? `on ${followDate}` : '', followTime ? `at ${followTime}` : ''].filter(Boolean).join(' ') : '');
+        setSummaryField('reschedule_reason', rescheduled ? rescheduleReason : '');
+        setSummaryField('lead_status', displayChoice(selectedValue('lead_status')));
+        setSummaryField('customer_remark', fieldValue('textarea[name="customer_remark"]'));
+    }
+
     function updateConditionals() {
         document.querySelectorAll('[data-conditional]').forEach((block) => {
             const fieldName = block.dataset.conditional;
             const expectedValue = block.dataset.value;
             const currentValue = selectedValue(fieldName);
-            block.style.display = currentValue === expectedValue ? '' : 'none';
+            const expectedValues = String(expectedValue || '').split(',').map((value) => value.trim());
+            block.style.display = expectedValues.includes(currentValue) ? '' : 'none';
         });
     }
 
@@ -120,6 +312,33 @@
         });
 
         modelSelect.dataset.selectedModel = '';
+        updateProspectSummary();
+    }
+
+    function updateExchangeModels() {
+        if (!exchangeBrandSelect || !exchangeModelSelect) {
+            return;
+        }
+
+        const map = window.PROSPECT_COMPETITION_MAP || {};
+        const models = map[exchangeBrandSelect.value] || [];
+        const selectedFromServer = exchangeModelSelect.dataset.selectedModel || '';
+        const activeModel = exchangeModelSelect.value || selectedFromServer;
+
+        exchangeModelSelect.innerHTML = '<option value="">Select Model</option>';
+
+        models.forEach((model) => {
+            const option = document.createElement('option');
+            option.value = model;
+            option.textContent = model.toUpperCase();
+            if (model === activeModel) {
+                option.selected = true;
+            }
+            exchangeModelSelect.appendChild(option);
+        });
+
+        exchangeModelSelect.dataset.selectedModel = '';
+        updateProspectSummary();
     }
 
     function updateSourceInformationOptions() {
@@ -149,6 +368,10 @@
     }
 
     function setPersonalEditable(isEditable) {
+        if (personalStep) {
+            personalStep.classList.toggle('personal-collapsed', !isEditable);
+        }
+
         document.querySelectorAll('.lockable').forEach((input) => {
             input.readOnly = !isEditable;
         });
@@ -163,6 +386,64 @@
 
         if (addContactNumberBtn) {
             addContactNumberBtn.disabled = !isEditable;
+        }
+
+        document.querySelectorAll('.contact-remove-btn').forEach((button) => {
+            button.disabled = !isEditable;
+        });
+    }
+
+    function syncProspectMobileNumbers() {
+        if (!mobileNumbersInput || !prospectContactList) {
+            return;
+        }
+
+        const numbers = Array.from(prospectContactList.querySelectorAll('.prospect-mobile-input'))
+            .map((input) => input.value.trim())
+            .filter(Boolean);
+        mobileNumbersInput.value = numbers.join(', ');
+        updateProspectSummary();
+    }
+
+    function addProspectMobileInput(value = '') {
+        if (!prospectContactList) {
+            return;
+        }
+
+        const row = document.createElement('div');
+        row.className = 'contact-input-wrap';
+        row.innerHTML = `
+            <input class="lockable prospect-mobile-input" type="text" value="">
+            <button type="button" class="contact-remove-btn" aria-label="Remove contact">&times;</button>
+        `;
+
+        const input = row.querySelector('.prospect-mobile-input');
+        const removeButton = row.querySelector('.contact-remove-btn');
+        if (input) {
+            input.value = value;
+            input.readOnly = false;
+            input.addEventListener('input', syncProspectMobileNumbers);
+        }
+        if (removeButton) {
+            removeButton.disabled = addContactNumberBtn ? addContactNumberBtn.disabled : false;
+        }
+
+        prospectContactList.appendChild(row);
+        syncProspectMobileNumbers();
+        input?.focus();
+    }
+
+    function setStepEditable(toggle, isEditable) {
+        const step = toggle.closest('.step-collapsible');
+        if (!step) {
+            return;
+        }
+
+        toggle.checked = isEditable;
+        step.classList.toggle('step-collapsed', !isEditable);
+
+        if (step.classList.contains('personal-step')) {
+            setPersonalEditable(isEditable);
         }
     }
 
@@ -202,6 +483,7 @@
             const data = await response.json();
             const variants = data.map((item) => item.variant).filter(Boolean);
             setSelectOptions(interestedVariantSelect, 'Select Variant', variants, selectedVariant);
+            updateProspectSummary();
         } catch (error) {
             console.error('Failed to load variants', error);
             setSelectOptions(interestedVariantSelect, 'Select Variant', [], '');
@@ -226,6 +508,7 @@
             const engines = data.map((item) => item.engine_type).filter(Boolean);
             setSelectOptions(interestedEngineSelect, 'Select Engine Type', engines, selectedEngine);
             await loadInterestedVariants(selectedVariant);
+            updateProspectSummary();
         } catch (error) {
             console.error('Failed to load engines', error);
             setSelectOptions(interestedEngineSelect, 'Select Engine Type', [], '');
@@ -264,12 +547,50 @@
         });
     }
 
-    function updateRescheduleVisibility() {
+    function updateRescheduleVisibility(shouldFocusDate = false) {
         if (!rescheduleFollowupToggle || !rescheduleFields) {
             return;
         }
 
-        rescheduleFields.style.display = rescheduleFollowupToggle.checked ? 'block' : 'none';
+        const isRescheduling = rescheduleFollowupToggle.checked;
+        rescheduleFields.style.display = isRescheduling ? 'block' : 'none';
+
+        rescheduleFields
+            .querySelectorAll('input, textarea, select')
+            .forEach((field) => {
+                field.disabled = !isRescheduling;
+                if (isRescheduling && 'readOnly' in field) {
+                    field.readOnly = false;
+                }
+            });
+
+        rescheduleFields
+            .querySelectorAll('input[name="follow_date"], input[name="follow_time"], textarea[name="reschedule_reason"]')
+            .forEach((field) => {
+                field.required = isRescheduling;
+            });
+
+        if (isRescheduling && shouldFocusDate) {
+            rescheduleFields.querySelector('input[name="follow_date"]')?.focus();
+        }
+    }
+
+    function bindPlanSchedulePickers() {
+        document
+            .querySelectorAll('.plan-schedule-input-wrap input[type="date"], .plan-schedule-input-wrap input[type="time"]')
+            .forEach((input) => {
+                input.addEventListener('click', () => {
+                    if (input.disabled || typeof input.showPicker !== 'function') {
+                        return;
+                    }
+
+                    try {
+                        input.showPicker();
+                    } catch (error) {
+                        input.focus();
+                    }
+                });
+            });
     }
     function updateExchangeImageVisibility() {
         if (!exchangeImageToggle || !exchangeImageFields) {
@@ -302,6 +623,8 @@
         } else {
             exchangeDifferenceInput.value = '';
         }
+
+        updateProspectSummary();
     }
 
     function isOfferEditable() {
@@ -316,6 +639,22 @@
         if (element) {
             element.textContent = value.toFixed(2);
         }
+    }
+
+    function setOfferSummaryDisplayValue(element, value) {
+        if (element) {
+            element.textContent = formatSummaryNumber(value);
+        }
+    }
+
+    function updateOfferViewMode() {
+        const offerEditable = isOfferEditable();
+        prospectOfferEditGroup?.classList.toggle('offer-hidden', !offerEditable);
+        prospectOfferSummaryPanel?.classList.toggle('offer-hidden', offerEditable);
+    }
+
+    function updateOfferRemarksVisibility() {
+        offerRemarksText?.classList.toggle('offer-hidden', !offerRemarksToggle?.checked);
     }
 
     function formatCompactInputNumber(value) {
@@ -409,6 +748,8 @@
         const totalCost = unitPrice + vatAmount;
         const totalDiscount = unitDiscount + vatDiscount;
         const finalPrice = Math.max(0, totalCost - totalDiscount);
+        const unitPayable = Math.max(0, unitPrice - unitDiscount);
+        const vatPayable = Math.max(0, vatAmount - vatDiscount);
 
         offerTotalCostInput.value = totalCost.toFixed(2);
         offerTotalDiscountInput.value = totalDiscount.toFixed(2);
@@ -417,6 +758,19 @@
         setOfferDisplayValue(offerTotalCostDisplay, totalCost);
         setOfferDisplayValue(offerTotalDiscountDisplay, totalDiscount);
         setOfferDisplayValue(offerFinalPriceDisplay, finalPrice);
+
+        setOfferSummaryDisplayValue(prospectOfferSummaryVatCost, vatAmount);
+        setOfferSummaryDisplayValue(prospectOfferSummaryVatOffer, vatDiscount);
+        setOfferSummaryDisplayValue(prospectOfferSummaryVatPayable, vatPayable);
+        setOfferSummaryDisplayValue(prospectOfferSummaryUnitCost, unitPrice);
+        setOfferSummaryDisplayValue(prospectOfferSummaryUnitOffer, unitDiscount);
+        setOfferSummaryDisplayValue(prospectOfferSummaryUnitPayable, unitPayable);
+        setOfferSummaryDisplayValue(prospectOfferSummaryTotalCost, totalCost);
+        setOfferSummaryDisplayValue(prospectOfferSummaryTotalOffer, totalDiscount);
+        setOfferSummaryDisplayValue(prospectOfferSummaryFinalPrice, finalPrice);
+
+        updateOfferViewMode();
+        updateProspectSummary();
     }
 
     function openOfferSummaryModal() {
@@ -497,6 +851,11 @@
                 <button type="button" class="extra-image-remove-top" aria-label="Remove image slot">-</button>
                 <input type="file" name="extra_exchange_images[]" accept="image/*">
             </label>
+            <div class="exchange-upload-actions">
+                <button type="button" data-exchange-upload-action="choose">Add</button>
+                <button type="button" data-exchange-upload-action="view" disabled>View</button>
+                <button type="button" data-exchange-upload-action="remove" disabled>Remove</button>
+            </div>
         `;
 
         extraExchangeImagesContainer.appendChild(row);
@@ -571,6 +930,7 @@
             if (textEl) {
                 textEl.hidden = false;
             }
+            updateExchangeUploadActions(inputEl, false);
             return;
         }
 
@@ -580,6 +940,55 @@
         if (textEl) {
             textEl.hidden = true;
         }
+        updateExchangeUploadActions(inputEl, true);
+    }
+
+    function getExchangeUploadShell(inputEl) {
+        return inputEl.closest('.exchange-upload-field, .extra-image-row');
+    }
+
+    function updateExchangeUploadActions(inputEl, hasImage) {
+        const shell = getExchangeUploadShell(inputEl);
+        if (!shell) {
+            return;
+        }
+
+        shell.querySelectorAll('[data-exchange-upload-action="view"], [data-exchange-upload-action="remove"]').forEach((button) => {
+            button.disabled = !hasImage;
+        });
+    }
+
+    function getExchangeUploadSource(inputEl) {
+        const objectUrl = exchangePreviewObjectUrls.get(inputEl);
+        if (objectUrl) {
+            return objectUrl;
+        }
+
+        const tile = inputEl.closest('[data-upload-tile]');
+        const previewEl = tile?.querySelector('.exchange-upload-preview');
+        if (previewEl && !previewEl.hidden && previewEl.src) {
+            return previewEl.src;
+        }
+
+        return String(inputEl.dataset.existingSrc || '').trim();
+    }
+
+    function clearExchangeUpload(inputEl) {
+        const previousObjectUrl = exchangePreviewObjectUrls.get(inputEl);
+        if (previousObjectUrl) {
+            URL.revokeObjectURL(previousObjectUrl);
+            exchangePreviewObjectUrls.delete(inputEl);
+        }
+
+        inputEl.value = '';
+
+        const removeInput = getExchangeUploadShell(inputEl)?.querySelector('[data-exchange-remove-input]');
+        if (removeInput && inputEl.dataset.existingSrc) {
+            removeInput.value = '1';
+            inputEl.dataset.existingSrc = '';
+        }
+
+        applyExchangePreviewToTile(inputEl, '');
     }
 
     function bindExchangeUploadPreview(inputEl) {
@@ -606,6 +1015,11 @@
                 return;
             }
 
+            const removeInput = getExchangeUploadShell(inputEl)?.querySelector('[data-exchange-remove-input]');
+            if (removeInput) {
+                removeInput.value = '0';
+            }
+
             const objectUrl = URL.createObjectURL(file);
             exchangePreviewObjectUrls.set(inputEl, objectUrl);
             applyExchangePreviewToTile(inputEl, objectUrl);
@@ -627,12 +1041,22 @@
             updateConditionals();
             updateSourceInformationOptions();
             updateExchangeImageVisibility();
+            updateProspectSummary();
         });
+    });
+
+    form.querySelectorAll('input, select, textarea').forEach((field) => {
+        field.addEventListener('input', updateProspectSummary);
+        field.addEventListener('change', updateProspectSummary);
     });
 
     const brandSelect = document.getElementById('competition_brand');
     if (brandSelect) {
         brandSelect.addEventListener('change', updateCompetitionModels);
+    }
+
+    if (exchangeBrandSelect) {
+        exchangeBrandSelect.addEventListener('change', updateExchangeModels);
     }
 
     if (interestedModelSelect) {
@@ -647,24 +1071,13 @@
         });
     }
 
-    if (interestedEditToggle) {
-        interestedEditToggle.addEventListener('change', (event) => {
-            const enabled = event.target.checked;
-            setInterestedVehicleEditEnabled(enabled);
-
-            if (enabled) {
-                syncInterestedVehicleSelectionFromServerData();
-            }
-        });
-
-        setInterestedVehicleEditEnabled(interestedEditToggle.checked);
-    }
+    setInterestedVehicleEditEnabled(true);
 
     if (exchangeImageToggle) {
         exchangeImageToggle.addEventListener('change', updateExchangeImageVisibility);
     }
     if (rescheduleFollowupToggle) {
-        rescheduleFollowupToggle.addEventListener('change', updateRescheduleVisibility);
+        rescheduleFollowupToggle.addEventListener('change', () => updateRescheduleVisibility(true));
     }
 
     if (exchangeExpectedPriceInput) {
@@ -690,6 +1103,65 @@
                 event.preventDefault();
                 event.stopPropagation();
                 removeExtraExchangeImageRow(removeButton);
+            }
+        });
+    }
+
+    if (exchangeImageFields) {
+        exchangeImageFields.addEventListener('click', (event) => {
+            const target = event.target;
+            if (!(target instanceof Element)) {
+                return;
+            }
+
+            const uploadAction = target.closest('[data-exchange-upload-action]');
+            if (uploadAction) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                const shell = uploadAction.closest('.exchange-upload-field, .extra-image-row');
+                const inputEl = shell?.querySelector('input[type="file"]');
+                if (!inputEl) {
+                    return;
+                }
+
+                const action = uploadAction.dataset.exchangeUploadAction;
+                if (action === 'choose') {
+                    inputEl.click();
+                } else if (action === 'view') {
+                    const source = getExchangeUploadSource(inputEl);
+                    if (source) {
+                        window.open(source, '_blank', 'noopener');
+                    }
+                } else if (action === 'remove') {
+                    clearExchangeUpload(inputEl);
+                }
+                return;
+            }
+
+            const existingExtraAction = target.closest('[data-existing-extra-action]');
+            if (existingExtraAction) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                const item = existingExtraAction.closest('[data-existing-extra-image]');
+                if (!item) {
+                    return;
+                }
+
+                if (existingExtraAction.dataset.existingExtraAction === 'view') {
+                    const source = existingExtraAction.dataset.imageSrc || item.querySelector('img')?.src;
+                    if (source) {
+                        window.open(source, '_blank', 'noopener');
+                    }
+                    return;
+                }
+
+                const removeCheckbox = item.querySelector('input[name="remove_extra_exchange_images[]"]');
+                if (removeCheckbox) {
+                    removeCheckbox.checked = true;
+                }
+                item.classList.add('exchange-existing-preview-removed');
             }
         });
     }
@@ -723,7 +1195,14 @@
     }
 
     if (offerEditCheckbox) {
-        offerEditCheckbox.addEventListener('change', updateOfferTotals);
+        offerEditCheckbox.addEventListener('change', () => {
+            updateOfferTotals();
+            updateOfferViewMode();
+        });
+    }
+
+    if (offerRemarksToggle) {
+        offerRemarksToggle.addEventListener('change', updateOfferRemarksVisibility);
     }
 
     if (backBtn) {
@@ -783,45 +1262,63 @@
 
     if (addContactNumberBtn && mobileNumbersInput) {
         addContactNumberBtn.addEventListener('click', () => {
-            const currentValue = mobileNumbersInput.value.trim();
-            mobileNumbersInput.value = currentValue ? `${currentValue}, ` : '';
-            mobileNumbersInput.focus();
-            mobileNumbersInput.setSelectionRange(mobileNumbersInput.value.length, mobileNumbersInput.value.length);
+            addProspectMobileInput();
         });
     }
 
-    if (customerRemarkPreset && !customerRemarkPreset.value) {
+    if (prospectContactList) {
+        prospectContactList.querySelectorAll('.prospect-mobile-input').forEach((input) => {
+            input.addEventListener('input', syncProspectMobileNumbers);
+        });
+
+        prospectContactList.addEventListener('click', (event) => {
+            const target = event.target;
+            if (!(target instanceof Element)) {
+                return;
+            }
+
+            const removeButton = target.closest('.contact-remove-btn');
+            if (!removeButton || removeButton.disabled) {
+                return;
+            }
+
+            const rows = prospectContactList.querySelectorAll('.contact-input-wrap');
+            if (rows.length <= 1) {
+                const input = removeButton.closest('.contact-input-wrap')?.querySelector('.prospect-mobile-input');
+                if (input) {
+                    input.value = '';
+                }
+            } else {
+                removeButton.closest('.contact-input-wrap')?.remove();
+            }
+
+            syncProspectMobileNumbers();
+        });
+
+        syncProspectMobileNumbers();
+    }
+
+    if (customerRemarkPreset && customerRemarkPreset.tagName === 'SELECT' && !customerRemarkPreset.value) {
         const firstTemplateOption = Array.from(customerRemarkPreset.options).find((option) => option.value);
         if (firstTemplateOption) {
             customerRemarkPreset.value = firstTemplateOption.value;
         }
     }
 
-    const personalEditCheckbox = document.getElementById('allowPersonalEdit');
-    if (personalEditCheckbox) {
-        personalEditCheckbox.addEventListener('change', (event) => {
-            setPersonalEditable(event.target.checked);
+    stepEditToggles.forEach((toggle) => {
+        toggle.addEventListener('change', (event) => {
+            setStepEditable(event.target, event.target.checked);
+            updateConditionals();
+            updateProspectSummary();
         });
 
-        const hasMandatoryPersonalData = selectedValue('customer_type') && selectedValue('profession');
-        if (hasMandatoryPersonalData) {
-            setPersonalEditable(false);
-        } else {
-            personalEditCheckbox.checked = true;
-            setPersonalEditable(true);
-        }
-    }
+        setStepEditable(toggle, toggle.checked);
+    });
 
     form.addEventListener('submit', () => {
         document.querySelectorAll('.lockable-select, .lockable-choice').forEach((field) => {
             field.disabled = false;
         });
-
-        if (interestedEditToggle && interestedEditToggle.checked) {
-            interestedEditFields?.querySelectorAll('select').forEach((selectEl) => {
-                selectEl.disabled = false;
-            });
-        }
 
         if (sourceInfoSelect && !sourceInfoSelect.disabled) {
             sourceInfoSelect.disabled = false;
@@ -831,23 +1328,20 @@
     updateStepper();
     updateConditionals();
     updateCompetitionModels();
+    updateExchangeModels();
     updateSourceInformationOptions();
     syncInterestedVehicleSelectionFromServerData();
     updateExchangeImageVisibility();
     updateRescheduleVisibility();
+    bindPlanSchedulePickers();
     updateExchangeDifference();
     updateOfferTotals();
+    updateOfferRemarksVisibility();
 
     form.querySelectorAll('#exchangeImageFields input[type="file"]').forEach((inputEl) => {
         bindExchangeUploadPreview(inputEl);
     });
 
     renumberExtraExchangeRows();
+    updateProspectSummary();
 })();
-
-
-
-
-
-
-

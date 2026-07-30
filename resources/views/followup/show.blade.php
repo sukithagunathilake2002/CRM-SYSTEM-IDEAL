@@ -126,6 +126,12 @@
                                 <span>Status :</span>
                                 <strong class="history-status {{ $historyItem->followup_status }}">{{ $historyStatus }}</strong>
                             </div>
+                            @if($historyItem->followup_status === 'not_done')
+                                <div class="history-main">
+                                    <span>Reason :</span>
+                                    <strong>{{ $historyItem->not_done_reason === 'Other' ? ($historyItem->not_done_reason_other ?: 'Other') : ($historyItem->not_done_reason ?: '--') }}</strong>
+                                </div>
+                            @endif
                             <div class="history-main">
                                 <span>Created User :</span>
                                 <strong>{{ $historyItem->user?->name ?? 'Unassigned' }}</strong>
@@ -322,23 +328,6 @@
                         <label><input type="radio" name="followup_lead_temperature" value="cold" @checked($selectedLeadTemperature === 'cold')><span>Cold</span></label>
                     </div>
 
-                    <label>Next Follow up</label>
-                    <div class="simple-segment three">
-                        <label><input type="radio" name="followup_next_type" value="Home visit" @checked($selectedNextType === 'Home visit')><span>Home visit</span></label>
-                        <label><input type="radio" name="followup_next_type" value="Showroom visit" @checked($selectedNextType === 'Showroom visit')><span>Showroom visit</span></label>
-                        <label><input type="radio" name="followup_next_type" value="Call" @checked($selectedNextType === 'Call')><span>Call</span></label>
-                    </div>
-
-                    <div class="row split">
-                        <div>
-                            <label>Scheduled for</label>
-                            <input type="date" name="followup_next_date" value="{{ $selectedNextDate }}" class="pill-input">
-                        </div>
-                        <div>
-                            <label>&nbsp;</label>
-                            <input type="time" name="followup_next_time" value="{{ $selectedNextTime }}" class="pill-input">
-                        </div>
-                    </div>
                 </div>
 
                 {{-- Lost Form --}}
@@ -404,16 +393,16 @@
                     <div class="not-done-form">
                         <label class="not-done-label">Reason for Not Done</label>
                         <div class="not-done-segment">
-                            <label class="reason-option" data-reason="I was busy">
-                                <input type="radio" name="followup_not_done_reason" value="I was busy" @checked($selectedNotDoneReason === 'I was busy')>
+                            <label class="reason-option" data-reason="I was Busy">
+                                <input type="radio" name="followup_not_done_reason" value="I was Busy" @checked($selectedNotDoneReason === 'I was Busy')>
                                 <span class="reason-card">
-                                    <span class="reason-text">I was busy</span>
+                                    <span class="reason-text">I was Busy</span>
                                 </span>
                             </label>
-                            <label class="reason-option" data-reason="Vehicle was not available">
-                                <input type="radio" name="followup_not_done_reason" value="Vehicle was not available" @checked($selectedNotDoneReason === 'Vehicle was not available')>
+                            <label class="reason-option" data-reason="Vehicle was Not Available">
+                                <input type="radio" name="followup_not_done_reason" value="Vehicle was Not Available" @checked($selectedNotDoneReason === 'Vehicle was Not Available')>
                                 <span class="reason-card">
-                                    <span class="reason-text">Vehicle was not available</span>
+                                    <span class="reason-text">Vehicle was Not Available</span>
                                 </span>
                             </label>
                             <label class="reason-option" data-reason="Other">
@@ -427,6 +416,26 @@
                         <div id="notDoneOtherTextWrap" class="not-done-other-wrap {{ $selectedNotDoneReason === 'Other' ? '' : 'hidden' }}">
                             <label class="not-done-label">Please specify:</label>
                             <input type="text" name="followup_not_done_reason_other" id="followup_not_done_reason_other" class="pill-input" placeholder="Enter other reason" value="{{ $selectedNotDoneReasonOther }}">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="nextFollowupWrap" class="next-followup-wrap {{ (($selectedFollowupStatus === 'not_done' && $selectedNotDoneReason !== '') || ($selectedFollowupStatus === 'done' && $selectedResult === 'active')) ? '' : 'hidden' }}">
+                    <label>Arrange Another Follow Up</label>
+                    <div class="simple-segment three">
+                        <label><input type="radio" name="followup_next_type" value="Home visit" @checked($selectedNextType === 'Home visit')><span>Home visit</span></label>
+                        <label><input type="radio" name="followup_next_type" value="Showroom visit" @checked($selectedNextType === 'Showroom visit')><span>Showroom visit</span></label>
+                        <label><input type="radio" name="followup_next_type" value="Call" @checked($selectedNextType === 'Call')><span>Call</span></label>
+                    </div>
+
+                    <div class="row split">
+                        <div>
+                            <label>Scheduled for</label>
+                            <input type="date" name="followup_next_date" value="{{ $selectedNextDate }}" class="pill-input">
+                        </div>
+                        <div>
+                            <label>&nbsp;</label>
+                            <input type="time" name="followup_next_time" value="{{ $selectedNextTime }}" class="pill-input">
                         </div>
                     </div>
                 </div>
@@ -585,6 +594,7 @@ html.theme-dark .reason-option input:checked + .reason-card .reason-text {
         const activeWrap = document.getElementById('activeQuestionWrap');
         const lostWrap = document.getElementById('lostQuestionWrap');
         const notDoneWrap = document.getElementById('notDoneQuestionWrap');
+        const nextFollowupWrap = document.getElementById('nextFollowupWrap');
         const formActions = document.getElementById('formActions');
         const toggleButtons = Array.from(document.querySelectorAll('.status-toggle-btn'));
         const resultRadios = Array.from(document.querySelectorAll('input[name="followup_result"]'));
@@ -843,6 +853,7 @@ html.theme-dark .reason-option input:checked + .reason-card .reason-text {
             const selectedTestDriveGiven = picked('followup_test_drive_given');
             const selectedFirstTimeBuyer = picked('followup_first_time_buyer');
             const selectedLostTo = picked('followup_lost_to');
+            const selectedNotDoneReason = picked('followup_not_done_reason');
             const isLostOtherChecked = lostOtherReasonCheckbox ? lostOtherReasonCheckbox.checked : false;
 
             if (doneWrap) {
@@ -859,6 +870,16 @@ html.theme-dark .reason-option input:checked + .reason-card .reason-text {
             
             if (notDoneWrap) {
                 notDoneWrap.classList.toggle('hidden', selectedStatus !== 'not_done');
+            }
+
+            if (nextFollowupWrap) {
+                nextFollowupWrap.classList.toggle(
+                    'hidden',
+                    !(
+                        (selectedStatus === 'not_done' && selectedNotDoneReason !== '')
+                        || (selectedStatus === 'done' && selectedResult === 'active')
+                    )
+                );
             }
 
             // Show/hide form action buttons when status is done OR not_done (not pending)
@@ -909,23 +930,6 @@ html.theme-dark .reason-option input:checked + .reason-card .reason-text {
             }
         }
         
-        // Handle form submission to include other text when "Other" is selected
-        function prepareFormSubmission() {
-            const selectedStatus = statusInput ? statusInput.value : '';
-            const selectedNotDoneReason = picked('followup_not_done_reason');
-            
-            if (selectedStatus === 'not_done' && selectedNotDoneReason === 'Other' && notDoneOtherInput) {
-                const otherValue = notDoneOtherInput.value.trim();
-                if (otherValue) {
-                    // Find the radio with value "Other" and set its value to the custom text
-                    const otherRadio = document.querySelector('input[name="followup_not_done_reason"][value="Other"]');
-                    if (otherRadio) {
-                        otherRadio.value = otherValue;
-                    }
-                }
-            }
-        }
-
         toggleButtons.forEach((btn) => {
             btn.addEventListener('click', function () {
                 if (statusInput) {
@@ -957,7 +961,7 @@ html.theme-dark .reason-option input:checked + .reason-card .reason-text {
         
         // Not Done reason radio change handler
         notDoneReasonRadios.forEach((radio) => {
-            radio.addEventListener('change', updateNotDoneOtherField);
+            radio.addEventListener('change', syncState);
         });
 
         if (lostBrandSelect) {
@@ -969,14 +973,6 @@ html.theme-dark .reason-option input:checked + .reason-card .reason-text {
             });
         }
         
-        // Add form submit handler to prepare data
-        const followupForm = document.getElementById('followupForm');
-        if (followupForm) {
-            followupForm.addEventListener('submit', function(e) {
-                prepareFormSubmission();
-            });
-        }
-
         bindPhotoPreview();
         bindPhotoViewer();
         syncLostModelOptions();
