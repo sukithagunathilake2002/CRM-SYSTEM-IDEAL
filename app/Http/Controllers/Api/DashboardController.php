@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Booking;
 use App\Models\Enquiry;
 use App\Models\User;
 use Carbon\Carbon;
@@ -47,20 +48,49 @@ class DashboardController extends Controller
         $today = now('Asia/Colombo');
         $todayStart = $today->copy()->startOfDay();
         $todayEnd = $today->copy()->endOfDay();
+        $todayDate = $today->toDateString();
 
+        // Total leads
         $totalLeads = Enquiry::whereIn('user_id', $accessibleUserIds)->count();
+        
+        // Today's leads
         $todayLeads = Enquiry::whereIn('user_id', $accessibleUserIds)
             ->whereBetween('created_at', [$todayStart, $todayEnd])
             ->count();
 
+        // Pending followups (due today)
         $pendingFollowups = Enquiry::whereIn('user_id', $accessibleUserIds)
             ->whereRaw("LOWER(COALESCE(followup_status, '')) <> ?", ['done'])
-            ->whereDate('follow_date', $today->toDateString())
+            ->whereDate('follow_date', $todayDate)
             ->count();
 
+        // EPR counts by follow type (matches PC version dashboard)
+        $baseQuery = Enquiry::with(['customer', 'vehicle'])
+            ->whereIn('user_id', $accessibleUserIds)
+            ->pendingRegistration()
+            ->whereRaw("LOWER(COALESCE(followup_status, '')) <> ?", ['done']);
+
+        $dueFollowupQuery = (clone $baseQuery)
+            ->whereDate('follow_date', '<=', $todayDate);
+
+        $callCount = (clone $dueFollowupQuery)
+            ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%call%'])
+            ->count();
+
+        $showroomCount = (clone $dueFollowupQuery)
+            ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%showroom%'])
+            ->count();
+
+        $homeCount = (clone $dueFollowupQuery)
+            ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%home%'])
+            ->count();
+
+        $totalEprCount = (clone $baseQuery)->count();
+
+        // Today's followups for the logged-in user (only their own)
         $todayFollowups = Enquiry::with(['customer:id,title,name'])
             ->where('user_id', $viewer->id)
-            ->whereDate('follow_date', $today->toDateString())
+            ->whereDate('follow_date', $todayDate)
             ->whereRaw("LOWER(COALESCE(followup_status, '')) <> ?", ['done'])
             ->orderBy('follow_time')
             ->limit(10)
@@ -74,6 +104,7 @@ class DashboardController extends Controller
                 ];
             });
 
+        // Lead status counts
         $leadStatusCounts = [
             'hot' => 0,
             'warm' => 0,
@@ -91,12 +122,33 @@ class DashboardController extends Controller
             }
         }
 
+        // Active bookings - matches PC version
+        $activeBookings = Booking::query()
+            ->whereHas('enquiry', function ($query) use ($accessibleUserIds) {
+                $query->whereIn('user_id', $accessibleUserIds)
+                    ->whereRaw("LOWER(COALESCE(status, 'open')) NOT IN ('closed', 'cancelled', 'canceled', 'lost')");
+            })
+            ->count();
+
+        // Active inquiries - matches PC version
+        $activeInquiries = Enquiry::query()
+            ->whereIn('user_id', $accessibleUserIds)
+            ->whereRaw("LOWER(COALESCE(status, 'open')) NOT IN ('closed', 'cancelled', 'canceled', 'lost')")
+            ->count();
+
         return response()->json([
             'total_leads' => $totalLeads,
             'today_leads' => $todayLeads,
             'pending_followups' => $pendingFollowups,
             'lead_status_counts' => $leadStatusCounts,
             'today_followups' => $todayFollowups,
+            'active_bookings' => $activeBookings,
+            'active_inquiries' => $activeInquiries,
+            // EPR counts by follow type (matches PC version)
+            'call_count' => $callCount,
+            'showroom_count' => $showroomCount,
+            'home_count' => $homeCount,
+            'total_epr_count' => $totalEprCount,
             'user' => [
                 'name' => $viewer->name,
                 'role_label' => $viewer->role_label,
