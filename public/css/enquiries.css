@@ -508,6 +508,24 @@ body.filter-open {
     letter-spacing: 0.1px;
 }
 
+.vehicle-selection-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.vehicle-selection-list span {
+    border: 1px solid #c8d0dc;
+    border-radius: 999px;
+    background: #f4f6fa;
+    color: #1f2937;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
 .date-block p {
     margin: 0;
     font-size: 12px;
@@ -847,6 +865,25 @@ body.filter-open {
     color: #1e40af;
 }
 
+.flag-pill.terminal {
+    min-width: 76px;
+    padding: 0 9px;
+    font-size: 10px;
+    line-height: 18px;
+}
+
+.flag-pill.terminal.lost {
+    background: #fff1f2;
+    border-color: #e11d48;
+    color: #9f1239;
+}
+
+.flag-pill.terminal.closed {
+    background: #dcfce7;
+    border-color: #16a34a;
+    color: #166534;
+}
+
 .epr-customer {
     display: inline-flex;
     align-items: center;
@@ -1006,6 +1043,18 @@ body.filter-open {
     border-radius: 999px;
     background: linear-gradient(180deg, #f12c2c 0%, #d81818 100%);
     box-shadow: none;
+}
+
+.terminal-lead-note {
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 0 14px;
+    border-radius: 999px;
+    background: #f1f5f9;
+    color: #111827;
+    font-size: 11px;
+    font-weight: 800;
 }
 
 .epr-date-panel {

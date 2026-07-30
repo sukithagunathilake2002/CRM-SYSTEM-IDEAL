@@ -11,10 +11,13 @@ class Enquiry extends Model
 
     protected $table = 'enquiries';
 
+    public const TERMINAL_LEAD_RESULTS = ['lost', 'closed'];
+
     protected $fillable = [
         'user_id',
         'customer_id',
         'vehicle_id',
+        'selected_vehicle_models',
         'lead_source',
         'source_of_information',
         'follow_type',
@@ -48,6 +51,8 @@ class Enquiry extends Model
         'followup_lost_codealer_name',
         'followup_lost_reject_reasons',
         'followup_lost_reject_other_text',
+        'followup_not_done_reason',
+        'followup_not_done_reason_other',
         'exchange',
         'finance',
         'status'
@@ -62,6 +67,7 @@ class Enquiry extends Model
         'followup_test_drive_when' => 'date',
         'followup_next_date' => 'date',
         'followup_lost_reject_reasons' => 'array',
+        'selected_vehicle_models' => 'array',
     ];
 
     // Enable timestamps
@@ -69,7 +75,7 @@ class Enquiry extends Model
 
     public function scopeRegisteredLead($query)
     {
-        return $query->whereHas('prospectSheet', function ($query): void {
+        return $query->nonTerminalLead()->whereHas('prospectSheet', function ($query): void {
             $query->where('current_step', '>=', 5)
                 ->whereRaw("LOWER(COALESCE(lead_status, '')) IN ('hot', 'warm', 'cold')");
         });
@@ -77,10 +83,101 @@ class Enquiry extends Model
 
     public function scopePendingRegistration($query)
     {
-        return $query->whereDoesntHave('prospectSheet', function ($query): void {
+        return $query->nonTerminalLead()->whereDoesntHave('prospectSheet', function ($query): void {
             $query->where('current_step', '>=', 5)
                 ->whereRaw("LOWER(COALESCE(lead_status, '')) IN ('hot', 'warm', 'cold')");
         });
+    }
+
+    public function scopeNonTerminalLead($query)
+    {
+        return $query
+            ->whereRaw("LOWER(COALESCE(followup_result, '')) NOT IN ('lost', 'closed')")
+            ->whereRaw("LOWER(COALESCE(status, 'open')) NOT IN ('closed', 'cancelled', 'canceled', 'lost')");
+    }
+
+    public function scopeActiveInquiryStage($query)
+    {
+        return $query->nonTerminalLead();
+    }
+
+    public function scopeActiveBookingStage($query)
+    {
+        return $query
+            ->nonTerminalLead()
+            ->whereHas('booking')
+            ->doesntHave('delivery');
+    }
+
+    public function scopeActiveDeliveryStage($query)
+    {
+        return $query
+            ->nonTerminalLead()
+            ->whereHas('booking')
+            ->whereHas('delivery');
+    }
+
+    public function terminalLeadResult(): ?string
+    {
+        $followupResult = strtolower(trim((string) $this->followup_result));
+        if (in_array($followupResult, self::TERMINAL_LEAD_RESULTS, true)) {
+            return $followupResult;
+        }
+
+        $status = strtolower(trim((string) $this->status));
+        if (in_array($status, self::TERMINAL_LEAD_RESULTS, true)) {
+            return $status;
+        }
+
+        return null;
+    }
+
+    public function isTerminalLead(): bool
+    {
+        return $this->terminalLeadResult() !== null;
+    }
+
+    public function terminalLeadLabel(): string
+    {
+        return ucfirst($this->terminalLeadResult() ?? 'terminal');
+    }
+
+    public function terminalLeadRouteParameters(): array
+    {
+        $result = $this->terminalLeadResult();
+
+        return $result ? ['lead_result' => $result] : [];
+    }
+
+    public function selectedVehicleItems(): array
+    {
+        $items = is_array($this->selected_vehicle_models) ? $this->selected_vehicle_models : [];
+        $items = array_values(array_filter($items, fn($item): bool => is_array($item)));
+
+        if (!empty($items)) {
+            return $items;
+        }
+
+        $vehicle = $this->vehicle;
+        if (!$vehicle) {
+            return [];
+        }
+
+        return [[
+            'vehicle_id' => (int) $vehicle->id,
+            'model' => $vehicle->model,
+            'engine_type' => $vehicle->engine_type,
+            'variant' => $vehicle->variant,
+            'label' => trim((string) $vehicle->model . ' ' . (string) $vehicle->engine_type . ' ' . (string) $vehicle->variant),
+        ]];
+    }
+
+    public function selectedVehicleDisplay(): string
+    {
+        return collect($this->selectedVehicleItems())
+            ->map(fn(array $item): string => trim((string) ($item['label'] ?? '')))
+            ->filter()
+            ->implode(', ');
     }
 
     // Each enquiry belongs to one customer

@@ -14,6 +14,8 @@ class FollowupAttempt extends Model
         'user_id',
         'follow_type',
         'followup_status',
+        'not_done_reason',
+        'not_done_reason_other',
         'attempted_at',
     ];
 

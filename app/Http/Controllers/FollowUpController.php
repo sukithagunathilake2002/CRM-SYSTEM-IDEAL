@@ -11,11 +11,10 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
-use Illuminate\View\View;
 
 class FollowUpController extends Controller
 {
-    public function show(Request $request, Enquiry $enquiry): View
+    public function show(Request $request, Enquiry $enquiry)
     {
         $enquiry->load([
             'customer',
@@ -26,6 +25,10 @@ class FollowUpController extends Controller
         ]);
 
         abort_unless($this->canAccessEnquiry($request->user(), $enquiry), 403);
+
+        if ($enquiry->isTerminalLead()) {
+            return $this->redirectTerminalLead($enquiry);
+        }
 
         $customer = $enquiry->customer;
         $vehicle = $enquiry->vehicle;
@@ -104,8 +107,8 @@ class FollowUpController extends Controller
             $selectedLostRejectReasons = [];
         }
         $selectedLostRejectOtherText = old('followup_lost_reject_other_text', $enquiry->followup_lost_reject_other_text ?? '');
-        $selectedNotDoneReason = old('followup_not_done_reason', '');
-        $selectedNotDoneReasonOther = old('followup_not_done_reason_other', '');
+        $selectedNotDoneReason = old('followup_not_done_reason', $enquiry->followup_not_done_reason ?? '');
+        $selectedNotDoneReasonOther = old('followup_not_done_reason_other', $enquiry->followup_not_done_reason_other ?? '');
 
         $statusLabel = match ($followupStatus) {
             'done' => 'Done',
@@ -168,6 +171,10 @@ class FollowUpController extends Controller
     public function updateStatus(Request $request, Enquiry $enquiry): RedirectResponse
     {
         abort_unless($this->canAccessEnquiry($request->user(), $enquiry), 403);
+
+        if ($enquiry->isTerminalLead()) {
+            return $this->redirectTerminalLead($enquiry);
+        }
         
         // Determine if this is a Home Visit EPR (only these require physical visit fields)
         $isHomeVisit = stripos($enquiry->follow_type ?? '', 'home') !== false;
@@ -239,6 +246,20 @@ class FollowUpController extends Controller
             'followup_next_type' => ['nullable', Rule::in(['Home visit', 'Showroom visit', 'Call'])],
             'followup_next_date' => ['nullable', 'date'],
             'followup_next_time' => ['nullable', 'date_format:H:i'],
+            'followup_not_done_reason' => [
+                'nullable',
+                Rule::in(['I was Busy', 'Vehicle was Not Available', 'Other']),
+                Rule::requiredIf(fn() => $request->input('followup_status') === 'not_done'),
+            ],
+            'followup_not_done_reason_other' => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::requiredIf(
+                    fn() => $request->input('followup_status') === 'not_done'
+                        && $request->input('followup_not_done_reason') === 'Other'
+                ),
+            ],
             'followup_lost_to' => [
                 'nullable',
                 Rule::in(['competitor', 'co_dealer']),
@@ -317,7 +338,9 @@ class FollowUpController extends Controller
             
             $enquiry->followup_result = $validated['followup_result'] ?? null;
 
-            if (($validated['followup_result'] ?? null) === 'active') {
+            $followupResult = $validated['followup_result'] ?? null;
+
+            if ($followupResult === 'active') {
                 $requiredErrors = [];
 
                 if (empty($validated['followup_conversion_year'])) {
@@ -385,8 +408,10 @@ class FollowUpController extends Controller
                 $enquiry->follow_date = $validated['followup_next_date'] ?? $enquiry->follow_date;
                 $enquiry->follow_time = $validated['followup_next_time'] ?? $enquiry->follow_time;
                 $enquiry->followup_status = 'pending';
+                $enquiry->status = 'OPEN';
+                $this->clearNotDoneFollowupFields($enquiry);
                 $this->clearLostFollowupFields($enquiry);
-            } elseif (($validated['followup_result'] ?? null) === 'lost') {
+            } elseif ($followupResult === 'lost') {
                 $lostReasons = array_values(array_unique(array_filter((array) ($validated['followup_lost_reject_reasons'] ?? []))));
 
                 $enquiry->followup_lost_to = $validated['followup_lost_to'] ?? null;
@@ -404,18 +429,64 @@ class FollowUpController extends Controller
                     ? ($validated['followup_lost_reject_other_text'] ?? null)
                     : null;
                 $this->clearActiveFollowupFields($enquiry);
+                $this->clearNotDoneFollowupFields($enquiry);
+                $this->markTerminalLead($enquiry, 'lost');
+            } elseif ($followupResult === 'closed') {
+                $this->clearActiveFollowupFields($enquiry);
+                $this->clearLostFollowupFields($enquiry);
+                $this->clearNotDoneFollowupFields($enquiry);
+                $this->markTerminalLead($enquiry, 'closed');
             } else {
                 $this->clearActiveFollowupFields($enquiry);
                 $this->clearLostFollowupFields($enquiry);
+                $this->clearNotDoneFollowupFields($enquiry);
             }
 
             $this->syncFollowupImage($enquiry, $request, 'followup_picture_1', 'followup_remove_picture_1');
             $this->syncFollowupImage($enquiry, $request, 'followup_picture_2', 'followup_remove_picture_2');
         } else {
+            $requiredErrors = [];
+
+            if (empty($validated['followup_not_done_reason'])) {
+                $requiredErrors['followup_not_done_reason'] = 'Reason for Not Done is required.';
+            }
+
+            if (($validated['followup_not_done_reason'] ?? null) === 'Other' && empty($validated['followup_not_done_reason_other'])) {
+                $requiredErrors['followup_not_done_reason_other'] = 'Please specify the Not Done reason.';
+            }
+
+            if (empty($validated['followup_next_type'])) {
+                $requiredErrors['followup_next_type'] = 'Next follow up type is required for Not Done followups.';
+            }
+
+            if (empty($validated['followup_next_date'])) {
+                $requiredErrors['followup_next_date'] = 'Scheduled date is required for Not Done followups.';
+            }
+
+            if (empty($validated['followup_next_time'])) {
+                $requiredErrors['followup_next_time'] = 'Scheduled time is required for Not Done followups.';
+            }
+
+            if (!empty($requiredErrors)) {
+                return back()->withErrors($requiredErrors)->withInput();
+            }
+
             $enquiry->followup_visit_date = null;
             $enquiry->followup_met_whom = null;
             $this->clearActiveFollowupFields($enquiry);
             $this->clearLostFollowupFields($enquiry);
+            $enquiry->followup_not_done_reason = $validated['followup_not_done_reason'] ?? null;
+            $enquiry->followup_not_done_reason_other = ($validated['followup_not_done_reason'] ?? null) === 'Other'
+                ? ($validated['followup_not_done_reason_other'] ?? null)
+                : null;
+            $enquiry->followup_next_type = $validated['followup_next_type'] ?? null;
+            $enquiry->followup_next_date = $validated['followup_next_date'] ?? null;
+            $enquiry->followup_next_time = $validated['followup_next_time'] ?? null;
+            $enquiry->follow_type = $validated['followup_next_type'] ?? $enquiry->follow_type;
+            $enquiry->follow_date = $validated['followup_next_date'] ?? $enquiry->follow_date;
+            $enquiry->follow_time = $validated['followup_next_time'] ?? $enquiry->follow_time;
+            $enquiry->followup_status = 'pending';
+            $enquiry->status = 'OPEN';
         }
 
         $enquiry->save();
@@ -425,12 +496,40 @@ class FollowUpController extends Controller
             'user_id' => $request->user()?->id,
             'follow_type' => $attemptedType,
             'followup_status' => $validated['followup_status'],
+            'not_done_reason' => ($validated['followup_status'] ?? null) === 'not_done'
+                ? ($validated['followup_not_done_reason'] ?? null)
+                : null,
+            'not_done_reason_other' => ($validated['followup_status'] ?? null) === 'not_done'
+                && ($validated['followup_not_done_reason'] ?? null) === 'Other'
+                    ? ($validated['followup_not_done_reason_other'] ?? null)
+                    : null,
             'attempted_at' => $attemptedAt,
         ]);
+
+        if ($enquiry->isTerminalLead()) {
+            return $this->redirectTerminalLead($enquiry, $enquiry->terminalLeadLabel() . ' lead saved. No more followups, prospect registration, booking, or delivery are available for this lead.');
+        }
 
         return redirect()
             ->route('followup.show', $enquiry->id)
             ->with('success', 'Followup status updated.');
+    }
+
+    private function redirectTerminalLead(Enquiry $enquiry, ?string $message = null): RedirectResponse
+    {
+        return redirect()
+            ->route('enquiries.list', $enquiry->terminalLeadRouteParameters())
+            ->with('success', $message ?? $enquiry->terminalLeadLabel() . ' lead is finalized. No further workflow is available.');
+    }
+
+    private function markTerminalLead(Enquiry $enquiry, string $result): void
+    {
+        $enquiry->followup_status = 'done';
+        $enquiry->followup_result = $result;
+        $enquiry->follow_type = null;
+        $enquiry->follow_date = null;
+        $enquiry->follow_time = null;
+        $enquiry->status = strtoupper($result);
     }
 
     private function canAccessEnquiry(User $viewer, Enquiry $enquiry): bool
@@ -499,6 +598,12 @@ class FollowUpController extends Controller
         $enquiry->followup_lost_codealer_name = null;
         $enquiry->followup_lost_reject_reasons = null;
         $enquiry->followup_lost_reject_other_text = null;
+    }
+
+    private function clearNotDoneFollowupFields(Enquiry $enquiry): void
+    {
+        $enquiry->followup_not_done_reason = null;
+        $enquiry->followup_not_done_reason_other = null;
     }
 
     private function syncFollowupImage(Enquiry $enquiry, Request $request, string $field, string $removeFlag): void

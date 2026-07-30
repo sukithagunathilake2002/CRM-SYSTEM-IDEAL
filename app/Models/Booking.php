@@ -24,6 +24,7 @@ class Booking extends Model
         'address1',
         'address2',
         'customer_type',
+        'corporate_name',
         'profession',
         'date_of_birth',
         'interested_model',
@@ -48,12 +49,16 @@ class Booking extends Model
         'existing_vehicle_year',
         'interested_in_exchange',
         'exchange_type',
+        'exchange_purchase_value',
         'exchange_vehicle_brand',
         'exchange_vehicle_model',
         'exchange_manufacture_year',
+        'exchange_ownership',
+        'exchange_insurance_validity',
         'exchange_color',
         'exchange_mileage_km',
         'exchange_registration_no',
+        'exchange_tyre_replacements',
         'exchange_expected_price',
         'exchange_quoted_price',
         'exchange_price_difference',
@@ -71,11 +76,18 @@ class Booking extends Model
         'offer_total_cost',
         'offer_total_discount',
         'offer_final_price',
+        'offer_remark',
+        'expected_delivery_date',
+        'booking_date',
+        'amount_collected',
         'purchase_order_image',
     ];
 
     protected $casts = [
         'booking_same_as_customer' => 'boolean',
+        'exchange_purchase_value' => 'decimal:2',
+        'exchange_insurance_validity' => 'date',
+        'exchange_tyre_replacements' => 'array',
         'exchange_extra_images' => 'array',
         'offer_unit_price' => 'decimal:2',
         'offer_unit_price_discount' => 'decimal:2',
@@ -86,6 +98,9 @@ class Booking extends Model
         'offer_total_cost' => 'decimal:2',
         'offer_total_discount' => 'decimal:2',
         'offer_final_price' => 'decimal:2',
+        'expected_delivery_date' => 'date',
+        'booking_date' => 'date',
+        'amount_collected' => 'decimal:2',
     ];
 
     public function enquiry()

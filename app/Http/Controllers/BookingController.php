@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Booking;
 use App\Models\CompetitionVehicle;
 use App\Models\Enquiry;
+use App\Models\User;
 use App\Models\Vehicle;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class BookingController extends Controller
@@ -14,6 +16,10 @@ class BookingController extends Controller
     public function show(Enquiry $enquiry)
     {
         $enquiry->load(['customer', 'vehicle', 'prospectSheet', 'booking', 'user']);
+
+        if ($enquiry->isTerminalLead()) {
+            return $this->redirectTerminalLead($enquiry);
+        }
 
         $booking = $enquiry->booking ?: new Booking([
             'enquiry_id' => $enquiry->id,
@@ -44,6 +50,15 @@ class BookingController extends Controller
             ->map(function ($items) {
                 return $items->pluck('model')->unique()->values();
             });
+        $viewer = request()->user();
+        $districtOptions = $viewer instanceof User
+            ? $viewer->resolvePermittedDistricts()
+            : User::DISTRICT_OPTIONS;
+        $currentDistrict = trim((string) ($booking->district ?: $customer?->district));
+        if ($currentDistrict !== '' && !in_array($currentDistrict, $districtOptions, true)) {
+            $districtOptions[] = $currentDistrict;
+            sort($districtOptions);
+        }
 
         $viewData = [
             'enquiry' => $enquiry,
@@ -52,6 +67,7 @@ class BookingController extends Controller
             'prospect' => $prospect,
             'vehicleModels' => $vehicleModels,
             'competitionMap' => $competitionMap,
+            'districtOptions' => $districtOptions,
             'currentStep' => $currentStep,
             'defaultValues' => [
                 'title' => $booking->title ?: $customer?->title,
@@ -64,6 +80,7 @@ class BookingController extends Controller
                 'address1' => $booking->address1 ?: $customer?->address1,
                 'address2' => $booking->address2 ?: $customer?->address2,
                 'customer_type' => $booking->customer_type ?: $prospect?->customer_type,
+                'corporate_name' => $booking->corporate_name ?: $prospect?->corporate_name,
                 'profession' => $booking->profession ?: $prospect?->profession,
                 'date_of_birth' => $booking->date_of_birth ?: $prospect?->date_of_birth,
                 'interested_model' => $booking->interested_model ?: $enquiry->vehicle?->model,
@@ -88,12 +105,16 @@ class BookingController extends Controller
                 'existing_vehicle_year' => $booking->existing_vehicle_year ?: $prospect?->existing_vehicle_year,
                 'interested_in_exchange' => $booking->interested_in_exchange ?: $prospect?->interested_in_exchange,
                 'exchange_type' => $booking->exchange_type ?: 'in_house',
+                'exchange_purchase_value' => $booking->exchange_purchase_value,
                 'exchange_vehicle_brand' => $booking->exchange_vehicle_brand ?: $prospect?->exchange_vehicle_brand,
                 'exchange_vehicle_model' => $booking->exchange_vehicle_model ?: $prospect?->exchange_vehicle_model,
                 'exchange_manufacture_year' => $booking->exchange_manufacture_year ?: $prospect?->exchange_manufacture_year,
+                'exchange_ownership' => $booking->exchange_ownership ?: $prospect?->exchange_ownership,
+                'exchange_insurance_validity' => $booking->exchange_insurance_validity ?: $prospect?->exchange_insurance_validity,
                 'exchange_color' => $booking->exchange_color ?: $prospect?->exchange_color,
                 'exchange_mileage_km' => $booking->exchange_mileage_km ?: $prospect?->exchange_mileage_km,
                 'exchange_registration_no' => $booking->exchange_registration_no ?: $prospect?->exchange_registration_no,
+                'exchange_tyre_replacements' => $booking->exchange_tyre_replacements ?: [],
                 'exchange_expected_price' => $booking->exchange_expected_price ?? $prospect?->exchange_expected_price,
                 'exchange_quoted_price' => $booking->exchange_quoted_price ?? $prospect?->exchange_quoted_price,
                 'exchange_price_difference' => $booking->exchange_price_difference ?? $prospect?->exchange_price_difference,
@@ -106,6 +127,10 @@ class BookingController extends Controller
                 'offer_total_cost' => $booking->offer_total_cost ?? $prospect?->offer_total_cost,
                 'offer_total_discount' => $booking->offer_total_discount ?? $prospect?->offer_total_discount,
                 'offer_final_price' => $booking->offer_final_price ?? $prospect?->offer_final_price,
+                'offer_remark' => $booking->offer_remark ?? $prospect?->offer_remark,
+                'expected_delivery_date' => $booking->expected_delivery_date,
+                'booking_date' => $booking->booking_date,
+                'amount_collected' => $booking->amount_collected ?? 0,
             ],
             'sameAsCustomer' => old(
                 'booking_same_as_customer',
@@ -120,9 +145,22 @@ class BookingController extends Controller
     {
         $enquiry->load(['customer', 'vehicle', 'prospectSheet', 'booking', 'user']);
 
+        if ($enquiry->isTerminalLead()) {
+            return $this->redirectTerminalLead($enquiry);
+        }
+
         $booking = $enquiry->booking ?: new Booking([
             'enquiry_id' => $enquiry->id,
         ]);
+
+        $viewer = $request->user();
+        $districtOptions = $viewer instanceof User
+            ? $viewer->resolvePermittedDistricts()
+            : User::DISTRICT_OPTIONS;
+        $currentDistrict = trim((string) ($booking->district ?: $enquiry->customer?->district));
+        if ($currentDistrict !== '' && !in_array($currentDistrict, $districtOptions, true)) {
+            $districtOptions[] = $currentDistrict;
+        }
 
         $validated = $request->validate([
             'booking_same_as_customer' => ['nullable', 'in:0,1'],
@@ -130,12 +168,13 @@ class BookingController extends Controller
             'name' => ['nullable', 'string', 'max:255', 'required_if:booking_same_as_customer,0'],
             'contact_type' => ['nullable', Rule::in(['Mobile', 'Home', 'Office'])],
             'mobile_numbers' => ['nullable', 'string', 'max:255', 'required_if:booking_same_as_customer,0'],
-            'district' => ['nullable', 'string', 'max:255'],
+            'district' => ['nullable', 'string', 'max:255', Rule::in($districtOptions)],
             'location' => ['nullable', 'string', 'max:255'],
             'state' => ['nullable', 'string', 'max:255'],
             'address1' => ['nullable', 'string', 'max:255'],
             'address2' => ['nullable', 'string', 'max:255'],
             'customer_type' => ['nullable', Rule::in(['individual', 'corporate'])],
+            'corporate_name' => ['nullable', 'required_if:customer_type,corporate', 'string', 'max:255'],
             'profession' => ['nullable', Rule::in(['salaried', 'self_employed', 'other', 'not_asked'])],
             'date_of_birth' => ['nullable', 'date'],
             'interested_model' => ['nullable', 'string', 'max:255'],
@@ -160,12 +199,17 @@ class BookingController extends Controller
             'existing_vehicle_year' => ['nullable', 'integer', 'between:1950,2100'],
             'interested_in_exchange' => ['nullable', Rule::in(['yes', 'no'])],
             'exchange_type' => ['nullable', Rule::in(['in_house', 'outhouse'])],
+            'exchange_purchase_value' => ['nullable', 'numeric', 'min:0'],
             'exchange_vehicle_brand' => ['nullable', 'string', 'max:255'],
             'exchange_vehicle_model' => ['nullable', 'string', 'max:255'],
             'exchange_manufacture_year' => ['nullable', 'integer', 'between:1950,2100'],
+            'exchange_ownership' => ['nullable', 'string', 'max:50'],
+            'exchange_insurance_validity' => ['nullable', 'date'],
             'exchange_color' => ['nullable', 'string', 'max:255'],
             'exchange_mileage_km' => ['nullable', 'integer', 'min:0'],
             'exchange_registration_no' => ['nullable', 'string', 'max:50'],
+            'exchange_tyre_replacements' => ['nullable', 'array'],
+            'exchange_tyre_replacements.*' => ['nullable', Rule::in(['front_lhs', 'front_rhs', 'rear_lhs', 'rear_rhs'])],
             'exchange_expected_price' => ['nullable', 'numeric', 'min:0'],
             'exchange_quoted_price' => ['nullable', 'numeric', 'min:0'],
             'exchange_price_difference' => ['nullable', 'numeric'],
@@ -184,8 +228,13 @@ class BookingController extends Controller
             'offer_total_cost' => ['nullable', 'numeric', 'min:0'],
             'offer_total_discount' => ['nullable', 'numeric', 'min:0'],
             'offer_final_price' => ['nullable', 'numeric', 'min:0'],
+            'offer_remark' => ['nullable', 'string', 'max:1000'],
+            'expected_delivery_date' => ['nullable', 'date'],
+            'booking_date' => ['nullable', 'date'],
+            'amount_collected' => ['nullable', 'numeric', 'min:0'],
             'edit_offer_details' => ['nullable', 'in:0,1'],
             'purchase_order_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'remove_purchase_order_image' => ['nullable', 'in:0,1'],
             'booking_step' => ['nullable', 'integer', 'between:1,5'],
             'action_type' => ['nullable', Rule::in(['next', 'save_exit', 'save', 'submit'])],
         ]);
@@ -196,6 +245,7 @@ class BookingController extends Controller
         $customer = $enquiry->customer;
         $prospect = $enquiry->prospectSheet;
         $actionType = $validated['action_type'] ?? 'next';
+        $removePurchaseOrder = ($validated['remove_purchase_order_image'] ?? '0') === '1';
 
         $requiresPurchaseOrder = $currentStep === 1 && in_array($actionType, ['next', 'save_exit'], true);
         if ($requiresPurchaseOrder && !$request->hasFile('purchase_order_image') && empty($booking->purchase_order_image)) {
@@ -222,6 +272,7 @@ class BookingController extends Controller
             'address1' => $validated['address1'] ?? null,
             'address2' => $validated['address2'] ?? null,
             'customer_type' => $validated['customer_type'] ?? null,
+            'corporate_name' => ($validated['customer_type'] ?? null) === 'corporate' ? ($validated['corporate_name'] ?? null) : null,
             'profession' => $validated['profession'] ?? null,
             'date_of_birth' => $validated['date_of_birth'] ?? null,
             'interested_model' => $validated['interested_model'] ?? null,
@@ -246,12 +297,16 @@ class BookingController extends Controller
             'existing_vehicle_year' => null,
             'interested_in_exchange' => $validated['interested_in_exchange'] ?? null,
             'exchange_type' => null,
+            'exchange_purchase_value' => null,
             'exchange_vehicle_brand' => null,
             'exchange_vehicle_model' => null,
             'exchange_manufacture_year' => null,
+            'exchange_ownership' => null,
+            'exchange_insurance_validity' => null,
             'exchange_color' => null,
             'exchange_mileage_km' => null,
             'exchange_registration_no' => null,
+            'exchange_tyre_replacements' => [],
             'exchange_expected_price' => null,
             'exchange_quoted_price' => null,
             'exchange_price_difference' => null,
@@ -297,12 +352,16 @@ class BookingController extends Controller
 
         if (($validated['interested_in_exchange'] ?? null) === 'yes') {
             $payload['exchange_type'] = $validated['exchange_type'] ?? 'in_house';
+            $payload['exchange_purchase_value'] = $validated['exchange_purchase_value'] ?? null;
             $payload['exchange_vehicle_brand'] = $validated['exchange_vehicle_brand'] ?? null;
             $payload['exchange_vehicle_model'] = $validated['exchange_vehicle_model'] ?? null;
             $payload['exchange_manufacture_year'] = $validated['exchange_manufacture_year'] ?? null;
+            $payload['exchange_ownership'] = $validated['exchange_ownership'] ?? null;
+            $payload['exchange_insurance_validity'] = $validated['exchange_insurance_validity'] ?? null;
             $payload['exchange_color'] = $validated['exchange_color'] ?? null;
             $payload['exchange_mileage_km'] = $validated['exchange_mileage_km'] ?? null;
             $payload['exchange_registration_no'] = $validated['exchange_registration_no'] ?? null;
+            $payload['exchange_tyre_replacements'] = $validated['exchange_tyre_replacements'] ?? [];
             $payload['exchange_expected_price'] = $validated['exchange_expected_price'] ?? null;
             $payload['exchange_quoted_price'] = $validated['exchange_quoted_price'] ?? null;
 
@@ -379,6 +438,10 @@ class BookingController extends Controller
         $payload['offer_total_cost'] = $offerTotalCost;
         $payload['offer_total_discount'] = $offerTotalDiscount;
         $payload['offer_final_price'] = $offerFinalPrice;
+        $payload['offer_remark'] = $validated['offer_remark'] ?? $booking->offer_remark ?? $prospect?->offer_remark;
+        $payload['expected_delivery_date'] = $validated['expected_delivery_date'] ?? $booking->expected_delivery_date;
+        $payload['booking_date'] = $validated['booking_date'] ?? $booking->booking_date ?? now()->toDateString();
+        $payload['amount_collected'] = $validated['amount_collected'] ?? $booking->amount_collected ?? 0;
 
         if ($sameAsCustomer) {
             $payload['title'] = $customer?->title;
@@ -391,11 +454,22 @@ class BookingController extends Controller
             $payload['address1'] = $customer?->address1;
             $payload['address2'] = $customer?->address2;
             $payload['customer_type'] = $prospect?->customer_type;
+            $payload['corporate_name'] = $prospect?->customer_type === 'corporate' ? $prospect?->corporate_name : null;
             $payload['profession'] = $prospect?->profession;
             $payload['date_of_birth'] = $prospect?->date_of_birth;
         }
 
+        if ($removePurchaseOrder) {
+            if (!empty($booking->purchase_order_image)) {
+                Storage::disk('public')->delete($booking->purchase_order_image);
+            }
+            $payload['purchase_order_image'] = null;
+        }
+
         if ($request->hasFile('purchase_order_image')) {
+            if (!empty($booking->purchase_order_image)) {
+                Storage::disk('public')->delete($booking->purchase_order_image);
+            }
             $payload['purchase_order_image'] = $request->file('purchase_order_image')->store('booking/purchase-order', 'public');
         }
 
@@ -448,5 +522,12 @@ class BookingController extends Controller
         return redirect()
             ->route('booking.show', ['enquiry' => $enquiry->id, 'step' => $nextStep])
             ->with('success', $currentStep >= 5 ? 'Booking details saved successfully.' : 'Step saved successfully.');
+    }
+
+    private function redirectTerminalLead(Enquiry $enquiry)
+    {
+        return redirect()
+            ->route('enquiries.list', $enquiry->terminalLeadRouteParameters())
+            ->with('success', $enquiry->terminalLeadLabel() . ' lead is finalized. Booking is not available.');
     }
 }

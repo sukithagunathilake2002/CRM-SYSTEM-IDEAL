@@ -18,13 +18,16 @@ class EnquiryController extends Controller
     public function create(Request $request)
     {
         $viewer = $request->user();
-        $models = Vehicle::select('model')->distinct()->get();
+        $models = Vehicle::select('model')->distinct()->orderBy('model')->get();
         $districtOptions = $viewer instanceof User
             ? $viewer->resolvePermittedDistricts()
             : User::DISTRICT_OPTIONS;
         $sourceInfoMap = $this->sourceInformationOptions();
+        $selectedVehiclesForForm = $this->selectedVehiclesForForm(
+            $request->old('selected_vehicle_ids', [])
+        );
 
-        return view('new-enquiry', compact('models', 'districtOptions', 'sourceInfoMap'));
+        return view('new-enquiry', compact('models', 'districtOptions', 'sourceInfoMap', 'selectedVehiclesForForm'));
     }
 
     /**
@@ -45,8 +48,8 @@ class EnquiryController extends Controller
     {
         return Vehicle::where('model', $model)
             ->where('engine_type', $engine)
-            ->select('variant')
-            ->distinct()
+            ->select('id', 'variant')
+            ->orderBy('variant')
             ->get();
     }
 
@@ -72,9 +75,11 @@ class EnquiryController extends Controller
         $sourceInformationOptions = $sourceInfoMap[$selectedLeadSource] ?? [];
 
         $request->validate([
-            'model' => ['required', 'string'],
-            'engine' => ['required', 'string'],
-            'variant' => ['required', 'string'],
+            'selected_vehicle_ids' => ['required', 'array', 'min:1'],
+            'selected_vehicle_ids.*' => ['required', 'integer', 'exists:vehicles,id'],
+            'model' => ['nullable', 'string'],
+            'engine' => ['nullable', 'string'],
+            'variant' => ['nullable', 'string'],
             'title' => ['nullable', 'string', 'max:10'],
             'name' => ['required', 'string', 'max:150'],
             'mobiles' => ['required', 'array', 'min:1'],
@@ -134,10 +139,26 @@ class EnquiryController extends Controller
             $location = $district;
         }
 
-        $vehicle = Vehicle::where('model', $request->model)
-            ->where('engine_type', $request->engine)
-            ->where('variant', $request->variant)
-            ->first();
+        $selectedVehicleIds = collect($request->input('selected_vehicle_ids', []))
+            ->map(fn($id): int => (int) $id)
+            ->filter(fn(int $id): bool => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
+
+        $selectedVehicles = Vehicle::query()
+            ->whereIn('id', $selectedVehicleIds)
+            ->get()
+            ->keyBy('id');
+
+        $selectedVehiclePayload = collect($selectedVehicleIds)
+            ->map(fn(int $id) => $selectedVehicles->get($id))
+            ->filter()
+            ->map(fn(Vehicle $selectedVehicle): array => $this->vehicleSelectionPayload($selectedVehicle))
+            ->values()
+            ->all();
+
+        $vehicle = $selectedVehicles->get($selectedVehicleIds[0] ?? 0);
 
         if (!$vehicle) {
             return back()->with('error', 'Invalid vehicle selection');
@@ -145,7 +166,7 @@ class EnquiryController extends Controller
 
         $ownerUserId = $request->user()?->id;
 
-        DB::transaction(function () use ($request, $vehicle, $mobileNumbers, $district, $location, $ownerUserId) {
+        $createdEnquiry = DB::transaction(function () use ($request, $vehicle, $selectedVehiclePayload, $mobileNumbers, $district, $location, $ownerUserId) {
             $customer = Customer::create([
                 'title' => $request->title,
                 'name' => trim((string) $request->name),
@@ -157,10 +178,11 @@ class EnquiryController extends Controller
                 'address2' => $request->filled('address2') ? $request->address2 : null,
             ]);
 
-            Enquiry::create([
+            return Enquiry::create([
                 'user_id' => $ownerUserId,
                 'customer_id' => $customer->id,
                 'vehicle_id' => $vehicle->id,
+                'selected_vehicle_models' => $selectedVehiclePayload,
                 'lead_source' => $request->lead_source,
                 'source_of_information' => $request->source_of_information,
                 'follow_type' => $request->follow_type,
@@ -173,7 +195,28 @@ class EnquiryController extends Controller
             ]);
         });
 
-        return redirect()->back()->with('success', 'ERP Enquiry Saved Successfully');
+        $createdLeadDetails = [
+            'id' => $createdEnquiry->id,
+            'customer_name' => trim((string) (($request->title ? $request->title . '. ' : '') . trim((string) $request->name))),
+            'mobile_numbers' => $mobileNumbers,
+            'district' => $district,
+            'location' => $location,
+            'lead_source' => $request->lead_source,
+            'source_of_information' => $request->source_of_information,
+            'follow_type' => $request->follow_type,
+            'follow_date' => $request->follow_date,
+            'follow_time' => $request->follow_time,
+            'vehicles' => collect($selectedVehiclePayload)
+                ->map(fn(array $selectedVehicle): string => trim((string) ($selectedVehicle['label'] ?? '')))
+                ->filter()
+                ->values()
+                ->all(),
+        ];
+
+        return redirect()
+            ->back()
+            ->with('success', 'ERP Enquiry Saved Successfully')
+            ->with('created_lead', $createdLeadDetails);
     }
 
     
@@ -191,16 +234,36 @@ public function list(Request $request)
     if (!in_array($selectedLeadResult, ['active', 'lost', 'closed'], true)) {
         $selectedLeadResult = null;
     }
+    $selectedBookingView = strtolower(trim((string) $request->query('booking', '')));
+    if ($selectedBookingView !== 'active') {
+        $selectedBookingView = null;
+    }
+    $selectedDeliveryView = strtolower(trim((string) $request->query('delivery', '')));
+    if ($selectedDeliveryView !== 'active') {
+        $selectedDeliveryView = null;
+    }
 
     if ($viewer && $viewer->role !== User::ROLE_SUPER_ADMIN) {
         $accessibleUserIds = $this->resolveAccessibleUserIds($viewer);
         $enquiriesQuery->whereIn('user_id', $accessibleUserIds);
     }
 
-    if ($registrationView === 'pending') {
-        $enquiriesQuery->pendingRegistration();
-    } else {
-        $enquiriesQuery->registeredLead();
+    if ($selectedDeliveryView === 'active') {
+        $enquiriesQuery->activeDeliveryStage();
+    } elseif ($selectedBookingView === 'active') {
+        $enquiriesQuery->activeBookingStage();
+    } elseif (!in_array($selectedLeadResult, ['lost', 'closed'], true)) {
+        if ($registrationView === 'pending') {
+            $enquiriesQuery->pendingRegistration();
+        } else {
+            $enquiriesQuery->registeredLead();
+        }
+
+        if ($selectedLeadResult === 'active') {
+            $enquiriesQuery
+                ->doesntHave('booking')
+                ->doesntHave('delivery');
+        }
     }
 
     if ($selectedLeadStatus !== null) {
@@ -321,6 +384,43 @@ public function listHomeEpds(Request $request)
             'Digital' => ['Facebook', 'Instagram', 'Google', 'Website', 'YouTube', 'TikTok', 'Other'],
             'Referral' => ['Customer Referral', 'Employee Referral', 'Dealer Referral', 'Friends/Family', 'Other'],
             'Press' => ['Newspaper', 'Magazine', 'Radio', 'TV', 'Other'],
+        ];
+    }
+
+    private function selectedVehiclesForForm(mixed $vehicleIds): array
+    {
+        $ids = collect(is_array($vehicleIds) ? $vehicleIds : [])
+            ->map(fn($id): int => (int) $id)
+            ->filter(fn(int $id): bool => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
+
+        if (empty($ids)) {
+            return [];
+        }
+
+        $vehicles = Vehicle::query()
+            ->whereIn('id', $ids)
+            ->get()
+            ->keyBy('id');
+
+        return collect($ids)
+            ->map(fn(int $id) => $vehicles->get($id))
+            ->filter()
+            ->map(fn(Vehicle $vehicle): array => $this->vehicleSelectionPayload($vehicle))
+            ->values()
+            ->all();
+    }
+
+    private function vehicleSelectionPayload(Vehicle $vehicle): array
+    {
+        return [
+            'vehicle_id' => (int) $vehicle->id,
+            'model' => $vehicle->model,
+            'engine_type' => $vehicle->engine_type,
+            'variant' => $vehicle->variant,
+            'label' => trim((string) $vehicle->model . ' ' . (string) $vehicle->engine_type . ' ' . (string) $vehicle->variant),
         ];
     }
 }
