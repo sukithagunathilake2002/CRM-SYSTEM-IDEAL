@@ -21,6 +21,12 @@ class BookingController extends Controller
             return $this->redirectTerminalLead($enquiry);
         }
 
+        if (!$enquiry->canOpenBooking()) {
+            return redirect()
+                ->route('prospect.show', $enquiry->id)
+                ->with('error', 'Please complete the Prospect Sheet before opening Booking.');
+        }
+
         $booking = $enquiry->booking ?: new Booking([
             'enquiry_id' => $enquiry->id,
         ]);
@@ -169,6 +175,12 @@ class BookingController extends Controller
 
         if ($enquiry->isTerminalLead()) {
             return $this->redirectTerminalLead($enquiry);
+        }
+
+        if (!$enquiry->canOpenBooking()) {
+            return redirect()
+                ->route('prospect.show', $enquiry->id)
+                ->with('error', 'Please complete the Prospect Sheet before saving Booking.');
         }
 
         $booking = $enquiry->booking ?: new Booking([
@@ -536,13 +548,24 @@ class BookingController extends Controller
             $payload['exchange_extra_images'] = $extraImages;
         }
 
+        $bookingComplete = $this->bookingPayloadIsComplete($payload);
+        if ($actionType === 'submit') {
+            $payload['booking_completed_at'] = $bookingComplete
+                ? ($booking->booking_completed_at ?? now())
+                : null;
+        } elseif ($actionType === 'save_exit' && !$bookingComplete) {
+            $payload['booking_completed_at'] = null;
+        }
+
         Booking::updateOrCreate(
             ['enquiry_id' => $enquiry->id],
             $payload
         );
 
         if ($actionType === 'save_exit') {
-            return redirect('/epr')->with('success', 'Booking details saved.');
+            return redirect()
+                ->route('enquiries.list', ['booking' => 'inactive'])
+                ->with('success', 'Booking details saved as inactive.');
         }
 
         if ($actionType === 'save') {
@@ -552,10 +575,15 @@ class BookingController extends Controller
         }
 
         if ($actionType === 'submit') {
+            if (!$bookingComplete) {
+                return redirect()
+                    ->route('enquiries.list', ['booking' => 'inactive'])
+                    ->with('success', 'Booking saved as inactive. Please complete all booking details before making it active.');
+            }
+
             return redirect()
-                ->route('booking.show', ['enquiry' => $enquiry->id, 'step' => 5])
-                ->with('booking_submitted_popup', true)
-                ->with('booking_submitted_message', 'Submitted successfully.');
+                ->route('enquiries.list', ['booking' => 'active'])
+                ->with('success', 'Booking submitted successfully.');
         }
 
         $nextStep = min(5, $currentStep + 1);
@@ -563,6 +591,59 @@ class BookingController extends Controller
         return redirect()
             ->route('booking.show', ['enquiry' => $enquiry->id, 'step' => $nextStep])
             ->with('success', $currentStep >= 5 ? 'Booking details saved successfully.' : 'Step saved successfully.');
+    }
+
+    private function bookingPayloadIsComplete(array $payload): bool
+    {
+        $filled = fn(string $field): bool => trim((string) ($payload[$field] ?? '')) !== '';
+
+        foreach ([
+            'name',
+            'mobile_numbers',
+            'district',
+            'interested_model',
+            'interested_variant',
+            'expected_delivery_date',
+            'booking_date',
+        ] as $field) {
+            if (!$filled($field)) {
+                return false;
+            }
+        }
+
+        if (!$filled('address1') && !$filled('location')) {
+            return false;
+        }
+
+        if (($payload['customer_type'] ?? null) === 'corporate' && !$filled('corporate_name')) {
+            return false;
+        }
+
+        if (($payload['purchase_mode'] ?? null) === 'finance' && !$filled('finance_form')) {
+            return false;
+        }
+
+        if (($payload['interested_in_exchange'] ?? null) === 'yes') {
+            foreach ([
+                'exchange_type',
+                'exchange_vehicle_brand',
+                'exchange_vehicle_model',
+                'exchange_manufacture_year',
+                'exchange_ownership',
+                'exchange_insurance_validity',
+                'exchange_color',
+                'exchange_mileage_km',
+                'exchange_registration_no',
+                'exchange_expected_price',
+                'exchange_quoted_price',
+            ] as $field) {
+                if (!$filled($field)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     private function redirectTerminalLead(Enquiry $enquiry)

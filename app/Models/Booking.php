@@ -80,6 +80,7 @@ class Booking extends Model
         'expected_delivery_date',
         'booking_date',
         'amount_collected',
+        'booking_completed_at',
         'purchase_order_image',
     ];
 
@@ -101,6 +102,7 @@ class Booking extends Model
         'expected_delivery_date' => 'date',
         'booking_date' => 'date',
         'amount_collected' => 'decimal:2',
+        'booking_completed_at' => 'datetime',
     ];
 
     public function enquiry()

@@ -141,6 +141,8 @@
                 $leadStatusLabel = in_array($leadStatus, ['hot', 'warm', 'cold'], true) ? ucfirst($leadStatus) : '';
                 $terminalLeadResult = $e->terminalLeadResult();
                 $terminalLeadLabel = $terminalLeadResult ? ucfirst($terminalLeadResult) . ' Lead' : '';
+                $bookingAvailable = $e->canOpenBooking();
+                $deliveryAvailable = $e->canOpenDelivery();
                 $whatsAppPhone = preg_replace('/\D+/', '', $primaryPhone);
                 if (substr($whatsAppPhone, 0, 1) === '0') {
                     $whatsAppPhone = '94' . substr($whatsAppPhone, 1);
@@ -241,8 +243,16 @@
                                 @else
                                     <a href="{{ route('followup.show', $e->id) }}" class="chip-btn">Followup</a>
                                     <a href="{{ route('prospect.show', $e->id) }}" class="chip-btn">Prospect Sheet</a>
-                                    <a href="{{ route('booking.show', $e->id) }}" class="chip-btn">Booking</a>
-                                    <a href="{{ route('delivery.show', $e->id) }}" class="chip-btn">Delivery</a>
+                                    @if($bookingAvailable)
+                                        <a href="{{ route('booking.show', $e->id) }}" class="chip-btn">Booking</a>
+                                    @else
+                                        <span class="chip-btn chip-btn-disabled" aria-disabled="true">Booking</span>
+                                    @endif
+                                    @if($deliveryAvailable)
+                                        <a href="{{ route('delivery.show', $e->id) }}" class="chip-btn">Delivery</a>
+                                    @else
+                                        <span class="chip-btn chip-btn-disabled" aria-disabled="true">Delivery</span>
+                                    @endif
                                 @endif
                                 @if(!$terminalLeadResult && auth()->user()?->role === \App\Models\User::ROLE_SALES_CONSULTANT && (int) $e->user_id === (int) auth()->id())
                                     <a href="{{ route('lead_transfer.request.create', ['enquiry_id' => $e->id]) }}" class="chip-btn">Transfer</a>

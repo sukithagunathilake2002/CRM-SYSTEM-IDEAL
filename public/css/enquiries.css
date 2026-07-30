@@ -1045,6 +1045,13 @@ body.filter-open {
     box-shadow: none;
 }
 
+.chip-btn-disabled {
+    background: linear-gradient(180deg, #d6d8de 0%, #b8bbc4 100%);
+    color: #646975;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
 .terminal-lead-note {
     display: inline-flex;
     align-items: center;

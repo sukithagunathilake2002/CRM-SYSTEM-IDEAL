@@ -42,6 +42,18 @@ class DeliveryController extends Controller
             return $this->redirectTerminalLead($enquiry);
         }
 
+        if (!$enquiry->hasCompletedProspectSheet()) {
+            return redirect()
+                ->route('prospect.show', $enquiry->id)
+                ->with('error', 'Please complete the Prospect Sheet before opening Delivery.');
+        }
+
+        if (!$enquiry->canOpenDelivery()) {
+            return redirect()
+                ->route('booking.show', $enquiry->id)
+                ->with('error', 'Please complete Booking before opening Delivery.');
+        }
+
         $delivery = $enquiry->delivery ?: new Delivery([
             'enquiry_id' => $enquiry->id,
         ]);
@@ -158,6 +170,18 @@ class DeliveryController extends Controller
 
         if ($enquiry->isTerminalLead()) {
             return $this->redirectTerminalLead($enquiry);
+        }
+
+        if (!$enquiry->hasCompletedProspectSheet()) {
+            return redirect()
+                ->route('prospect.show', $enquiry->id)
+                ->with('error', 'Please complete the Prospect Sheet before saving Delivery.');
+        }
+
+        if (!$enquiry->canOpenDelivery()) {
+            return redirect()
+                ->route('booking.show', $enquiry->id)
+                ->with('error', 'Please complete Booking before saving Delivery.');
         }
 
         $documentValidation = [];
