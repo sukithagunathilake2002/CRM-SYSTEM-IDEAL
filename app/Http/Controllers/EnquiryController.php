@@ -288,6 +288,28 @@ public function list(Request $request)
     return view('enquiries.index', compact('enquiries'));
 }
 
+public function destroy(Request $request, Enquiry $enquiry)
+{
+    if ($request->user()?->role !== User::ROLE_SUPER_ADMIN) {
+        abort(403);
+    }
+
+    $leadLabel = trim((string) ($enquiry->customer?->name ?? 'Lead'));
+
+    DB::transaction(function () use ($enquiry): void {
+        DB::table('lead_transfer_requests')
+            ->where('enquiry_id', $enquiry->id)
+            ->delete();
+
+        $enquiry->delivery()->delete();
+        $enquiry->delete();
+    });
+
+    return redirect()
+        ->route('enquiries.list', ['view' => 'all'])
+        ->with('success', $leadLabel . ' deleted successfully.');
+}
+
 public function listCallEpds(Request $request)
 {
     $viewer = $request->user();

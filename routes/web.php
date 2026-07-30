@@ -144,6 +144,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/epr/call', [EnquiryController::class, 'listCallEpds'])->name('enquiries.list.call');
     Route::get('/epr/showroom', [EnquiryController::class, 'listShowroomEpds'])->name('enquiries.list.showroom');
     Route::get('/epr/home', [EnquiryController::class, 'listHomeEpds'])->name('enquiries.list.home');
+    Route::delete('/enquiries/{enquiry}', [EnquiryController::class, 'destroy'])
+        ->middleware('role:' . User::ROLE_SUPER_ADMIN)
+        ->name('enquiries.destroy');
     
     Route::get('/followup/{enquiry}', [FollowUpController::class, 'show'])->name('followup.show');
     Route::post('/followup/{enquiry}/status', [FollowUpController::class, 'updateStatus'])->name('followup.update_status');

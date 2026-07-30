@@ -168,6 +168,7 @@ html.theme-dark .analytics-card-enhanced {
         <a class="btn-link" href="{{ route('auth.register.form', 'sales-consultant') }}">Register Sales Consultant</a>
         <a class="btn-link" href="{{ route('dashboard.analytics') }}">Analytics Filters</a>
         <a class="btn-link alt" href="{{ url('/epr') }}">Open EPR</a>
+        <a class="btn-link alt" href="{{ route('enquiries.list', ['view' => 'all']) }}">Delete Leads</a>
     </div>
 </section>
 
