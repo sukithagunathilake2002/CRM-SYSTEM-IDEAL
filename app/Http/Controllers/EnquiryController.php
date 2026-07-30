@@ -224,7 +224,8 @@ class EnquiryController extends Controller
 public function list(Request $request)
 {
     $viewer = $request->user();
-    $enquiriesQuery = Enquiry::with(['customer', 'vehicle', 'user', 'prospectSheet']);
+    $enquiriesQuery = Enquiry::with(['customer', 'vehicle', 'user', 'prospectSheet', 'booking', 'delivery']);
+    $showAllLeads = $request->query('view') === 'all';
     $registrationView = $request->query('registration') === 'pending' ? 'pending' : 'registered';
     $selectedLeadStatus = strtolower(trim((string) $request->query('lead_status', '')));
     if (!in_array($selectedLeadStatus, ['hot', 'warm', 'cold'], true)) {
@@ -235,7 +236,7 @@ public function list(Request $request)
         $selectedLeadResult = null;
     }
     $selectedBookingView = strtolower(trim((string) $request->query('booking', '')));
-    if ($selectedBookingView !== 'active') {
+    if (!in_array($selectedBookingView, ['active', 'inactive'], true)) {
         $selectedBookingView = null;
     }
     $selectedDeliveryView = strtolower(trim((string) $request->query('delivery', '')));
@@ -252,7 +253,9 @@ public function list(Request $request)
         $enquiriesQuery->activeDeliveryStage();
     } elseif ($selectedBookingView === 'active') {
         $enquiriesQuery->activeBookingStage();
-    } elseif (!in_array($selectedLeadResult, ['lost', 'closed'], true)) {
+    } elseif ($selectedBookingView === 'inactive') {
+        $enquiriesQuery->inactiveBookingStage();
+    } elseif (!$showAllLeads && !in_array($selectedLeadResult, ['lost', 'closed'], true)) {
         if ($registrationView === 'pending') {
             $enquiriesQuery->pendingRegistration();
         } else {
@@ -261,7 +264,9 @@ public function list(Request $request)
 
         if ($selectedLeadResult === 'active') {
             $enquiriesQuery
-                ->doesntHave('booking')
+                ->whereDoesntHave('booking', function ($query): void {
+                    $query->whereNotNull('booking_completed_at');
+                })
                 ->doesntHave('delivery');
         }
     }
@@ -287,7 +292,7 @@ public function listCallEpds(Request $request)
 {
     $viewer = $request->user();
     $today = now('Asia/Colombo')->toDateString();
-    $enquiriesQuery = Enquiry::with(['customer', 'vehicle', 'user', 'prospectSheet'])
+    $enquiriesQuery = Enquiry::with(['customer', 'vehicle', 'user', 'prospectSheet', 'booking', 'delivery'])
         ->pendingRegistration()
         ->whereDate('follow_date', '<=', $today)
         ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%call%']);
@@ -308,7 +313,7 @@ public function listShowroomEpds(Request $request)
 {
     $viewer = $request->user();
     $today = now('Asia/Colombo')->toDateString();
-    $enquiriesQuery = Enquiry::with(['customer', 'vehicle', 'user', 'prospectSheet'])
+    $enquiriesQuery = Enquiry::with(['customer', 'vehicle', 'user', 'prospectSheet', 'booking', 'delivery'])
         ->pendingRegistration()
         ->whereDate('follow_date', '<=', $today)
         ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%showroom%']);
@@ -329,7 +334,7 @@ public function listHomeEpds(Request $request)
 {
     $viewer = $request->user();
     $today = now('Asia/Colombo')->toDateString();
-    $enquiriesQuery = Enquiry::with(['customer', 'vehicle', 'user', 'prospectSheet'])
+    $enquiriesQuery = Enquiry::with(['customer', 'vehicle', 'user', 'prospectSheet', 'booking', 'delivery'])
         ->pendingRegistration()
         ->whereDate('follow_date', '<=', $today)
         ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%home%']);

@@ -327,14 +327,18 @@ class DashboardController extends Controller
                     ->with(['customer:id,title,name', 'vehicle:id,model,variant'])
                     ->where('user_id', $consultantId)
                     ->registeredLead()
-                    ->doesntHave('booking')
+                    ->whereDoesntHave('booking', function ($query): void {
+                        $query->whereNotNull('booking_completed_at');
+                    })
                     ->latest('created_at')
                     ->get();
 
                 $pendingDeliveries = Enquiry::query()
                     ->with(['customer:id,title,name', 'vehicle:id,model,variant'])
                     ->where('user_id', $consultantId)
-                    ->whereHas('booking')
+                    ->whereHas('booking', function ($query): void {
+                        $query->whereNotNull('booking_completed_at');
+                    })
                     ->doesntHave('delivery')
                     ->latest('created_at')
                     ->get();
@@ -1839,6 +1843,7 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
                 'prospect_sheets.source_of_information as prospect_source_of_information',
                 'bookings.id as booking_id',
                 'bookings.created_at as booking_created_at',
+                'bookings.booking_completed_at as booking_completed_at',
                 'bookings.interested_model as booking_interested_model',
             ]);
 
@@ -2816,7 +2821,7 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
     private function buildBookingAnalytics(Collection $enquiries, Collection $usersById): array
     {
         $bookingRows = $enquiries
-            ->filter(fn(Enquiry $enquiry): bool => !empty($enquiry->booking_id))
+            ->filter(fn(Enquiry $enquiry): bool => !empty($enquiry->booking_completed_at))
             ->values();
         $totalBookings = $bookingRows->count();
         $totalEnquired = $enquiries->count();
@@ -2834,7 +2839,7 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
         $bookedMonthOrder = [];
 
         foreach ($bookingRows as $enquiry) {
-            $bookingDate = $this->analyticsDate($enquiry->booking_created_at ?: $enquiry->created_at);
+            $bookingDate = $this->analyticsDate($enquiry->booking_completed_at ?: $enquiry->booking_created_at ?: $enquiry->created_at);
             $monthKey = $bookingDate->format('Y-m');
             $bookedMonthOrder[$monthKey] = $bookingDate->format('M Y');
 

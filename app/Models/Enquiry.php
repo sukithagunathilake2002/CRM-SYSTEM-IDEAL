@@ -104,8 +104,20 @@ class Enquiry extends Model
     public function scopeActiveBookingStage($query)
     {
         return $query
-            ->nonTerminalLead()
-            ->whereHas('booking')
+            ->registeredLead()
+            ->whereHas('booking', function ($query): void {
+                $query->whereNotNull('booking_completed_at');
+            })
+            ->doesntHave('delivery');
+    }
+
+    public function scopeInactiveBookingStage($query)
+    {
+        return $query
+            ->registeredLead()
+            ->whereDoesntHave('booking', function ($query): void {
+                $query->whereNotNull('booking_completed_at');
+            })
             ->doesntHave('delivery');
     }
 
@@ -113,8 +125,45 @@ class Enquiry extends Model
     {
         return $query
             ->nonTerminalLead()
-            ->whereHas('booking')
+            ->whereHas('booking', function ($query): void {
+                $query->whereNotNull('booking_completed_at');
+            })
             ->whereHas('delivery');
+    }
+
+    public function hasCompletedProspectSheet(): bool
+    {
+        $prospect = $this->relationLoaded('prospectSheet')
+            ? $this->getRelation('prospectSheet')
+            : $this->prospectSheet;
+
+        if (!$prospect) {
+            return false;
+        }
+
+        $leadStatus = strtolower(trim((string) $prospect->lead_status));
+
+        return (int) ($prospect->current_step ?? 0) >= 5
+            && in_array($leadStatus, ['hot', 'warm', 'cold'], true);
+    }
+
+    public function canOpenBooking(): bool
+    {
+        return !$this->isTerminalLead() && $this->hasCompletedProspectSheet();
+    }
+
+    public function canOpenDelivery(): bool
+    {
+        return $this->canOpenBooking() && $this->hasCompletedBooking();
+    }
+
+    public function hasCompletedBooking(): bool
+    {
+        $booking = $this->relationLoaded('booking')
+            ? $this->getRelation('booking')
+            : $this->booking;
+
+        return $booking !== null && $booking->booking_completed_at !== null;
     }
 
     public function terminalLeadResult(): ?string
