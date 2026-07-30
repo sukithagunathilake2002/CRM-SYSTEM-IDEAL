@@ -257,6 +257,13 @@
                                 @if(!$terminalLeadResult && auth()->user()?->role === \App\Models\User::ROLE_SALES_CONSULTANT && (int) $e->user_id === (int) auth()->id())
                                     <a href="{{ route('lead_transfer.request.create', ['enquiry_id' => $e->id]) }}" class="chip-btn">Transfer</a>
                                 @endif
+                                @if(auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
+                                    <form method="POST" action="{{ route('enquiries.destroy', $e->id) }}" class="lead-delete-form" onsubmit="return confirm('Delete this lead permanently?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="chip-btn chip-btn-danger">Delete</button>
+                                    </form>
+                                @endif
                             </div>
                         </div>
                     </div>

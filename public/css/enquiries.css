@@ -1052,6 +1052,14 @@ body.filter-open {
     pointer-events: none;
 }
 
+.lead-delete-form {
+    margin: 0;
+}
+
+.chip-btn-danger {
+    background: linear-gradient(180deg, #7f1d1d 0%, #450a0a 100%);
+}
+
 .terminal-lead-note {
     display: inline-flex;
     align-items: center;
