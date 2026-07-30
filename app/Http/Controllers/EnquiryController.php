@@ -48,7 +48,7 @@ class EnquiryController extends Controller
     {
         return Vehicle::where('model', $model)
             ->where('engine_type', $engine)
-            ->select('id', 'variant')
+            ->select('id', 'variant', 'unit_price', 'vat_amount')
             ->orderBy('variant')
             ->get();
     }

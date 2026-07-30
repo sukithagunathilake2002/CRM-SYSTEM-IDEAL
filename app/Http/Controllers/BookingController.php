@@ -59,6 +59,28 @@ class BookingController extends Controller
             $districtOptions[] = $currentDistrict;
             sort($districtOptions);
         }
+        $pricingVehicle = $this->resolvePricingVehicle(
+            $booking->interested_model ?: $enquiry->vehicle?->model,
+            $booking->interested_engine ?: $enquiry->vehicle?->engine_type,
+            $booking->interested_variant ?: $enquiry->vehicle?->variant,
+            $enquiry->vehicle
+        );
+        $vehicleUnitPrice = (float) ($pricingVehicle?->unit_price ?? 0);
+        $vehicleVatAmount = (float) ($pricingVehicle?->vat_amount ?? 0);
+        $priceOrVehicle = fn($value, float $vehicleValue): float => (float) $value > 0 ? (float) $value : $vehicleValue;
+        $offerUnitPriceDefault = $priceOrVehicle($booking->offer_unit_price ?? $prospect?->offer_unit_price, $vehicleUnitPrice);
+        $offerVatAmountDefault = $priceOrVehicle($booking->offer_vat_amount ?? $prospect?->offer_vat_amount, $vehicleVatAmount);
+        $offerUnitDiscountDefault = (float) ($booking->offer_unit_price_discount ?? $prospect?->offer_unit_price_discount ?? 0);
+        $offerVatDiscountDefault = (float) ($booking->offer_vat_discount ?? $prospect?->offer_vat_discount ?? 0);
+        $offerTotalCostDefault = $priceOrVehicle(
+            $booking->offer_total_cost ?? $prospect?->offer_total_cost,
+            $offerUnitPriceDefault + $offerVatAmountDefault
+        );
+        $offerTotalDiscountDefault = (float) ($booking->offer_total_discount ?? $prospect?->offer_total_discount ?? ($offerUnitDiscountDefault + $offerVatDiscountDefault));
+        $offerFinalPriceDefault = $priceOrVehicle(
+            $booking->offer_final_price ?? $prospect?->offer_final_price,
+            max(0, $offerTotalCostDefault - $offerTotalDiscountDefault)
+        );
 
         $viewData = [
             'enquiry' => $enquiry,
@@ -118,15 +140,15 @@ class BookingController extends Controller
                 'exchange_expected_price' => $booking->exchange_expected_price ?? $prospect?->exchange_expected_price,
                 'exchange_quoted_price' => $booking->exchange_quoted_price ?? $prospect?->exchange_quoted_price,
                 'exchange_price_difference' => $booking->exchange_price_difference ?? $prospect?->exchange_price_difference,
-                'offer_unit_price' => $booking->offer_unit_price ?? $prospect?->offer_unit_price,
-                'offer_unit_price_discount' => $booking->offer_unit_price_discount ?? $prospect?->offer_unit_price_discount,
+                'offer_unit_price' => $offerUnitPriceDefault,
+                'offer_unit_price_discount' => $offerUnitDiscountDefault,
                 'offer_unit_price_free' => (bool) (($booking->offer_unit_price_free ?? null) ?? $prospect?->offer_unit_price_free),
-                'offer_vat_amount' => $booking->offer_vat_amount ?? $prospect?->offer_vat_amount,
-                'offer_vat_discount' => $booking->offer_vat_discount ?? $prospect?->offer_vat_discount,
+                'offer_vat_amount' => $offerVatAmountDefault,
+                'offer_vat_discount' => $offerVatDiscountDefault,
                 'offer_vat_free' => (bool) (($booking->offer_vat_free ?? null) ?? $prospect?->offer_vat_free),
-                'offer_total_cost' => $booking->offer_total_cost ?? $prospect?->offer_total_cost,
-                'offer_total_discount' => $booking->offer_total_discount ?? $prospect?->offer_total_discount,
-                'offer_final_price' => $booking->offer_final_price ?? $prospect?->offer_final_price,
+                'offer_total_cost' => $offerTotalCostDefault,
+                'offer_total_discount' => $offerTotalDiscountDefault,
+                'offer_final_price' => $offerFinalPriceDefault,
                 'offer_remark' => $booking->offer_remark ?? $prospect?->offer_remark,
                 'expected_delivery_date' => $booking->expected_delivery_date,
                 'booking_date' => $booking->booking_date,
@@ -378,8 +400,27 @@ class BookingController extends Controller
             }
         }
 
+        $pricingVehicle = $this->resolvePricingVehicle(
+            $payload['interested_model'] ?? $enquiry->vehicle?->model,
+            $payload['interested_engine'] ?? $enquiry->vehicle?->engine_type,
+            $payload['interested_variant'] ?? $enquiry->vehicle?->variant,
+            $enquiry->vehicle
+        );
         $isEditingOffer = ($validated['edit_offer_details'] ?? '0') === '1';
-        $offerSource = fn(string $field, $fallback = 0) => $booking->{$field} ?? $prospect?->{$field} ?? $fallback;
+        $offerSource = function (string $field, $fallback = 0) use ($booking, $prospect, $pricingVehicle) {
+            $vehicleField = match ($field) {
+                'offer_unit_price' => 'unit_price',
+                'offer_vat_amount' => 'vat_amount',
+                default => null,
+            };
+            $value = $booking->{$field} ?? $prospect?->{$field} ?? null;
+
+            if ($vehicleField && (float) $value <= 0) {
+                $value = $pricingVehicle?->{$vehicleField};
+            }
+
+            return $value ?? $fallback;
+        };
 
         $offerUnitPrice = (float) (
             $isEditingOffer
@@ -529,5 +570,26 @@ class BookingController extends Controller
         return redirect()
             ->route('enquiries.list', $enquiry->terminalLeadRouteParameters())
             ->with('success', $enquiry->terminalLeadLabel() . ' lead is finalized. Booking is not available.');
+    }
+
+    private function resolvePricingVehicle(?string $model, ?string $engine, ?string $variant, ?Vehicle $fallback = null): ?Vehicle
+    {
+        $model = trim((string) $model);
+        $engine = trim((string) $engine);
+        $variant = trim((string) $variant);
+
+        if ($model !== '' && $engine !== '' && $variant !== '') {
+            $vehicle = Vehicle::query()
+                ->where('model', $model)
+                ->where('engine_type', $engine)
+                ->where('variant', $variant)
+                ->first();
+
+            if ($vehicle) {
+                return $vehicle;
+            }
+        }
+
+        return $fallback;
     }
 }

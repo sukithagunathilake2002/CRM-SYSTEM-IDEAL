@@ -1183,6 +1183,7 @@
         const actionRow = document.getElementById('actionRow');
         const backAction = document.getElementById('backAction');
         const saveExitAction = document.getElementById('saveExitAction');
+        const vehiclePriceMap = {};
 
         function syncEditState() {
             if (!toggle || !editBlock) return;
@@ -1467,12 +1468,48 @@
                 const res = await fetch('/get-variants/' + encodeURIComponent(model) + '/' + encodeURIComponent(engine));
                 const data = await res.json();
                 const variants = data.map((item) => item.variant).filter(Boolean);
+                Object.keys(vehiclePriceMap).forEach((key) => delete vehiclePriceMap[key]);
+                data.forEach((item) => {
+                    if (!item.variant) {
+                        return;
+                    }
+
+                    vehiclePriceMap[item.variant] = {
+                        unitPrice: parseFloat(item.unit_price || '0') || 0,
+                        vatAmount: parseFloat(item.vat_amount || '0') || 0,
+                    };
+                });
                 setSelectOptions(interestedVariantInput, variants, 'Select Variant', selectedVariant || '');
             } catch (e) {
                 setSelectOptions(interestedVariantInput, [], 'Select Variant', selectedVariant || '');
             }
 
             syncVehiclePill();
+            applySelectedVehiclePrice(false);
+        }
+
+        function applySelectedVehiclePrice(force = true) {
+            if (!interestedVariantInput || !offerUnitPriceInput || !offerVatAmountInput) {
+                return;
+            }
+
+            const selectedPrices = vehiclePriceMap[interestedVariantInput.value || ''];
+            if (!selectedPrices) {
+                return;
+            }
+
+            const shouldApplyUnit = force || toMoney(offerUnitPriceInput.value) <= 0;
+            const shouldApplyVat = force || toMoney(offerVatAmountInput.value) <= 0;
+
+            if (shouldApplyUnit) {
+                offerUnitPriceInput.value = selectedPrices.unitPrice.toFixed(2);
+            }
+
+            if (shouldApplyVat) {
+                offerVatAmountInput.value = selectedPrices.vatAmount.toFixed(2);
+            }
+
+            syncOfferTotals();
         }
 
         function picked(name) {
@@ -1919,7 +1956,10 @@
         }
 
         if (interestedVariantInput) {
-            interestedVariantInput.addEventListener('change', syncVehiclePill);
+            interestedVariantInput.addEventListener('change', () => {
+                applySelectedVehiclePrice(true);
+                syncVehiclePill();
+            });
         }
 
         if (vehiclePillRemove) {
@@ -1949,6 +1989,7 @@
                 await loadEngines(initialModel, initialEngine);
                 if (initialEngine) {
                     await loadVariants(initialModel, initialEngine, initialVariant);
+                    applySelectedVehiclePrice(false);
                 }
             } else {
                 setSelectOptions(interestedEngineInput, [], 'Select Engine Type', '');
