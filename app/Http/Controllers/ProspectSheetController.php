@@ -116,7 +116,17 @@ class ProspectSheetController extends Controller
             'test_drive_vehicle_model' => ['nullable', 'string', 'max:255', 'required_if:test_drive_given,yes'],
             'test_drive_vehicle_model_other' => ['nullable', 'string', 'max:255', Rule::requiredIf(fn() => $request->input('test_drive_given') === 'yes' && $request->input('test_drive_vehicle_model') === 'Other')],
             'test_drive_to_whom' => ['nullable', 'string', 'max:255'],
-            'test_drive_not_given_reason' => ['nullable', 'string', 'max:255', 'required_if:test_drive_given,no'],
+            'test_drive_not_given_reason' => [
+                'nullable',
+                'required_if:test_drive_given,no',
+                Rule::in($this->testDriveNotGivenReasons()),
+            ],
+            'test_drive_not_given_reason_other' => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::requiredIf(fn() => $request->input('test_drive_given') === 'no' && $request->input('test_drive_not_given_reason') === 'Others'),
+            ],
             'purchase_mode' => ['nullable', Rule::in(['cash', 'finance'])],
 
             'interested_in_exchange' => ['nullable', Rule::in(['yes', 'no'])],
@@ -290,7 +300,10 @@ class ProspectSheetController extends Controller
                 $testDriveDate = null;
                 $testDriveVehicleModel = null;
                 $testDriveToWhom = null;
-                $testDriveNotGivenReason = $pick('test_drive_not_given_reason');
+                $testDriveNotGivenReason = $this->resolveTestDriveNotGivenReason(
+                    $pick('test_drive_not_given_reason'),
+                    $pick('test_drive_not_given_reason_other')
+                );
             }
         }
 
@@ -637,5 +650,30 @@ class ProspectSheetController extends Controller
         }
 
         return $selectedVehicle !== '' ? $selectedVehicle : null;
+    }
+
+    private function testDriveNotGivenReasons(): array
+    {
+        return [
+            'Not interested',
+            'Vehicle not available',
+            'Vehicle damaged/under repair',
+            'Not met in person',
+            'Already driven',
+            'I Did Not Offer',
+            'Others',
+        ];
+    }
+
+    private function resolveTestDriveNotGivenReason(?string $selectedReason, ?string $otherReason): ?string
+    {
+        $selectedReason = trim((string) $selectedReason);
+        $otherReason = trim((string) $otherReason);
+
+        if ($selectedReason === 'Others') {
+            return $otherReason !== '' ? $otherReason : null;
+        }
+
+        return $selectedReason !== '' ? $selectedReason : null;
     }
 }

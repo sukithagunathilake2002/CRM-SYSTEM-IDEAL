@@ -75,7 +75,7 @@
         'test_drive_vehicle_model_other',
         $isSelectedTestDriveVehicleOther && $selectedTestDriveModel !== 'Other' ? $selectedTestDriveModel : ''
     );
-    $selectedTestDriveReason = old('test_drive_not_given_reason', $defaultValues['test_drive_not_given_reason']);
+    $selectedTestDriveReasonRaw = old('test_drive_not_given_reason', $defaultValues['test_drive_not_given_reason']);
     $testDriveNoReasons = [
         'Not interested',
         'Vehicle not available',
@@ -85,6 +85,13 @@
         'I Did Not Offer',
         'Others',
     ];
+    $isSelectedTestDriveReasonOther = $selectedTestDriveReasonRaw === 'Others'
+        || (trim((string) $selectedTestDriveReasonRaw) !== '' && !in_array($selectedTestDriveReasonRaw, $testDriveNoReasons, true));
+    $selectedTestDriveReason = $isSelectedTestDriveReasonOther ? 'Others' : $selectedTestDriveReasonRaw;
+    $selectedTestDriveReasonOther = old(
+        'test_drive_not_given_reason_other',
+        $isSelectedTestDriveReasonOther && $selectedTestDriveReasonRaw !== 'Others' ? $selectedTestDriveReasonRaw : ''
+    );
     $selectedPurchaseMode = old('purchase_mode', $defaultValues['purchase_mode']);
     $selectedFinanceForm = old('finance_form', $defaultValues['finance_form']);
     $selectedCompetition = old('interested_in_competition', $defaultValues['interested_in_competition']);
@@ -565,15 +572,16 @@
 
                     <div class="row conditional" id="testDriveNoWrap">
                         <label>Why Not Given?</label>
-                        <select name="test_drive_not_given_reason" class="buying-select">
+                        <select name="test_drive_not_given_reason" id="bookingTestDriveNoReasonSelect" class="buying-select">
                             <option value="">Select reason</option>
                             @foreach($testDriveNoReasons as $reasonOption)
                                 <option value="{{ $reasonOption }}" @selected($selectedTestDriveReason === $reasonOption)>{{ $reasonOption }}</option>
                             @endforeach
-                            @if(!empty($selectedTestDriveReason) && !in_array($selectedTestDriveReason, $testDriveNoReasons, true))
-                                <option value="{{ $selectedTestDriveReason }}" selected>{{ $selectedTestDriveReason }}</option>
-                            @endif
                         </select>
+                        <div id="bookingTestDriveNoReasonOtherWrap" class="{{ $selectedTestDriveReason === 'Others' ? '' : 'hidden' }}">
+                            <label>Other Details</label>
+                            <input type="text" name="test_drive_not_given_reason_other" value="{{ $selectedTestDriveReasonOther }}" placeholder="Enter reason">
+                        </div>
                     </div>
 
                     <label>Interested in Competition</label>
@@ -1138,6 +1146,8 @@
         const testDriveNoWrap = document.getElementById('testDriveNoWrap');
         const bookingTestDriveVehicleSelect = document.getElementById('bookingTestDriveVehicleSelect');
         const bookingTestDriveVehicleOtherWrap = document.getElementById('bookingTestDriveVehicleOtherWrap');
+        const bookingTestDriveNoReasonSelect = document.getElementById('bookingTestDriveNoReasonSelect');
+        const bookingTestDriveNoReasonOtherWrap = document.getElementById('bookingTestDriveNoReasonOtherWrap');
         const financeFormWrap = document.getElementById('financeFormWrap');
         const competitionWrap = document.getElementById('competitionWrap');
         const competitionBrandSelect = document.getElementById('competition_brand');
@@ -1405,7 +1415,10 @@
                     ].filter(Boolean).join(' ')
                 );
             } else if (testDrive === 'no') {
-                setSummaryText(buyingSummaryTestDriveDetails, selectText('test_drive_not_given_reason'));
+                const noReason = fieldValue('test_drive_not_given_reason') === 'Others'
+                    ? fieldValue('test_drive_not_given_reason_other')
+                    : selectText('test_drive_not_given_reason');
+                setSummaryText(buyingSummaryTestDriveDetails, noReason);
             } else {
                 setSummaryText(buyingSummaryTestDriveDetails, '');
             }
@@ -1542,6 +1555,17 @@
 
             if (testDriveNoWrap) {
                 testDriveNoWrap.classList.toggle('hidden', picked('test_drive_given') !== 'no');
+            }
+
+            if (bookingTestDriveNoReasonOtherWrap) {
+                const showOtherReason = bookingTestDriveNoReasonSelect && bookingTestDriveNoReasonSelect.value === 'Others';
+                bookingTestDriveNoReasonOtherWrap.classList.toggle('hidden', !showOtherReason);
+                if (!showOtherReason) {
+                    const otherInput = bookingTestDriveNoReasonOtherWrap.querySelector('input');
+                    if (otherInput) {
+                        otherInput.value = '';
+                    }
+                }
             }
 
             if (bookingTestDriveVehicleOtherWrap) {
@@ -2029,6 +2053,8 @@
         ).forEach((input) => {
             input.addEventListener('change', syncBuyingState);
         });
+
+        bookingTestDriveNoReasonSelect?.addEventListener('change', syncBuyingState);
 
         if (competitionBrandSelect) {
             competitionBrandSelect.addEventListener('change', function () {

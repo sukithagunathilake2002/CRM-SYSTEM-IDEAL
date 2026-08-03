@@ -146,7 +146,6 @@
                         <a href="{{ route('enquiries.list', ['lead_result' => 'closed']) }}">Closed Lead</a>
                         <a href="{{ route('enquiries.list', ['registration' => 'pending']) }}">EPR</a>
                         <a href="{{ route('enquiries.list', ['booking' => 'active']) }}">Active Booking</a>
-                        <a href="{{ route('enquiries.list', ['booking' => 'inactive']) }}">Inactive Booking</a>
                         <a href="{{ url('/epr') }}">Cancelled Booking</a>
                         <a href="{{ route('enquiries.list', ['delivery' => 'active']) }}">Deliveries</a>
                         <a href="{{ route('enquiries.list', ['view' => 'all']) }}">All Leads</a>

@@ -327,9 +327,7 @@ class DashboardController extends Controller
                     ->with(['customer:id,title,name', 'vehicle:id,model,variant'])
                     ->where('user_id', $consultantId)
                     ->registeredLead()
-                    ->whereDoesntHave('booking', function ($query): void {
-                        $query->whereNotNull('booking_completed_at');
-                    })
+                    ->doesntHave('booking')
                     ->latest('created_at')
                     ->get();
 

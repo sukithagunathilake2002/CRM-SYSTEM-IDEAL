@@ -93,6 +93,12 @@ class EnquiryController extends Controller
             'address2' => ['nullable', 'string', 'max:255'],
             'lead_source' => ['required', Rule::in($leadSourceOptions)],
             'source_of_information' => ['required', 'string', 'max:255', Rule::in($sourceInformationOptions)],
+            'source_of_information_other' => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::requiredIf(fn() => $request->input('source_of_information') === 'Other'),
+            ],
             'follow_type' => ['required', Rule::in(['Home Visit', 'Showroom Visit', 'Call'])],
             'follow_date' => ['required', 'date'],
             'follow_time' => ['required', 'date_format:H:i'],
@@ -168,12 +174,16 @@ class EnquiryController extends Controller
         }
 
         $ownerUserId = $request->user()?->id;
+        $sourceOfInformation = $this->resolveSourceInformation(
+            $request->input('source_of_information'),
+            $request->input('source_of_information_other')
+        );
 
         $now = now('Asia/Colombo');
         $inquiryAt = Carbon::parse((string) $request->input('inquiry_date'), 'Asia/Colombo')
             ->setTime($now->hour, $now->minute, $now->second);
 
-        $createdEnquiry = DB::transaction(function () use ($request, $vehicle, $selectedVehiclePayload, $mobileNumbers, $district, $location, $ownerUserId, $inquiryAt) {
+        $createdEnquiry = DB::transaction(function () use ($request, $vehicle, $selectedVehiclePayload, $mobileNumbers, $district, $location, $ownerUserId, $inquiryAt, $sourceOfInformation) {
             $customer = Customer::create([
                 'title' => $request->title,
                 'name' => trim((string) $request->name),
@@ -191,7 +201,7 @@ class EnquiryController extends Controller
                 'vehicle_id' => $vehicle->id,
                 'selected_vehicle_models' => $selectedVehiclePayload,
                 'lead_source' => $request->lead_source,
-                'source_of_information' => $request->source_of_information,
+                'source_of_information' => $sourceOfInformation,
                 'follow_type' => $request->follow_type,
                 'follow_date' => $request->follow_date,
                 'follow_time' => $request->follow_time,
@@ -214,7 +224,7 @@ class EnquiryController extends Controller
             'district' => $district,
             'location' => $location,
             'lead_source' => $request->lead_source,
-            'source_of_information' => $request->source_of_information,
+            'source_of_information' => $sourceOfInformation,
             'follow_type' => $request->follow_type,
             'follow_date' => $request->follow_date,
             'follow_time' => $request->follow_time,
@@ -251,6 +261,10 @@ public function list(Request $request)
     if (!in_array($selectedBookingView, ['active', 'inactive'], true)) {
         $selectedBookingView = null;
     }
+    $selectedInquiryView = strtolower(trim((string) $request->query('inquiry', '')));
+    if ($selectedInquiryView !== 'active') {
+        $selectedInquiryView = null;
+    }
     $selectedDeliveryView = strtolower(trim((string) $request->query('delivery', '')));
     if ($selectedDeliveryView !== 'active') {
         $selectedDeliveryView = null;
@@ -267,6 +281,8 @@ public function list(Request $request)
         $enquiriesQuery->activeBookingStage();
     } elseif ($selectedBookingView === 'inactive') {
         $enquiriesQuery->inactiveBookingStage();
+    } elseif ($selectedInquiryView === 'active') {
+        $enquiriesQuery->activeInquiryStage();
     } elseif (!$showAllLeads && !in_array($selectedLeadResult, ['lost', 'closed'], true)) {
         if ($registrationView === 'pending') {
             $enquiriesQuery->pendingRegistration();
@@ -276,9 +292,7 @@ public function list(Request $request)
 
         if ($selectedLeadResult === 'active') {
             $enquiriesQuery
-                ->whereDoesntHave('booking', function ($query): void {
-                    $query->whereNotNull('booking_completed_at');
-                })
+                ->doesntHave('booking')
                 ->doesntHave('delivery');
         }
     }
@@ -424,6 +438,18 @@ public function listHomeEpds(Request $request)
             'Referral' => ['Customer Referral', 'Employee Referral', 'Dealer Referral', 'Friends/Family', 'Other'],
             'Press' => ['Newspaper', 'Magazine', 'Radio', 'TV', 'Other'],
         ];
+    }
+
+    private function resolveSourceInformation(?string $selectedSourceInformation, ?string $otherSourceInformation): ?string
+    {
+        $selectedSourceInformation = trim((string) $selectedSourceInformation);
+        $otherSourceInformation = trim((string) $otherSourceInformation);
+
+        if ($selectedSourceInformation === 'Other') {
+            return $otherSourceInformation !== '' ? $otherSourceInformation : null;
+        }
+
+        return $selectedSourceInformation !== '' ? $selectedSourceInformation : null;
     }
 
     private function selectedVehiclesForForm(mixed $vehicleIds): array

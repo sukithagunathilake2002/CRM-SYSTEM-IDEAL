@@ -47,7 +47,7 @@
         'test_drive_vehicle_model_other',
         $isSelectedTestDriveVehicleOther && $selectedTestDriveModel !== 'Other' ? $selectedTestDriveModel : ''
     );
-    $selectedTestDriveReason = old('test_drive_not_given_reason', $defaultValues['test_drive_not_given_reason']);
+    $selectedTestDriveReasonRaw = old('test_drive_not_given_reason', $defaultValues['test_drive_not_given_reason']);
     $selectedPurchaseMode = old('purchase_mode', $defaultValues['purchase_mode']);
     $selectedFinanceForm = old('finance_form', $defaultValues['finance_form']);
     $selectedCompetition = old('interested_in_competition', $defaultValues['interested_in_competition']);
@@ -114,6 +114,13 @@
         'I Did Not Offer',
         'Others',
     ];
+    $isSelectedTestDriveReasonOther = $selectedTestDriveReasonRaw === 'Others'
+        || (trim((string) $selectedTestDriveReasonRaw) !== '' && !in_array($selectedTestDriveReasonRaw, $testDriveNoReasons, true));
+    $selectedTestDriveReason = $isSelectedTestDriveReasonOther ? 'Others' : $selectedTestDriveReasonRaw;
+    $selectedTestDriveReasonOther = old(
+        'test_drive_not_given_reason_other',
+        $isSelectedTestDriveReasonOther && $selectedTestDriveReasonRaw !== 'Others' ? $selectedTestDriveReasonRaw : ''
+    );
     $competitionMap = collect($competitionMap ?? []);
     $competitionBrands = $competitionMap->keys()->values()->all();
 
@@ -533,12 +540,16 @@
                 </div>
                 <label class="delivery-pill delivery-conditional" id="deliveryTestDriveNoWrap">
                     <span>Why?</span>
-                    <select name="test_drive_not_given_reason">
+                    <select name="test_drive_not_given_reason" id="deliveryTestDriveNoReasonSelect">
                         <option value="">Select Reason</option>
                         @foreach($testDriveNoReasons as $reasonOption)
                             <option value="{{ $reasonOption }}" @selected($selectedTestDriveReason === $reasonOption)>{{ $reasonOption }}</option>
                         @endforeach
                     </select>
+                    <span id="deliveryTestDriveNoReasonOtherWrap" class="{{ $selectedTestDriveReason === 'Others' ? '' : 'hidden' }}">
+                        <span>Other Details</span>
+                        <input type="text" name="test_drive_not_given_reason_other" value="{{ $selectedTestDriveReasonOther }}" placeholder="Enter reason">
+                    </span>
                 </label>
             </div>
 
@@ -1375,6 +1386,8 @@
     const picked = (name) => document.querySelector('input[name="' + name + '"]:checked')?.value || '';
     const deliveryTestDriveVehicleSelect = document.getElementById('deliveryTestDriveVehicleSelect');
     const deliveryTestDriveVehicleOtherWrap = document.getElementById('deliveryTestDriveVehicleOtherWrap');
+    const deliveryTestDriveNoReasonSelect = document.getElementById('deliveryTestDriveNoReasonSelect');
+    const deliveryTestDriveNoReasonOtherWrap = document.getElementById('deliveryTestDriveNoReasonOtherWrap');
     const toggleByValue = (elementId, name, value) => {
         const element = document.getElementById(elementId);
         if (element) {
@@ -1400,12 +1413,24 @@
                 }
             }
         }
+
+        const showOtherReason = deliveryTestDriveNoReasonSelect && deliveryTestDriveNoReasonSelect.value === 'Others';
+        if (deliveryTestDriveNoReasonOtherWrap) {
+            deliveryTestDriveNoReasonOtherWrap.classList.toggle('hidden', !showOtherReason);
+            if (!showOtherReason) {
+                const otherInput = deliveryTestDriveNoReasonOtherWrap.querySelector('input');
+                if (otherInput) {
+                    otherInput.value = '';
+                }
+            }
+        }
     };
 
     document
         .querySelectorAll('input[name="quote_taken"], input[name="test_drive_given"], input[name="interested_in_competition"], input[name="first_time_buyer"], input[name="purchase_mode"]')
         .forEach((input) => input.addEventListener('change', syncBuyingDetails));
     deliveryTestDriveVehicleSelect?.addEventListener('change', syncBuyingDetails);
+    deliveryTestDriveNoReasonSelect?.addEventListener('change', syncBuyingDetails);
     syncBuyingDetails();
 
     const exchangeWrap = document.getElementById('deliveryExchangeDetailsWrap');
