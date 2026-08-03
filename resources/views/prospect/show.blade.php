@@ -24,12 +24,31 @@
             : 'N/A');
     $selectedBrand = old('competition_brand', $prospect->competition_brand);
     $selectedModel = old('competition_model', $prospect->competition_model);
+    $selectedExistingBrand = old('existing_vehicle_brand', $prospect->existing_vehicle_brand);
+    $selectedExistingModel = old('existing_vehicle_model', $prospect->existing_vehicle_model);
+    $selectedExistingYear = old('existing_vehicle_year', $prospect->existing_vehicle_year);
     $selectedCustomerType = old('customer_type', $prospect->customer_type);
     $selectedProfession = old('profession', $prospect->profession);
     $selectedDistrict = old('district', $customer->district);
     $selectedInterestedModel = old('interested_model', $vehicle->model);
     $selectedInterestedEngine = old('interested_engine', $vehicle->engine_type);
     $selectedInterestedVariant = old('interested_variant', $vehicle->variant);
+    $selectedTestDriveVehicleRaw = old('test_drive_vehicle_model', $prospect->test_drive_vehicle_model);
+    $testDriveVehicleOptions = collect([$selectedInterestedModel])
+        ->merge($vehicleModels)
+        ->map(fn($model) => trim((string) $model))
+        ->filter()
+        ->unique()
+        ->values();
+    $isSelectedTestDriveVehicleOther = $selectedTestDriveVehicleRaw === 'Other'
+        || (trim((string) $selectedTestDriveVehicleRaw) !== '' && !$testDriveVehicleOptions->contains($selectedTestDriveVehicleRaw));
+    $selectedTestDriveVehicleSelect = $isSelectedTestDriveVehicleOther
+        ? 'Other'
+        : ($selectedTestDriveVehicleRaw ?: $testDriveVehicleOptions->first());
+    $selectedTestDriveVehicleOther = old(
+        'test_drive_vehicle_model_other',
+        $isSelectedTestDriveVehicleOther && $selectedTestDriveVehicleRaw !== 'Other' ? $selectedTestDriveVehicleRaw : ''
+    );
     $selectedInterestedColor = old('interested_vehicle_color', $prospect->interested_vehicle_color);
     $vehicleColorOptions = ['White', 'Black', 'Silver', 'Grey', 'Red', 'Blue', 'Green', 'Brown', 'Orange', 'Other'];
     $selectedLeadSource = old('lead_source', $enquiry->lead_source);
@@ -409,18 +428,6 @@
             </div>
 
             <div class="buying-test-yes" data-conditional="test_drive_given" data-value="yes">
-                <div class="buying-test-name-field">
-                    <label>Name</label>
-                    <div class="buying-name-input">
-                        <select aria-label="Title">
-                            @foreach(['Mr.', 'Mrs.', 'Ms.', 'Dr.'] as $title)
-                                <option value="{{ $title }}" @selected(($customer->title ? rtrim($customer->title, '.') . '.' : 'Mr.') === $title)>{{ $title }}</option>
-                            @endforeach
-                        </select>
-                        <input type="text" name="test_drive_to_whom" value="{{ old('test_drive_to_whom', $prospect->test_drive_to_whom) }}" placeholder="{{ $customer->name }}">
-                    </div>
-                </div>
-
                 <div>
                     <label>When?</label>
                     <input type="date" name="test_drive_date" value="{{ old('test_drive_date', $prospect->test_drive_date) }}">
@@ -428,7 +435,17 @@
 
                 <div class="buying-test-vehicle-field">
                     <label>Vehicle Used?</label>
-                    <input type="text" name="test_drive_vehicle_model" value="{{ old('test_drive_vehicle_model', $prospect->test_drive_vehicle_model) }}" placeholder="{{ $vehicle->model }} {{ $vehicle->variant }}">
+                    <select name="test_drive_vehicle_model" id="prospectTestDriveVehicleSelect">
+                        <option value="">Select Vehicle</option>
+                        @foreach($testDriveVehicleOptions as $modelOption)
+                            <option value="{{ $modelOption }}" @selected($selectedTestDriveVehicleSelect === $modelOption)>{{ $modelOption }}</option>
+                        @endforeach
+                        <option value="Other" @selected($selectedTestDriveVehicleSelect === 'Other')>Other</option>
+                    </select>
+                    <div id="prospectTestDriveVehicleOtherWrap" style="{{ $selectedTestDriveVehicleSelect === 'Other' ? '' : 'display:none;' }}">
+                        <label>Other Details</label>
+                        <input type="text" name="test_drive_vehicle_model_other" value="{{ $selectedTestDriveVehicleOther }}" placeholder="Enter vehicle details">
+                    </div>
                 </div>
             </div>
 
@@ -477,15 +494,30 @@
             <div class="grid-3 buying-existing-grid" data-conditional="first_time_buyer" data-value="no">
                 <div>
                     <label>Existing Vehicle Brand</label>
-                    <input type="text" name="existing_vehicle_brand" value="{{ old('existing_vehicle_brand', $prospect->existing_vehicle_brand) }}" placeholder="Select brand">
+                    <select name="existing_vehicle_brand" id="existing_vehicle_brand">
+                        <option value="">Select Brand</option>
+                        @foreach($competitionMap->keys() as $brand)
+                            <option value="{{ $brand }}" @selected($selectedExistingBrand === $brand)>{{ strtoupper($brand) }}</option>
+                        @endforeach
+                        @if(!empty($selectedExistingBrand) && !$competitionMap->has($selectedExistingBrand))
+                            <option value="{{ $selectedExistingBrand }}" selected>{{ strtoupper($selectedExistingBrand) }}</option>
+                        @endif
+                    </select>
                 </div>
                 <div>
                     <label>Existing Vehicle Model</label>
-                    <input type="text" name="existing_vehicle_model" value="{{ old('existing_vehicle_model', $prospect->existing_vehicle_model) }}" placeholder="Select model">
+                    <select name="existing_vehicle_model" id="existing_vehicle_model" data-selected-model="{{ $selectedExistingModel }}">
+                        <option value="">Select Model</option>
+                    </select>
                 </div>
                 <div>
                     <label>Year</label>
-                    <input type="number" name="existing_vehicle_year" min="1950" max="2100" value="{{ old('existing_vehicle_year', $prospect->existing_vehicle_year) }}" placeholder="Model year">
+                    <select name="existing_vehicle_year">
+                        <option value="">Model year</option>
+                        @for($year = now()->year + 1; $year >= 1950; $year--)
+                            <option value="{{ $year }}" @selected((string) $selectedExistingYear === (string) $year)>{{ $year }}</option>
+                        @endfor
+                    </select>
                 </div>
             </div>
         </section>
@@ -979,20 +1011,6 @@
                     </span>
                     <em>Cold</em>
                 </label>
-            </div>
-
-            <div class="plan-previous-comments">
-                <label>Previous Comments</label>
-                <div class="plan-previous-comment-row">
-                    <span>{{ !empty($prospect->customer_remark) ? $prospect->customer_remark : 'No previous comments' }}</span>
-                    <strong>
-                        @if(!empty($prospect->updated_at))
-                            {{ \Carbon\Carbon::parse($prospect->updated_at)->format('M d, Y') }}
-                        @else
-                            N/A
-                        @endif
-                    </strong>
-                </div>
             </div>
 
             <div class="plan-remark-wrap">

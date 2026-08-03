@@ -220,6 +220,7 @@ class BookingController extends Controller
             'test_drive_given' => ['nullable', Rule::in(['yes', 'no'])],
             'test_drive_date' => ['nullable', 'date'],
             'test_drive_vehicle_model' => ['nullable', 'string', 'max:255'],
+            'test_drive_vehicle_model_other' => ['nullable', 'string', 'max:255', Rule::requiredIf(fn() => $request->input('test_drive_given') === 'yes' && $request->input('test_drive_vehicle_model') === 'Other')],
             'test_drive_to_whom' => ['nullable', 'string', 'max:255'],
             'test_drive_not_given_reason' => ['nullable', 'string', 'max:255'],
             'purchase_mode' => ['nullable', Rule::in(['cash', 'finance'])],
@@ -280,13 +281,6 @@ class BookingController extends Controller
         $prospect = $enquiry->prospectSheet;
         $actionType = $validated['action_type'] ?? 'next';
         $removePurchaseOrder = ($validated['remove_purchase_order_image'] ?? '0') === '1';
-
-        $requiresPurchaseOrder = $currentStep === 1 && in_array($actionType, ['next', 'save_exit'], true);
-        if ($requiresPurchaseOrder && !$request->hasFile('purchase_order_image') && empty($booking->purchase_order_image)) {
-            return back()
-                ->withErrors(['purchase_order_image' => 'Purchase Order image is required.'])
-                ->withInput();
-        }
 
         $mobileNumbers = collect($customer?->mobile_numbers ?? [])
             ->map(fn($mobile) => trim((string) $mobile))
@@ -365,7 +359,10 @@ class BookingController extends Controller
 
         if (($validated['test_drive_given'] ?? null) === 'yes') {
             $payload['test_drive_date'] = $validated['test_drive_date'] ?? null;
-            $payload['test_drive_vehicle_model'] = $validated['test_drive_vehicle_model'] ?? null;
+            $payload['test_drive_vehicle_model'] = $this->resolveTestDriveVehicleUsed(
+                $validated['test_drive_vehicle_model'] ?? null,
+                $validated['test_drive_vehicle_model_other'] ?? null
+            );
             $payload['test_drive_to_whom'] = $validated['test_drive_to_whom'] ?? null;
         }
 
@@ -672,5 +669,17 @@ class BookingController extends Controller
         }
 
         return $fallback;
+    }
+
+    private function resolveTestDriveVehicleUsed(?string $selectedVehicle, ?string $otherVehicle): ?string
+    {
+        $selectedVehicle = trim((string) $selectedVehicle);
+        $otherVehicle = trim((string) $otherVehicle);
+
+        if ($selectedVehicle === 'Other') {
+            return $otherVehicle !== '' ? $otherVehicle : null;
+        }
+
+        return $selectedVehicle !== '' ? $selectedVehicle : null;
     }
 }

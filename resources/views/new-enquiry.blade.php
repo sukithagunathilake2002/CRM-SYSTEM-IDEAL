@@ -45,6 +45,8 @@
         $selectedFollowTime = old('follow_time')
             ? substr((string) old('follow_time'), 0, 5)
             : \Carbon\Carbon::now('Asia/Colombo')->format('H:i');
+        $todayDate = \Carbon\Carbon::now('Asia/Colombo')->toDateString();
+        $selectedInquiryDate = old('inquiry_date', $todayDate);
         $createdLead = session('created_lead');
     @endphp
 
@@ -280,7 +282,7 @@
                 </div>
                 <div class="stack-field">
                     <label class="stack-label" for="inquiryDateInput">Date of Inquiry</label>
-                    <input id="inquiryDateInput" type="date" class="input-pill" value="{{ now()->format('Y-m-d') }}" readonly>
+                    <input id="inquiryDateInput" type="date" name="inquiry_date" class="input-pill" value="{{ $selectedInquiryDate }}" max="{{ $todayDate }}" required>
                 </div>
             </div>
 

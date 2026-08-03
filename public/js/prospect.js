@@ -24,6 +24,8 @@
     const extraExchangeImagesContainer = document.getElementById('extraExchangeImagesContainer');
     const exchangeBrandSelect = document.getElementById('exchange_vehicle_brand');
     const exchangeModelSelect = document.getElementById('exchange_vehicle_model');
+    const existingBrandSelect = document.getElementById('existing_vehicle_brand');
+    const existingModelSelect = document.getElementById('existing_vehicle_model');
 
     const exchangeExpectedPriceInput = document.querySelector('input[name="exchange_expected_price"]');
     const exchangeQuotedPriceInput = document.querySelector('input[name="exchange_quoted_price"]');
@@ -188,16 +190,15 @@
         const quoteDate = fieldValue('input[name="quote_date"]');
         const testDriveGiven = selectedValue('test_drive_given');
         const testDriveDate = fieldValue('input[name="test_drive_date"]');
-        const testDriveToWhom = fieldValue('input[name="test_drive_to_whom"]');
         const testDriveReason = fieldValue('input[name="test_drive_not_given_reason"]');
         const competitionInterest = selectedValue('interested_in_competition');
         const competitionBrand = selectedText(document.getElementById('competition_brand'));
         const competitionModel = selectedText(document.getElementById('competition_model'));
         const firstTimeBuyer = selectedValue('first_time_buyer');
         const existingVehicleDetails = [
-            fieldValue('input[name="existing_vehicle_brand"]'),
-            fieldValue('input[name="existing_vehicle_model"]'),
-            fieldValue('input[name="existing_vehicle_year"]'),
+            selectedText(existingBrandSelect),
+            selectedText(existingModelSelect),
+            fieldValue('select[name="existing_vehicle_year"]'),
         ].filter(Boolean).join(' ');
 
         const exchangeInterest = selectedValue('interested_in_exchange');
@@ -230,7 +231,7 @@
         setSummaryField(
             'test_drive_given',
             testDriveGiven === 'yes'
-                ? ['Yes', testDriveDate ? `on ${testDriveDate}` : '', testDriveToWhom ? `to ${testDriveToWhom}` : ''].filter(Boolean).join(' ')
+                ? ['Yes', testDriveDate ? `on ${testDriveDate}` : ''].filter(Boolean).join(' ')
                 : testDriveGiven === 'no'
                     ? ['No', testDriveReason].filter(Boolean).join(' - ')
                     : ''
@@ -287,6 +288,21 @@
         });
     }
 
+    function updateTestDriveVehicleOtherField() {
+        const vehicleSelect = form.querySelector('select[name="test_drive_vehicle_model"]');
+        const otherWrap = document.getElementById('prospectTestDriveVehicleOtherWrap');
+        const otherInput = form.querySelector('input[name="test_drive_vehicle_model_other"]');
+        const showOther = vehicleSelect && vehicleSelect.value === 'Other';
+
+        if (otherWrap) {
+            otherWrap.style.display = showOther ? '' : 'none';
+        }
+
+        if (!showOther && otherInput) {
+            otherInput.value = '';
+        }
+    }
+
     function updateCompetitionModels() {
         const brandSelect = document.getElementById('competition_brand');
         const modelSelect = document.getElementById('competition_model');
@@ -338,6 +354,40 @@
         });
 
         exchangeModelSelect.dataset.selectedModel = '';
+        updateProspectSummary();
+    }
+
+    function updateExistingModels() {
+        if (!existingBrandSelect || !existingModelSelect) {
+            return;
+        }
+
+        const map = window.PROSPECT_COMPETITION_MAP || {};
+        const models = map[existingBrandSelect.value] || [];
+        const selectedFromServer = existingModelSelect.dataset.selectedModel || '';
+        const activeModel = selectedFromServer;
+
+        existingModelSelect.innerHTML = '<option value="">Select Model</option>';
+
+        models.forEach((model) => {
+            const option = document.createElement('option');
+            option.value = model;
+            option.textContent = model.toUpperCase();
+            if (model === activeModel) {
+                option.selected = true;
+            }
+            existingModelSelect.appendChild(option);
+        });
+
+        if (activeModel && !models.includes(activeModel)) {
+            const option = document.createElement('option');
+            option.value = activeModel;
+            option.textContent = activeModel.toUpperCase();
+            option.selected = true;
+            existingModelSelect.appendChild(option);
+        }
+
+        existingModelSelect.dataset.selectedModel = '';
         updateProspectSummary();
     }
 
@@ -1050,6 +1100,11 @@
         field.addEventListener('change', updateProspectSummary);
     });
 
+    form.querySelector('select[name="test_drive_vehicle_model"]')?.addEventListener('change', () => {
+        updateTestDriveVehicleOtherField();
+        updateProspectSummary();
+    });
+
     const brandSelect = document.getElementById('competition_brand');
     if (brandSelect) {
         brandSelect.addEventListener('change', updateCompetitionModels);
@@ -1057,6 +1112,16 @@
 
     if (exchangeBrandSelect) {
         exchangeBrandSelect.addEventListener('change', updateExchangeModels);
+    }
+
+    if (existingBrandSelect) {
+        existingBrandSelect.addEventListener('change', () => {
+            if (existingModelSelect) {
+                existingModelSelect.dataset.selectedModel = '';
+                existingModelSelect.value = '';
+            }
+            updateExistingModels();
+        });
     }
 
     if (interestedModelSelect) {
@@ -1327,8 +1392,10 @@
 
     updateStepper();
     updateConditionals();
+    updateTestDriveVehicleOtherField();
     updateCompetitionModels();
     updateExchangeModels();
+    updateExistingModels();
     updateSourceInformationOptions();
     syncInterestedVehicleSelectionFromServerData();
     updateExchangeImageVisibility();
