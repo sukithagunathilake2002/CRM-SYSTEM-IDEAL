@@ -44,38 +44,58 @@ class EnquiryController extends Controller
     }
 
     public function list(Request $request)
-{
-    $viewer = $request->user();
-    $enquiriesQuery = Enquiry::with([
-        'customer', 
-        'vehicle', 
-        'user',
-        'prospectSheet',
-        'booking'  // Make sure booking is loaded
-    ])->select('enquiries.*'); // Select all enquiry fields including status
-    
-    $selectedLeadStatus = strtolower(trim((string) $request->query('lead_status', '')));
-    if (!in_array($selectedLeadStatus, ['hot', 'warm', 'cold'], true)) {
-        $selectedLeadStatus = null;
+    {
+        $viewer = $request->user();
+        $enquiriesQuery = Enquiry::with([
+            'customer', 
+            'vehicle', 
+            'user',
+            'prospectSheet',
+            'booking'
+        ])->select('enquiries.*');
+        
+        $selectedLeadStatus = strtolower(trim((string) $request->query('lead_status', '')));
+        if (!in_array($selectedLeadStatus, ['hot', 'warm', 'cold'], true)) {
+            $selectedLeadStatus = null;
+        }
+
+        $selectedLeadResult = strtolower(trim((string) $request->query('lead_result', '')));
+        if (!in_array($selectedLeadResult, ['active', 'lost', 'closed'], true)) {
+            $selectedLeadResult = null;
+        }
+
+        $registrationFilter = strtolower(trim((string) $request->query('registration', '')));
+
+        if ($viewer && $viewer->role !== User::ROLE_SUPER_ADMIN) {
+            $accessibleUserIds = $this->resolveAccessibleUserIds($viewer);
+            $enquiriesQuery->whereIn('user_id', $accessibleUserIds);
+        }
+
+        // Apply registration filter - MATCHES WEB VERSION
+        if ($registrationFilter === 'pending') {
+            $enquiriesQuery->pendingRegistration();
+        } elseif ($registrationFilter === 'registered') {
+            $enquiriesQuery->registeredLead();
+        }
+
+        // Apply lead status filter
+        if ($selectedLeadStatus !== null) {
+            $enquiriesQuery->whereHas('prospectSheet', function ($query) use ($selectedLeadStatus) {
+                $query->whereRaw("LOWER(COALESCE(lead_status, '')) = ?", [$selectedLeadStatus]);
+            });
+        }
+
+        // Apply lead result filter
+        if ($selectedLeadResult !== null) {
+            $enquiriesQuery->whereRaw("LOWER(COALESCE(followup_result, '')) = ?", [$selectedLeadResult]);
+        }
+
+        $enquiries = $enquiriesQuery
+            ->latest()
+            ->paginate(20);
+
+        return response()->json($enquiries);
     }
-
-    if ($viewer && $viewer->role !== User::ROLE_SUPER_ADMIN) {
-        $accessibleUserIds = $this->resolveAccessibleUserIds($viewer);
-        $enquiriesQuery->whereIn('user_id', $accessibleUserIds);
-    }
-
-    if ($selectedLeadStatus !== null) {
-        $enquiriesQuery->whereHas('prospectSheet', function ($query) use ($selectedLeadStatus) {
-            $query->whereRaw("LOWER(COALESCE(lead_status, '')) = ?", [$selectedLeadStatus]);
-        });
-    }
-
-    $enquiries = $enquiriesQuery
-        ->latest()
-        ->paginate(20);
-
-    return response()->json($enquiries);
-}
 
     public function store(Request $request)
     {

@@ -104,7 +104,7 @@ class DashboardController extends Controller
                 ];
             });
 
-        // Lead status counts
+        // Lead status counts - Only count leads with completed prospect sheets
         $leadStatusCounts = [
             'hot' => 0,
             'warm' => 0,
@@ -112,7 +112,9 @@ class DashboardController extends Controller
         ];
 
         $enquiries = Enquiry::whereIn('user_id', $accessibleUserIds)
-            ->whereHas('prospectSheet')
+            ->whereHas('prospectSheet', function ($query) {
+                $query->where('current_step', '>=', 5);
+            })
             ->get();
 
         foreach ($enquiries as $enquiry) {
@@ -122,18 +124,23 @@ class DashboardController extends Controller
             }
         }
 
-        // Active bookings - matches PC version
-        $activeBookings = Booking::query()
-            ->whereHas('enquiry', function ($query) use ($accessibleUserIds) {
-                $query->whereIn('user_id', $accessibleUserIds)
-                    ->whereRaw("LOWER(COALESCE(status, 'open')) NOT IN ('closed', 'cancelled', 'canceled', 'lost')");
+        // Active bookings - MATCHES WEB VERSION EXACTLY
+        // Count enquiries that have a completed booking and are not terminal
+        $activeBookings = Enquiry::query()
+            ->whereIn('user_id', $accessibleUserIds)
+            ->whereHas('booking', function ($query) {
+                $query->whereNotNull('booking_completed_at');
             })
+            ->whereRaw("LOWER(COALESCE(status, 'open')) NOT IN ('closed', 'cancelled', 'canceled', 'lost')")
+            ->whereRaw("LOWER(COALESCE(followup_result, '')) NOT IN ('lost', 'closed')")
             ->count();
 
-        // Active inquiries - matches PC version
+        // Active inquiries - MATCHES WEB VERSION EXACTLY
+        // Count enquiries that are not terminal
         $activeInquiries = Enquiry::query()
             ->whereIn('user_id', $accessibleUserIds)
             ->whereRaw("LOWER(COALESCE(status, 'open')) NOT IN ('closed', 'cancelled', 'canceled', 'lost')")
+            ->whereRaw("LOWER(COALESCE(followup_result, '')) NOT IN ('lost', 'closed')")
             ->count();
 
         return response()->json([
