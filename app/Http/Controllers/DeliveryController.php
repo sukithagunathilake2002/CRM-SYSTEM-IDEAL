@@ -218,6 +218,7 @@ class DeliveryController extends Controller
             'test_drive_given' => ['nullable', Rule::in(['yes', 'no'])],
             'test_drive_date' => ['nullable', 'date'],
             'test_drive_vehicle_model' => ['nullable', 'string', 'max:255'],
+            'test_drive_vehicle_model_other' => ['nullable', 'string', 'max:255', Rule::requiredIf(fn() => $request->input('test_drive_given') === 'yes' && $request->input('test_drive_vehicle_model') === 'Other')],
             'test_drive_to_whom' => ['nullable', 'string', 'max:255'],
             'test_drive_not_given_reason' => ['nullable', 'string', 'max:255'],
             'purchase_mode' => ['nullable', Rule::in(['cash', 'finance'])],
@@ -287,6 +288,7 @@ class DeliveryController extends Controller
                 'remove_extra_images',
                 'exchange_extra_images',
                 'remove_exchange_extra_images',
+                'test_drive_vehicle_model_other',
                 'offer_unit_price',
                 'offer_unit_price_discount',
                 'offer_unit_price_free',
@@ -310,6 +312,11 @@ class DeliveryController extends Controller
 
         if (array_key_exists('test_drive_given', $payload)) {
             if (($payload['test_drive_given'] ?? null) === 'yes') {
+                $payload['test_drive_vehicle_model'] = $this->resolveTestDriveVehicleUsed(
+                    $validated['test_drive_vehicle_model'] ?? null,
+                    $validated['test_drive_vehicle_model_other'] ?? null
+                );
+                $payload['test_drive_to_whom'] = null;
                 $payload['test_drive_not_given_reason'] = null;
             } elseif (($payload['test_drive_given'] ?? null) === 'no') {
                 $payload['test_drive_date'] = null;
@@ -594,5 +601,17 @@ class DeliveryController extends Controller
         return redirect()
             ->route('enquiries.list', $enquiry->terminalLeadRouteParameters())
             ->with('success', $enquiry->terminalLeadLabel() . ' lead is finalized. Delivery is not available.');
+    }
+
+    private function resolveTestDriveVehicleUsed(?string $selectedVehicle, ?string $otherVehicle): ?string
+    {
+        $selectedVehicle = trim((string) $selectedVehicle);
+        $otherVehicle = trim((string) $otherVehicle);
+
+        if ($selectedVehicle === 'Other') {
+            return $otherVehicle !== '' ? $otherVehicle : null;
+        }
+
+        return $selectedVehicle !== '' ? $selectedVehicle : null;
     }
 }

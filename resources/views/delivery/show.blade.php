@@ -32,7 +32,21 @@
     $selectedTestDrive = old('test_drive_given', $defaultValues['test_drive_given']);
     $selectedTestDriveDate = old('test_drive_date', $defaultValues['test_drive_date']);
     $selectedTestDriveModel = old('test_drive_vehicle_model', $defaultValues['test_drive_vehicle_model']);
-    $selectedTestDriveToWhom = old('test_drive_to_whom', $defaultValues['test_drive_to_whom']);
+    $testDriveVehicleOptions = collect([$selectedInterestedModel])
+        ->merge($vehicleModels)
+        ->map(fn($model) => trim((string) $model))
+        ->filter()
+        ->unique()
+        ->values();
+    $isSelectedTestDriveVehicleOther = $selectedTestDriveModel === 'Other'
+        || (trim((string) $selectedTestDriveModel) !== '' && !$testDriveVehicleOptions->contains($selectedTestDriveModel));
+    $selectedTestDriveVehicleSelect = $isSelectedTestDriveVehicleOther
+        ? 'Other'
+        : ($selectedTestDriveModel ?: $testDriveVehicleOptions->first());
+    $selectedTestDriveVehicleOther = old(
+        'test_drive_vehicle_model_other',
+        $isSelectedTestDriveVehicleOther && $selectedTestDriveModel !== 'Other' ? $selectedTestDriveModel : ''
+    );
     $selectedTestDriveReason = old('test_drive_not_given_reason', $defaultValues['test_drive_not_given_reason']);
     $selectedPurchaseMode = old('purchase_mode', $defaultValues['purchase_mode']);
     $selectedFinanceForm = old('finance_form', $defaultValues['finance_form']);
@@ -504,19 +518,17 @@
                     </label>
                     <label class="delivery-pill">
                         <span>Vehicle Used?</span>
-                        <select name="test_drive_vehicle_model">
+                        <select name="test_drive_vehicle_model" id="deliveryTestDriveVehicleSelect">
                             <option value="">Select Model</option>
-                            @foreach($vehicleModels as $modelOption)
-                                <option value="{{ $modelOption }}" @selected($selectedTestDriveModel === $modelOption)>{{ $modelOption }}</option>
+                            @foreach($testDriveVehicleOptions as $modelOption)
+                                <option value="{{ $modelOption }}" @selected($selectedTestDriveVehicleSelect === $modelOption)>{{ $modelOption }}</option>
                             @endforeach
-                            @if(!empty($selectedTestDriveModel) && !$vehicleModels->contains($selectedTestDriveModel))
-                                <option value="{{ $selectedTestDriveModel }}" selected>{{ $selectedTestDriveModel }}</option>
-                            @endif
+                            <option value="Other" @selected($selectedTestDriveVehicleSelect === 'Other')>Other</option>
                         </select>
                     </label>
-                    <label class="delivery-pill delivery-wide">
-                        <span>To Whom?</span>
-                        <input type="text" name="test_drive_to_whom" value="{{ $selectedTestDriveToWhom }}">
+                    <label class="delivery-pill delivery-wide {{ $selectedTestDriveVehicleSelect === 'Other' ? '' : 'hidden' }}" id="deliveryTestDriveVehicleOtherWrap">
+                        <span>Other Details</span>
+                        <input type="text" name="test_drive_vehicle_model_other" value="{{ $selectedTestDriveVehicleOther }}" placeholder="Enter vehicle details">
                     </label>
                 </div>
                 <label class="delivery-pill delivery-conditional" id="deliveryTestDriveNoWrap">
@@ -1361,6 +1373,8 @@
     syncCorporateName();
 
     const picked = (name) => document.querySelector('input[name="' + name + '"]:checked')?.value || '';
+    const deliveryTestDriveVehicleSelect = document.getElementById('deliveryTestDriveVehicleSelect');
+    const deliveryTestDriveVehicleOtherWrap = document.getElementById('deliveryTestDriveVehicleOtherWrap');
     const toggleByValue = (elementId, name, value) => {
         const element = document.getElementById(elementId);
         if (element) {
@@ -1375,11 +1389,23 @@
         toggleByValue('deliveryCompetitionWrap', 'interested_in_competition', 'yes');
         toggleByValue('deliveryExistingVehicleWrap', 'first_time_buyer', 'no');
         toggleByValue('deliveryFinanceFormWrap', 'purchase_mode', 'finance');
+
+        const showOtherVehicle = deliveryTestDriveVehicleSelect && deliveryTestDriveVehicleSelect.value === 'Other';
+        if (deliveryTestDriveVehicleOtherWrap) {
+            deliveryTestDriveVehicleOtherWrap.classList.toggle('hidden', !showOtherVehicle);
+            if (!showOtherVehicle) {
+                const otherInput = deliveryTestDriveVehicleOtherWrap.querySelector('input');
+                if (otherInput) {
+                    otherInput.value = '';
+                }
+            }
+        }
     };
 
     document
         .querySelectorAll('input[name="quote_taken"], input[name="test_drive_given"], input[name="interested_in_competition"], input[name="first_time_buyer"], input[name="purchase_mode"]')
         .forEach((input) => input.addEventListener('change', syncBuyingDetails));
+    deliveryTestDriveVehicleSelect?.addEventListener('change', syncBuyingDetails);
     syncBuyingDetails();
 
     const exchangeWrap = document.getElementById('deliveryExchangeDetailsWrap');
@@ -1450,6 +1476,7 @@
         const modelSelect = document.getElementById('deliveryCompetitionModel');
         if (modelSelect) {
             modelSelect.dataset.selectedModel = '';
+            modelSelect.value = '';
         }
         fillModelSelect('deliveryCompetitionBrand', 'deliveryCompetitionModel');
     });
@@ -1457,6 +1484,7 @@
         const modelSelect = document.getElementById('deliveryExistingModel');
         if (modelSelect) {
             modelSelect.dataset.selectedModel = '';
+            modelSelect.value = '';
         }
         fillModelSelect('deliveryExistingBrand', 'deliveryExistingModel');
     });
@@ -1464,6 +1492,7 @@
         const modelSelect = document.getElementById('deliveryExchangeModel');
         if (modelSelect) {
             modelSelect.dataset.selectedModel = '';
+            modelSelect.value = '';
         }
         fillModelSelect('deliveryExchangeBrand', 'deliveryExchangeModel');
     });

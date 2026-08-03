@@ -114,7 +114,8 @@ class ProspectSheetController extends Controller
             'test_drive_given' => ['nullable', Rule::in(['yes', 'no'])],
             'test_drive_date' => ['nullable', 'date', 'required_if:test_drive_given,yes'],
             'test_drive_vehicle_model' => ['nullable', 'string', 'max:255', 'required_if:test_drive_given,yes'],
-            'test_drive_to_whom' => ['nullable', 'string', 'max:255', 'required_if:test_drive_given,yes'],
+            'test_drive_vehicle_model_other' => ['nullable', 'string', 'max:255', Rule::requiredIf(fn() => $request->input('test_drive_given') === 'yes' && $request->input('test_drive_vehicle_model') === 'Other')],
+            'test_drive_to_whom' => ['nullable', 'string', 'max:255'],
             'test_drive_not_given_reason' => ['nullable', 'string', 'max:255', 'required_if:test_drive_given,no'],
             'purchase_mode' => ['nullable', Rule::in(['cash', 'finance'])],
 
@@ -279,8 +280,11 @@ class ProspectSheetController extends Controller
         if ($hasTestDriveGiven) {
             if ($testDriveGiven === 'yes') {
                 $testDriveDate = $pick('test_drive_date');
-                $testDriveVehicleModel = $pick('test_drive_vehicle_model');
-                $testDriveToWhom = $pick('test_drive_to_whom');
+                $testDriveVehicleModel = $this->resolveTestDriveVehicleUsed(
+                    $pick('test_drive_vehicle_model'),
+                    $pick('test_drive_vehicle_model_other')
+                );
+                $testDriveToWhom = null;
                 $testDriveNotGivenReason = null;
             } elseif ($testDriveGiven === 'no') {
                 $testDriveDate = null;
@@ -621,5 +625,17 @@ class ProspectSheetController extends Controller
         return redirect()
             ->route('enquiries.list', $enquiry->terminalLeadRouteParameters())
             ->with('success', $enquiry->terminalLeadLabel() . ' lead is finalized. Prospect registration is not available.');
+    }
+
+    private function resolveTestDriveVehicleUsed(?string $selectedVehicle, ?string $otherVehicle): ?string
+    {
+        $selectedVehicle = trim((string) $selectedVehicle);
+        $otherVehicle = trim((string) $otherVehicle);
+
+        if ($selectedVehicle === 'Other') {
+            return $otherVehicle !== '' ? $otherVehicle : null;
+        }
+
+        return $selectedVehicle !== '' ? $selectedVehicle : null;
     }
 }

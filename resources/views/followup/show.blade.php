@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<link rel="stylesheet" href="{{ asset('css/followup.css') }}">
+<link rel="stylesheet" href="{{ asset('css/followup.css') }}?v={{ filemtime(public_path('css/followup.css')) }}">
 
 @php
     $monthLabels = [
@@ -19,13 +19,35 @@
         12 => 'December',
     ];
     $lostReasonLabels = [
-        'issue_with_product' => 'Issue with product',
-        'got_better_discount' => 'Got better discount',
+        'got_better_discount' => 'Got Better Discount',
+        'desired_model_not_available' => 'Desired Model Not Available',
+        'desired_color_not_available' => 'Desired Color Not Available',
+        'got_better_exchange_value' => 'Got Better Exchange Value for His/Her Existing Wheeler',
+        'got_better_finance_facility' => 'Got Better Finance Facility',
+        'got_credit_facility' => 'Got Credit Facility',
+        'not_happy_with_dealership_dealing' => 'Customer was not happy with the Dealing at my dealership',
+        'friend_family_did_not_recommend' => 'Friend / Family did not recommend',
+        'did_not_ask' => 'I Did not ask',
         'other' => 'Other',
     ];
     $existingFollowupPicture1Url = !empty($enquiry->followup_picture_1) ? asset('storage/' . $enquiry->followup_picture_1) : null;
     $existingFollowupPicture2Url = !empty($enquiry->followup_picture_2) ? asset('storage/' . $enquiry->followup_picture_2) : null;
     $dialPhone = preg_replace('/\D+/', '', (string) $primaryPhone);
+    $followupTestDriveVehicleOptions = collect([$enquiry->vehicle?->model])
+        ->merge($vehicleModels ?? [])
+        ->map(fn($model) => trim((string) $model))
+        ->filter()
+        ->unique()
+        ->values();
+    $isSelectedFollowupTestDriveVehicleOther = $selectedTestDriveVehicleUsed === 'Other'
+        || (trim((string) $selectedTestDriveVehicleUsed) !== '' && !$followupTestDriveVehicleOptions->contains($selectedTestDriveVehicleUsed));
+    $selectedFollowupTestDriveVehicleSelect = $isSelectedFollowupTestDriveVehicleOther
+        ? 'Other'
+        : ($selectedTestDriveVehicleUsed ?: $followupTestDriveVehicleOptions->first());
+    $selectedFollowupTestDriveVehicleOther = old(
+        'followup_test_drive_vehicle_used_other',
+        $isSelectedFollowupTestDriveVehicleOther && $selectedTestDriveVehicleUsed !== 'Other' ? $selectedTestDriveVehicleUsed : ''
+    );
 @endphp
 
 <div class="followup-page">
@@ -297,11 +319,17 @@
                         </div>
                         <div>
                             <label>Vehicle used</label>
-                            <input type="text" name="followup_test_drive_vehicle_used" value="{{ $selectedTestDriveVehicleUsed }}" class="pill-input" placeholder="Vehicle model">
+                            <select name="followup_test_drive_vehicle_used" id="followupTestDriveVehicleSelect" class="pill-select">
+                                <option value="">Select Model</option>
+                                @foreach($followupTestDriveVehicleOptions as $modelOption)
+                                    <option value="{{ $modelOption }}" @selected($selectedFollowupTestDriveVehicleSelect === $modelOption)>{{ $modelOption }}</option>
+                                @endforeach
+                                <option value="Other" @selected($selectedFollowupTestDriveVehicleSelect === 'Other')>Other</option>
+                            </select>
                         </div>
-                        <div>
-                            <label>To whom?</label>
-                            <input type="text" name="followup_test_drive_to_whom" value="{{ $selectedTestDriveToWhom }}" class="pill-input" placeholder="Mr Sampath">
+                        <div id="followupTestDriveVehicleOtherWrap" class="{{ $selectedFollowupTestDriveVehicleSelect === 'Other' ? '' : 'hidden' }}">
+                            <label>Other Details</label>
+                            <input type="text" name="followup_test_drive_vehicle_used_other" value="{{ $selectedFollowupTestDriveVehicleOther }}" class="pill-input" placeholder="Enter vehicle details">
                         </div>
                     </div>
 
@@ -386,6 +414,16 @@
                     <div id="lostOtherReasonWrap" class="row {{ in_array('other', $selectedLostRejectReasons, true) ? '' : 'hidden' }}">
                         <input type="text" name="followup_lost_reject_other_text" value="{{ $selectedLostRejectOtherText }}" class="pill-input" placeholder="Other reason">
                     </div>
+                </div>
+
+                <div id="closedQuestionWrap" class="closed-question-wrap {{ $selectedFollowupStatus === 'done' && $selectedResult === 'closed' ? '' : 'hidden' }}">
+                    <label>Reason for closing lead</label>
+                    <select name="followup_closed_reason" class="pill-select">
+                        <option value="">Select reason</option>
+                        @foreach($closedReasonOptions as $reasonOption)
+                            <option value="{{ $reasonOption }}" @selected($selectedClosedReason === $reasonOption)>{{ $reasonOption }}</option>
+                        @endforeach
+                    </select>
                 </div>
 
                 {{-- Not Done Form --}}
@@ -593,6 +631,7 @@ html.theme-dark .reason-option input:checked + .reason-card .reason-text {
         const doneWrap = document.getElementById('doneQuestionWrap');
         const activeWrap = document.getElementById('activeQuestionWrap');
         const lostWrap = document.getElementById('lostQuestionWrap');
+        const closedWrap = document.getElementById('closedQuestionWrap');
         const notDoneWrap = document.getElementById('notDoneQuestionWrap');
         const nextFollowupWrap = document.getElementById('nextFollowupWrap');
         const formActions = document.getElementById('formActions');
@@ -600,6 +639,8 @@ html.theme-dark .reason-option input:checked + .reason-card .reason-text {
         const resultRadios = Array.from(document.querySelectorAll('input[name="followup_result"]'));
         const testDriveNoWrap = document.getElementById('testDriveNoWrap');
         const testDriveYesWrap = document.getElementById('testDriveYesWrap');
+        const followupTestDriveVehicleSelect = document.getElementById('followupTestDriveVehicleSelect');
+        const followupTestDriveVehicleOtherWrap = document.getElementById('followupTestDriveVehicleOtherWrap');
         const firstTimeBuyerNoWrap = document.getElementById('firstTimeBuyerNoWrap');
         const lostToRadios = Array.from(document.querySelectorAll('input[name="followup_lost_to"]'));
         const lostCompetitorWrap = document.getElementById('lostCompetitorWrap');
@@ -867,6 +908,10 @@ html.theme-dark .reason-option input:checked + .reason-card .reason-text {
             if (lostWrap) {
                 lostWrap.classList.toggle('hidden', !(selectedStatus === 'done' && selectedResult === 'lost'));
             }
+
+            if (closedWrap) {
+                closedWrap.classList.toggle('hidden', !(selectedStatus === 'done' && selectedResult === 'closed'));
+            }
             
             if (notDoneWrap) {
                 notDoneWrap.classList.toggle('hidden', selectedStatus !== 'not_done');
@@ -893,6 +938,17 @@ html.theme-dark .reason-option input:checked + .reason-card .reason-text {
 
             if (testDriveYesWrap) {
                 testDriveYesWrap.classList.toggle('hidden', selectedTestDriveGiven !== 'yes');
+            }
+
+            if (followupTestDriveVehicleOtherWrap) {
+                const showOtherVehicle = followupTestDriveVehicleSelect && followupTestDriveVehicleSelect.value === 'Other';
+                followupTestDriveVehicleOtherWrap.classList.toggle('hidden', !showOtherVehicle);
+                if (!showOtherVehicle) {
+                    const otherInput = followupTestDriveVehicleOtherWrap.querySelector('input');
+                    if (otherInput) {
+                        otherInput.value = '';
+                    }
+                }
             }
 
             if (firstTimeBuyerNoWrap) {
@@ -946,6 +1002,7 @@ html.theme-dark .reason-option input:checked + .reason-card .reason-text {
         document.querySelectorAll('input[name="followup_test_drive_given"]').forEach((input) => {
             input.addEventListener('change', syncState);
         });
+        followupTestDriveVehicleSelect?.addEventListener('change', syncState);
 
         document.querySelectorAll('input[name="followup_first_time_buyer"]').forEach((input) => {
             input.addEventListener('change', syncState);

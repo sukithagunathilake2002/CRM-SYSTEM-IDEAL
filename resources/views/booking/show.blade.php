@@ -60,7 +60,21 @@
     $selectedTestDrive = old('test_drive_given', $defaultValues['test_drive_given']);
     $selectedTestDriveDate = old('test_drive_date', $defaultValues['test_drive_date']);
     $selectedTestDriveModel = old('test_drive_vehicle_model', $defaultValues['test_drive_vehicle_model']);
-    $selectedTestDriveToWhom = old('test_drive_to_whom', $defaultValues['test_drive_to_whom']);
+    $testDriveVehicleOptions = collect([$selectedInterestedModel])
+        ->merge($vehicleModels)
+        ->map(fn($model) => trim((string) $model))
+        ->filter()
+        ->unique()
+        ->values();
+    $isSelectedTestDriveVehicleOther = $selectedTestDriveModel === 'Other'
+        || (trim((string) $selectedTestDriveModel) !== '' && !$testDriveVehicleOptions->contains($selectedTestDriveModel));
+    $selectedTestDriveVehicleSelect = $isSelectedTestDriveVehicleOther
+        ? 'Other'
+        : ($selectedTestDriveModel ?: $testDriveVehicleOptions->first());
+    $selectedTestDriveVehicleOther = old(
+        'test_drive_vehicle_model_other',
+        $isSelectedTestDriveVehicleOther && $selectedTestDriveModel !== 'Other' ? $selectedTestDriveModel : ''
+    );
     $selectedTestDriveReason = old('test_drive_not_given_reason', $defaultValues['test_drive_not_given_reason']);
     $testDriveNoReasons = [
         'Not interested',
@@ -191,7 +205,6 @@
             : '';
         $testDriveDetailsLabel = collect([
             $selectedTestDriveModel || $interestedVehicleLine !== 'Not selected' ? 'By ' . ($selectedTestDriveModel ?: $interestedVehicleLine) : '',
-            $selectedTestDriveToWhom ? 'to ' . $selectedTestDriveToWhom : '',
             $testDriveDateLabel ? 'on ' . $testDriveDateLabel : '',
         ])->filter()->implode(' ');
     } elseif ($selectedTestDrive === 'no') {
@@ -528,11 +541,7 @@
                     </div>
 
                     <div class="conditional" id="testDriveYesWrap">
-                        <div class="row split buying-test-row">
-                            <div>
-                                <label>To Whom?</label>
-                                <input type="text" name="test_drive_to_whom" value="{{ $selectedTestDriveToWhom }}" placeholder="Name">
-                            </div>
+                        <div class="row buying-test-row">
                             <div>
                                 <label>When?</label>
                                 <input type="date" name="test_drive_date" value="{{ $selectedTestDriveDate }}">
@@ -540,15 +549,17 @@
                         </div>
                         <div class="row">
                             <label>Vehicle Used?</label>
-                            <select name="test_drive_vehicle_model" class="buying-select">
+                            <select name="test_drive_vehicle_model" id="bookingTestDriveVehicleSelect" class="buying-select">
                                 <option value="">Select Model</option>
-                                @foreach($vehicleModels as $modelOption)
-                                    <option value="{{ $modelOption }}" @selected($selectedTestDriveModel === $modelOption)>{{ $modelOption }}</option>
+                                @foreach($testDriveVehicleOptions as $modelOption)
+                                    <option value="{{ $modelOption }}" @selected($selectedTestDriveVehicleSelect === $modelOption)>{{ $modelOption }}</option>
                                 @endforeach
-                                @if(!empty($selectedTestDriveModel) && !$vehicleModels->contains($selectedTestDriveModel))
-                                    <option value="{{ $selectedTestDriveModel }}" selected>{{ $selectedTestDriveModel }}</option>
-                                @endif
+                                <option value="Other" @selected($selectedTestDriveVehicleSelect === 'Other')>Other</option>
                             </select>
+                            <div id="bookingTestDriveVehicleOtherWrap" class="{{ $selectedTestDriveVehicleSelect === 'Other' ? '' : 'hidden' }}">
+                                <label>Other Details</label>
+                                <input type="text" name="test_drive_vehicle_model_other" value="{{ $selectedTestDriveVehicleOther }}" placeholder="Enter vehicle details">
+                            </div>
                         </div>
                     </div>
 
@@ -1125,6 +1136,8 @@
         const quoteDateWrap = document.getElementById('quoteDateWrap');
         const testDriveYesWrap = document.getElementById('testDriveYesWrap');
         const testDriveNoWrap = document.getElementById('testDriveNoWrap');
+        const bookingTestDriveVehicleSelect = document.getElementById('bookingTestDriveVehicleSelect');
+        const bookingTestDriveVehicleOtherWrap = document.getElementById('bookingTestDriveVehicleOtherWrap');
         const financeFormWrap = document.getElementById('financeFormWrap');
         const competitionWrap = document.getElementById('competitionWrap');
         const competitionBrandSelect = document.getElementById('competition_brand');
@@ -1379,14 +1392,15 @@
             setSummaryText(buyingSummaryTestDrive, yesNoSummary(testDrive));
 
             if (testDrive === 'yes') {
-                const vehicle = selectText('test_drive_vehicle_model') || (interested && interested !== 'Not selected' ? interested : '');
-                const toWhom = fieldValue('test_drive_to_whom');
+                const selectedVehicle = fieldValue('test_drive_vehicle_model');
+                const vehicle = selectedVehicle === 'Other'
+                    ? fieldValue('test_drive_vehicle_model_other')
+                    : (selectText('test_drive_vehicle_model') || (interested && interested !== 'Not selected' ? interested : ''));
                 const date = formatShortDate(fieldValue('test_drive_date'));
                 setSummaryText(
                     buyingSummaryTestDriveDetails,
                     [
                         vehicle ? `By ${vehicle}` : '',
-                        toWhom ? `to ${toWhom}` : '',
                         date ? `on ${date}` : '',
                     ].filter(Boolean).join(' ')
                 );
@@ -1528,6 +1542,17 @@
 
             if (testDriveNoWrap) {
                 testDriveNoWrap.classList.toggle('hidden', picked('test_drive_given') !== 'no');
+            }
+
+            if (bookingTestDriveVehicleOtherWrap) {
+                const showOtherVehicle = bookingTestDriveVehicleSelect && bookingTestDriveVehicleSelect.value === 'Other';
+                bookingTestDriveVehicleOtherWrap.classList.toggle('hidden', !showOtherVehicle);
+                if (!showOtherVehicle) {
+                    const otherInput = bookingTestDriveVehicleOtherWrap.querySelector('input');
+                    if (otherInput) {
+                        otherInput.value = '';
+                    }
+                }
             }
 
             if (financeFormWrap) {
@@ -2009,6 +2034,7 @@
             competitionBrandSelect.addEventListener('change', function () {
                 if (competitionModelSelect) {
                     competitionModelSelect.dataset.selectedModel = '';
+                    competitionModelSelect.value = '';
                 }
                 syncCompetitionModels();
             });
@@ -2018,6 +2044,7 @@
             existingVehicleBrandSelect.addEventListener('change', function () {
                 if (existingVehicleModelSelect) {
                     existingVehicleModelSelect.dataset.selectedModel = '';
+                    existingVehicleModelSelect.value = '';
                 }
                 syncExistingVehicleModels();
             });
@@ -2025,6 +2052,13 @@
 
         if (existingVehicleModelSelect) {
             existingVehicleModelSelect.addEventListener('change', syncBuyingDetailsSummary);
+        }
+
+        if (bookingTestDriveVehicleSelect) {
+            bookingTestDriveVehicleSelect.addEventListener('change', () => {
+                syncBuyingState();
+                syncBuyingDetailsSummary();
+            });
         }
 
         if (toggleExchangeEdit) {
@@ -2036,6 +2070,7 @@
             exchangeBrandSelect.addEventListener('change', function () {
                 if (exchangeModelSelect) {
                     exchangeModelSelect.dataset.selectedModel = '';
+                    exchangeModelSelect.value = '';
                 }
                 syncExchangeModels();
             });

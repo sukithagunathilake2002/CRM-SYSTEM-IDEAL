@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\Enquiry;
 use App\Models\User;
 use App\Models\Vehicle;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -95,8 +96,10 @@ class EnquiryController extends Controller
             'follow_type' => ['required', Rule::in(['Home Visit', 'Showroom Visit', 'Call'])],
             'follow_date' => ['required', 'date'],
             'follow_time' => ['required', 'date_format:H:i'],
+            'inquiry_date' => ['required', 'date', 'before_or_equal:' . now('Asia/Colombo')->toDateString()],
         ], [
             'mobiles.*.regex' => 'Contact number must be 10 digits and start with 0.',
+            'inquiry_date.before_or_equal' => 'Date of Inquiry cannot be a future date.',
         ]);
 
         $mobileNumbers = collect($request->input('mobiles', []))
@@ -166,7 +169,11 @@ class EnquiryController extends Controller
 
         $ownerUserId = $request->user()?->id;
 
-        $createdEnquiry = DB::transaction(function () use ($request, $vehicle, $selectedVehiclePayload, $mobileNumbers, $district, $location, $ownerUserId) {
+        $now = now('Asia/Colombo');
+        $inquiryAt = Carbon::parse((string) $request->input('inquiry_date'), 'Asia/Colombo')
+            ->setTime($now->hour, $now->minute, $now->second);
+
+        $createdEnquiry = DB::transaction(function () use ($request, $vehicle, $selectedVehiclePayload, $mobileNumbers, $district, $location, $ownerUserId, $inquiryAt) {
             $customer = Customer::create([
                 'title' => $request->title,
                 'name' => trim((string) $request->name),
@@ -178,7 +185,7 @@ class EnquiryController extends Controller
                 'address2' => $request->filled('address2') ? $request->address2 : null,
             ]);
 
-            return Enquiry::create([
+            $enquiry = new Enquiry([
                 'user_id' => $ownerUserId,
                 'customer_id' => $customer->id,
                 'vehicle_id' => $vehicle->id,
@@ -193,6 +200,11 @@ class EnquiryController extends Controller
                 'finance' => $request->finance ? 1 : 0,
                 'status' => 'OPEN',
             ]);
+
+            $enquiry->created_at = $inquiryAt;
+            $enquiry->save();
+
+            return $enquiry;
         });
 
         $createdLeadDetails = [

@@ -6,6 +6,7 @@ use App\Models\CompetitionVehicle;
 use App\Models\Enquiry;
 use App\Models\FollowupAttempt;
 use App\Models\User;
+use App\Models\Vehicle;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -57,6 +58,11 @@ class FollowUpController extends Controller
             })
             ->toArray();
         $competitionBrands = array_keys($competitionMap);
+        $vehicleModels = Vehicle::query()
+            ->select('model')
+            ->distinct()
+            ->orderBy('model')
+            ->pluck('model');
         $followupHistory = $enquiry->followupAttempts;
         $followupStatus = $enquiry->followup_status ?: 'pending';
         $selectedFollowupStatus = old('followup_status', $followupStatus);
@@ -67,6 +73,11 @@ class FollowUpController extends Controller
         $selectedMetWhom = old('followup_met_whom', $enquiry->followup_met_whom ?? '');
         $selectedResult = old('followup_result', $enquiry->followup_result ?? '');
         $selectedCustomerComment = old('followup_customer_comment', $enquiry->followup_customer_comment ?? '');
+        $closedReasonOptions = $this->closedReasonOptions();
+        $selectedClosedReason = old(
+            'followup_closed_reason',
+            $selectedResult === 'closed' ? ($enquiry->followup_customer_comment ?? '') : ''
+        );
         $selectedConversionYear = old(
             'followup_conversion_year',
             $enquiry->followup_conversion_year ?: now()->year
@@ -82,7 +93,6 @@ class FollowUpController extends Controller
             $enquiry->followup_test_drive_when ? Carbon::parse($enquiry->followup_test_drive_when)->format('Y-m-d') : ''
         );
         $selectedTestDriveVehicleUsed = old('followup_test_drive_vehicle_used', $enquiry->followup_test_drive_vehicle_used ?? '');
-        $selectedTestDriveToWhom = old('followup_test_drive_to_whom', $enquiry->followup_test_drive_to_whom ?? '');
         $selectedFirstTimeBuyer = old('followup_first_time_buyer', $enquiry->followup_first_time_buyer ?? '');
         $selectedFirstTimeBuyerReason = old('followup_first_time_buyer_reason', $enquiry->followup_first_time_buyer_reason ?? '');
         $selectedLeadTemperature = old('followup_lead_temperature', $enquiry->followup_lead_temperature ?? '');
@@ -93,7 +103,9 @@ class FollowUpController extends Controller
         );
         $selectedNextTime = old(
             'followup_next_time',
-            !empty($enquiry->followup_next_time) ? substr((string) $enquiry->followup_next_time, 0, 5) : ''
+            !empty($enquiry->followup_next_time)
+                ? substr((string) $enquiry->followup_next_time, 0, 5)
+                : now('Asia/Colombo')->format('H:i')
         );
         $selectedLostTo = old('followup_lost_to', $enquiry->followup_lost_to ?? '');
         $selectedLostCompetitionBrand = old('followup_lost_competition_brand', $enquiry->followup_lost_competition_brand ?? '');
@@ -134,6 +146,7 @@ class FollowUpController extends Controller
             'followTypeLabel' => $followTypeLabel,
             'competitionMap' => $competitionMap,
             'competitionBrands' => $competitionBrands,
+            'vehicleModels' => $vehicleModels,
             'followupStatus' => $followupStatus,
             'followupHistory' => $followupHistory,
             'selectedFollowupStatus' => $selectedFollowupStatus,
@@ -141,13 +154,14 @@ class FollowUpController extends Controller
             'selectedMetWhom' => $selectedMetWhom,
             'selectedResult' => $selectedResult,
             'selectedCustomerComment' => $selectedCustomerComment,
+            'closedReasonOptions' => $closedReasonOptions,
+            'selectedClosedReason' => $selectedClosedReason,
             'selectedConversionYear' => $selectedConversionYear,
             'selectedConversionMonth' => $selectedConversionMonth,
             'selectedTestDriveGiven' => $selectedTestDriveGiven,
             'selectedTestDriveNoReason' => $selectedTestDriveNoReason,
             'selectedTestDriveWhen' => $selectedTestDriveWhen,
             'selectedTestDriveVehicleUsed' => $selectedTestDriveVehicleUsed,
-            'selectedTestDriveToWhom' => $selectedTestDriveToWhom,
             'selectedFirstTimeBuyer' => $selectedFirstTimeBuyer,
             'selectedFirstTimeBuyerReason' => $selectedFirstTimeBuyerReason,
             'selectedLeadTemperature' => $selectedLeadTemperature,
@@ -189,6 +203,14 @@ class FollowUpController extends Controller
             'followup_remove_picture_1' => ['nullable', 'boolean'],
             'followup_remove_picture_2' => ['nullable', 'boolean'],
             'followup_customer_comment' => ['nullable', 'string', 'max:1000'],
+            'followup_closed_reason' => [
+                'nullable',
+                Rule::in($this->closedReasonOptions()),
+                Rule::requiredIf(
+                    fn() => $request->input('followup_status') === 'done'
+                        && $request->input('followup_result') === 'closed'
+                ),
+            ],
             'followup_conversion_year' => ['nullable', 'integer', 'between:2000,2100'],
             'followup_conversion_month' => ['nullable', 'integer', 'between:1,12'],
             'followup_test_drive_given' => ['nullable', Rule::in(['yes', 'no'])],
@@ -221,7 +243,7 @@ class FollowUpController extends Controller
                         && $request->input('followup_test_drive_given') === 'yes'
                 ),
             ],
-            'followup_test_drive_to_whom' => [
+            'followup_test_drive_vehicle_used_other' => [
                 'nullable',
                 'string',
                 'max:255',
@@ -229,7 +251,13 @@ class FollowUpController extends Controller
                     fn() => $request->input('followup_status') === 'done'
                         && $request->input('followup_result') === 'active'
                         && $request->input('followup_test_drive_given') === 'yes'
+                        && $request->input('followup_test_drive_vehicle_used') === 'Other'
                 ),
+            ],
+            'followup_test_drive_to_whom' => [
+                'nullable',
+                'string',
+                'max:255',
             ],
             'followup_first_time_buyer' => ['nullable', Rule::in(['yes', 'no'])],
             'followup_first_time_buyer_reason' => [
@@ -306,7 +334,18 @@ class FollowUpController extends Controller
                         && $request->input('followup_result') === 'lost'
                 ),
             ],
-            'followup_lost_reject_reasons.*' => [Rule::in(['issue_with_product', 'got_better_discount', 'other'])],
+            'followup_lost_reject_reasons.*' => [Rule::in([
+                'got_better_discount',
+                'desired_model_not_available',
+                'desired_color_not_available',
+                'got_better_exchange_value',
+                'got_better_finance_facility',
+                'got_credit_facility',
+                'not_happy_with_dealership_dealing',
+                'friend_family_did_not_recommend',
+                'did_not_ask',
+                'other',
+            ])],
             'followup_lost_reject_other_text' => [
                 'nullable',
                 'string',
@@ -390,11 +429,12 @@ class FollowUpController extends Controller
                     ? ($validated['followup_test_drive_when'] ?? null)
                     : null;
                 $enquiry->followup_test_drive_vehicle_used = ($validated['followup_test_drive_given'] ?? null) === 'yes'
-                    ? ($validated['followup_test_drive_vehicle_used'] ?? null)
+                    ? $this->resolveTestDriveVehicleUsed(
+                        $validated['followup_test_drive_vehicle_used'] ?? null,
+                        $validated['followup_test_drive_vehicle_used_other'] ?? null
+                    )
                     : null;
-                $enquiry->followup_test_drive_to_whom = ($validated['followup_test_drive_given'] ?? null) === 'yes'
-                    ? ($validated['followup_test_drive_to_whom'] ?? null)
-                    : null;
+                $enquiry->followup_test_drive_to_whom = null;
                 $enquiry->followup_first_time_buyer = $validated['followup_first_time_buyer'] ?? null;
                 $enquiry->followup_first_time_buyer_reason = ($validated['followup_first_time_buyer'] ?? null) === 'no'
                     ? ($validated['followup_first_time_buyer_reason'] ?? null)
@@ -435,6 +475,7 @@ class FollowUpController extends Controller
                 $this->clearActiveFollowupFields($enquiry);
                 $this->clearLostFollowupFields($enquiry);
                 $this->clearNotDoneFollowupFields($enquiry);
+                $enquiry->followup_customer_comment = $validated['followup_closed_reason'] ?? null;
                 $this->markTerminalLead($enquiry, 'closed');
             } else {
                 $this->clearActiveFollowupFields($enquiry);
@@ -532,6 +573,21 @@ class FollowUpController extends Controller
         $enquiry->status = strtoupper($result);
     }
 
+    private function closedReasonOptions(): array
+    {
+        return [
+            'Customer postponed indefinitely',
+            'Poor customer response',
+            'Already delivered',
+            'Duplicate entry',
+            'Already booked',
+            'Unable to speak to customer',
+            'Wrong number',
+            'Purchase second-hand car',
+            'Other',
+        ];
+    }
+
     private function canAccessEnquiry(User $viewer, Enquiry $enquiry): bool
     {
         if ($viewer->role === User::ROLE_SUPER_ADMIN) {
@@ -624,5 +680,17 @@ class FollowUpController extends Controller
 
             $enquiry->{$field} = $request->file($field)->store('followups', 'public');
         }
+    }
+
+    private function resolveTestDriveVehicleUsed(?string $selectedVehicle, ?string $otherVehicle): ?string
+    {
+        $selectedVehicle = trim((string) $selectedVehicle);
+        $otherVehicle = trim((string) $otherVehicle);
+
+        if ($selectedVehicle === 'Other') {
+            return $otherVehicle !== '' ? $otherVehicle : null;
+        }
+
+        return $selectedVehicle !== '' ? $selectedVehicle : null;
     }
 }
