@@ -97,6 +97,99 @@ class EnquiryController extends Controller
         return response()->json($enquiries);
     }
 
+    /**
+     * List Call EPRs - Matches web version
+     */
+    public function listCallEpds(Request $request)
+    {
+        $viewer = $request->user();
+        $today = now('Asia/Colombo')->toDateString();
+        
+        $enquiriesQuery = Enquiry::with([
+            'customer', 
+            'vehicle', 
+            'user',
+            'prospectSheet',
+            'booking'
+        ])
+        ->pendingRegistration()
+        ->whereDate('follow_date', '<=', $today)
+        ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%call%']);
+
+        if ($viewer && $viewer->role !== User::ROLE_SUPER_ADMIN) {
+            $accessibleUserIds = $this->resolveAccessibleUserIds($viewer);
+            $enquiriesQuery->whereIn('user_id', $accessibleUserIds);
+        }
+
+        $enquiries = $enquiriesQuery
+            ->latest()
+            ->paginate(20);
+
+        return response()->json($enquiries);
+    }
+
+    /**
+     * List Showroom EPRs - Matches web version
+     */
+    public function listShowroomEpds(Request $request)
+    {
+        $viewer = $request->user();
+        $today = now('Asia/Colombo')->toDateString();
+        
+        $enquiriesQuery = Enquiry::with([
+            'customer', 
+            'vehicle', 
+            'user',
+            'prospectSheet',
+            'booking'
+        ])
+        ->pendingRegistration()
+        ->whereDate('follow_date', '<=', $today)
+        ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%showroom%']);
+
+        if ($viewer && $viewer->role !== User::ROLE_SUPER_ADMIN) {
+            $accessibleUserIds = $this->resolveAccessibleUserIds($viewer);
+            $enquiriesQuery->whereIn('user_id', $accessibleUserIds);
+        }
+
+        $enquiries = $enquiriesQuery
+            ->latest()
+            ->paginate(20);
+
+        return response()->json($enquiries);
+    }
+
+    /**
+     * List Home EPRs - Matches web version
+     */
+    public function listHomeEpds(Request $request)
+    {
+        $viewer = $request->user();
+        $today = now('Asia/Colombo')->toDateString();
+        
+        $enquiriesQuery = Enquiry::with([
+            'customer', 
+            'vehicle', 
+            'user',
+            'prospectSheet',
+            'booking'
+        ])
+        ->pendingRegistration()
+        ->whereDate('follow_date', '<=', $today)
+        ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%home%']);
+
+        if ($viewer && $viewer->role !== User::ROLE_SUPER_ADMIN) {
+            $accessibleUserIds = $this->resolveAccessibleUserIds($viewer);
+            $enquiriesQuery->whereIn('user_id', $accessibleUserIds);
+        }
+
+        $enquiries = $enquiriesQuery
+            ->latest()
+            ->paginate(20);
+
+        return response()->json($enquiries);
+    }
+
     public function store(Request $request)
     {
         $viewer = $request->user();

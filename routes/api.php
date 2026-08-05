@@ -46,8 +46,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
     Route::get('/dashboard/district-data', [DashboardController::class, 'getDistrictData']);
     
-    // Enquiries
+    // Enquiries - Add the call, showroom, home endpoints
     Route::get('/enquiries', [EnquiryController::class, 'list']);
+    Route::get('/enquiries/call', [EnquiryController::class, 'listCallEpds']);
+    Route::get('/enquiries/showroom', [EnquiryController::class, 'listShowroomEpds']);
+    Route::get('/enquiries/home', [EnquiryController::class, 'listHomeEpds']);
     Route::get('/enquiries/{enquiry}', [EnquiryController::class, 'show']);
     Route::post('/enquiries', [EnquiryController::class, 'store']);
     
