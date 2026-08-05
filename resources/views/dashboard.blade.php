@@ -132,6 +132,10 @@ $viewerId = (int) ($user?->id ?? 0);
                         <a href="{{ route('enquiries.list', ['booking' => 'active']) }}">Active Booking</a>
                         <a href="{{ url('/epr') }}">Cancelled Booking</a>
                         <a href="{{ route('enquiries.list', ['delivery' => 'active']) }}">Deliveries</a>
+                        @if(auth()->user()?->role === \App\Models\User::ROLE_SALES_CONSULTANT)
+                            <a href="{{ route('enquiries.list', ['delivery_approval' => 'pending']) }}">Pending Delivery</a>
+                            <a href="{{ route('enquiries.list', ['delivery_approval' => 'approved']) }}">Approved Delivery</a>
+                        @endif
                         <a href="{{ route('enquiries.list', ['view' => 'all']) }}">All Leads</a>
                     </div>
 

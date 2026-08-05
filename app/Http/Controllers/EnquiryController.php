@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Models\Delivery;
 use App\Models\Enquiry;
 use App\Models\User;
 use App\Models\Vehicle;
@@ -269,13 +270,21 @@ public function list(Request $request)
     if ($selectedDeliveryView !== 'active') {
         $selectedDeliveryView = null;
     }
+    $selectedDeliveryApprovalView = strtolower(trim((string) $request->query('delivery_approval', '')));
+    if (!in_array($selectedDeliveryApprovalView, [Delivery::APPROVAL_PENDING, Delivery::APPROVAL_APPROVED], true)) {
+        $selectedDeliveryApprovalView = null;
+    }
 
     if ($viewer && $viewer->role !== User::ROLE_SUPER_ADMIN) {
         $accessibleUserIds = $this->resolveAccessibleUserIds($viewer);
         $enquiriesQuery->whereIn('user_id', $accessibleUserIds);
     }
 
-    if ($selectedDeliveryView === 'active') {
+    if ($selectedDeliveryApprovalView !== null) {
+        $enquiriesQuery->whereHas('delivery', function ($query) use ($selectedDeliveryApprovalView): void {
+            $query->where('approval_status', $selectedDeliveryApprovalView);
+        });
+    } elseif ($selectedDeliveryView === 'active') {
         $enquiriesQuery->activeDeliveryStage();
     } elseif ($selectedBookingView === 'active') {
         $enquiriesQuery->activeBookingStage();

@@ -124,6 +124,18 @@ Route::middleware('auth')->group(function () {
     Route::post('/lead-transfer/{transferRequest}/reject', [LeadTransferRequestController::class, 'reject'])
         ->middleware('role:' . User::ROLE_AREA_MANAGER)
         ->name('lead_transfer.reject');
+
+    Route::get('/delivery-approvals', [DeliveryController::class, 'approvals'])
+        ->middleware('role:' . User::ROLE_AREA_MANAGER)
+        ->name('delivery.approvals');
+
+    Route::post('/delivery-approvals/{delivery}/approve', [DeliveryController::class, 'approve'])
+        ->middleware('role:' . User::ROLE_AREA_MANAGER)
+        ->name('delivery.approve');
+
+    Route::post('/delivery-approvals/{delivery}/reject', [DeliveryController::class, 'reject'])
+        ->middleware('role:' . User::ROLE_AREA_MANAGER)
+        ->name('delivery.reject');
 });
 
 /*

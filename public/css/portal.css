@@ -1850,6 +1850,87 @@ html.theme-dark .hierarchy-metric-btn {
     background: #f8fbff;
 }
 
+.delivery-approval-summary-card {
+    background: #f8fbff;
+}
+
+.delivery-approvals-table td strong,
+.delivery-approvals-table td span,
+.delivery-approvals-table td small {
+    display: block;
+}
+
+.delivery-approvals-table td span,
+.delivery-approvals-table td small {
+    margin-top: 3px;
+    color: #64748b;
+    font-size: 12px;
+}
+
+.delivery-status-pill {
+    display: inline-flex !important;
+    width: fit-content;
+    align-items: center;
+    border-radius: 999px;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.delivery-status-pending {
+    background: #fff7ed;
+    color: #9a3412 !important;
+}
+
+.delivery-status-approved {
+    background: #dcfce7;
+    color: #166534 !important;
+}
+
+.delivery-status-rejected {
+    background: #fee2e2;
+    color: #991b1b !important;
+}
+
+.delivery-approval-actions,
+.delivery-reject-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.delivery-approval-actions .btn-link {
+    border: 0;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+}
+
+.delivery-reject-form input {
+    width: min(180px, 100%);
+    border: 1px solid #cbd5e1;
+    border-radius: 999px;
+    padding: 8px 10px;
+    font: inherit;
+}
+
+html.theme-dark .delivery-approval-summary-card,
+html.theme-dark .delivery-approvals-card {
+    background: #0f172a;
+}
+
+html.theme-dark .delivery-approvals-table td span,
+html.theme-dark .delivery-approvals-table td small {
+    color: #cbd5e1;
+}
+
+html.theme-dark .delivery-reject-form input {
+    background: #111827;
+    border-color: #334155;
+    color: #e5e7eb;
+}
+
 .consultant-pending-head {
     display: flex;
     justify-content: space-between;

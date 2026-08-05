@@ -33,6 +33,7 @@
     $selectedTitle = old('title', $defaultValues['title']);
     $selectedName = old('name', $defaultValues['name']);
     $selectedContactType = old('contact_type', $defaultValues['contact_type']);
+    $selectedEmail = old('email', $defaultValues['email']);
     $selectedMobile = old('mobile_numbers', $defaultValues['mobile_numbers']);
     $selectedDistrict = old('district', $defaultValues['district']);
     $selectedLocation = old('location', $defaultValues['location']);
@@ -94,9 +95,13 @@
     );
     $selectedPurchaseMode = old('purchase_mode', $defaultValues['purchase_mode']);
     $selectedFinanceForm = old('finance_form', $defaultValues['finance_form']);
+    $selectedFinanceBank = old('finance_bank', $defaultValues['finance_bank'] ?? '');
+    $selectedFinanceOtherDetails = old('finance_other_details', $defaultValues['finance_other_details'] ?? '');
+    $bankOptions = $bankOptions ?? [];
     $selectedCompetition = old('interested_in_competition', $defaultValues['interested_in_competition']);
     $selectedCompetitionBrand = old('competition_brand', $defaultValues['competition_brand']);
     $selectedCompetitionModel = old('competition_model', $defaultValues['competition_model']);
+    $selectedCompetitionYear = old('competition_model_year', $defaultValues['competition_model_year'] ?? '');
     $selectedFirstTimeBuyer = old('first_time_buyer', $defaultValues['first_time_buyer']);
     $selectedExistingBrand = old('existing_vehicle_brand', $defaultValues['existing_vehicle_brand']);
     $selectedExistingModel = old('existing_vehicle_model', $defaultValues['existing_vehicle_model']);
@@ -112,6 +117,9 @@
     $selectedExchangeInsuranceValidity = $selectedExchangeInsuranceRaw
         ? \Carbon\Carbon::parse($selectedExchangeInsuranceRaw)->format('Y-m-d')
         : '';
+    $selectedExchangeInsuranceLabel = $selectedExchangeInsuranceRaw
+        ? \Carbon\Carbon::parse($selectedExchangeInsuranceRaw)->format('d-M-Y')
+        : '';
     $selectedExchangeColor = old('exchange_color', $defaultValues['exchange_color']);
     $selectedExchangeMileage = old('exchange_mileage_km', $defaultValues['exchange_mileage_km']);
     $selectedExchangeRegNo = old('exchange_registration_no', $defaultValues['exchange_registration_no']);
@@ -120,7 +128,14 @@
     $selectedExchangeExpectedPrice = old('exchange_expected_price', $defaultValues['exchange_expected_price']);
     $selectedExchangeQuotedPrice = old('exchange_quoted_price', $defaultValues['exchange_quoted_price']);
     $selectedExchangeDifference = old('exchange_price_difference', $defaultValues['exchange_price_difference']);
-    $isExchangeEdit = old('edit_exchange_details') === '1';
+    $exchangeNeedsVehicleInput = $selectedInterestedExchange === 'yes'
+        && (trim((string) $selectedExchangeBrand) === '' || trim((string) $selectedExchangeModel) === '');
+    $isExchangeEdit = old('edit_exchange_details') === '1' || $exchangeNeedsVehicleInput;
+    $exchangeTypeLabel = match ($selectedExchangeType) {
+        'in_house' => 'In-House',
+        'outhouse' => 'Out-House',
+        default => '',
+    };
 
     $exchangeInterestLabel = match ($prospect?->interested_in_exchange) {
         'yes' => 'Yes',
@@ -161,6 +176,18 @@
     $selectedExpectedDeliveryDate = old('expected_delivery_date', $dateInputValue($defaultValues['expected_delivery_date'], now()->toDateString()));
     $selectedBookingDate = old('booking_date', $dateInputValue($defaultValues['booking_date'], now()->toDateString()));
     $selectedAmountCollected = old('amount_collected', $defaultValues['amount_collected'] ?? 0);
+    $bookingReceiptPaymentModes = $bookingReceiptPaymentModes ?? ['Cash', 'Cheque', 'Bank Transfer', 'Credit/Debit Card'];
+    $selectedBookingReceipts = old('booking_receipts', $defaultValues['booking_receipts'] ?? []);
+    $selectedBookingReceipts = is_array($selectedBookingReceipts) ? array_values($selectedBookingReceipts) : [];
+    if (empty($selectedBookingReceipts)) {
+        $selectedBookingReceipts = [[
+            'receipt_name_no' => '',
+            'receipt_date' => '',
+            'receipt_amount' => (float) $selectedAmountCollected > 0 ? $selectedAmountCollected : '',
+            'payment_mode' => '',
+            'receipt_type' => 'Booking',
+        ]];
+    }
 
     $interestedVehicleLine = collect([$selectedInterestedModel, $selectedInterestedEngine, $selectedInterestedVariant])
         ->filter()
@@ -171,7 +198,7 @@
         'no' => 'No',
         default => '',
     };
-    $competitionVehicleLine = collect([$selectedCompetitionBrand, $selectedCompetitionModel])->filter()->implode(' ');
+    $competitionVehicleLine = collect([$selectedCompetitionBrand, $selectedCompetitionModel, $selectedCompetitionYear])->filter()->implode(' ');
     $competitionSummaryLabel = match ($selectedCompetition) {
         'yes' => $competitionVehicleLine ? 'Yes - ' . $competitionVehicleLine : 'Yes',
         'no' => 'No',
@@ -189,6 +216,10 @@
         'other' => 'Other',
         default => '',
     };
+    $financeDetailsLabel = trim(implode(' - ', array_filter([
+        $financeFormLabel,
+        in_array($selectedFinanceForm, ['in_house', 'self'], true) ? $selectedFinanceBank : $selectedFinanceOtherDetails,
+    ])));
     $selectedCustomerTypeLabel = match ($selectedCustomerType) {
         'individual' => 'Individual',
         'corporate' => 'Corporate',
@@ -223,7 +254,7 @@
         ->implode(' ');
     $exchangeVehicleLine = $exchangeVehicleLine ?: 'Not selected';
 
-    $vehicleColorOptions = ['White', 'Black', 'Silver', 'Grey', 'Red', 'Blue', 'Green', 'Brown', 'Orange', 'Other'];
+    $vehicleColorOptions = $vehicleColorOptions ?? [];
     $competitionMap = collect($competitionMap ?? []);
     $competitionBrands = $competitionMap->keys()->values()->all();
     $stepTitleMap = [
@@ -278,6 +309,7 @@
                 <div class="booking-personal-summary-row"><span>Customer Name</span><strong id="bookingSummaryCustomerName">{{ $summaryName }}</strong></div>
                 <div class="booking-personal-summary-row"><span>Address</span><strong id="bookingSummaryAddress">{{ $summaryAddress ?: 'N/A' }}</strong></div>
                 <div class="booking-personal-summary-row"><span>Mobile No</span><strong id="bookingSummaryMobile">{{ $summaryMobile }}</strong></div>
+                <div class="booking-personal-summary-row"><span>Email</span><strong id="bookingSummaryEmail">{{ $selectedEmail ?: 'N/A' }}</strong></div>
                 <div class="booking-personal-summary-row"><span>Type of Customer</span><strong id="bookingSummaryCustomerType">{{ $customerTypeLabel }}</strong></div>
                 <div class="booking-personal-summary-row {{ $selectedCustomerType === 'corporate' ? '' : 'hidden' }}" id="bookingSummaryCorporateRow"><span>Corporate Name</span><strong id="bookingSummaryCorporateName">{{ $selectedCorporateName ?: 'N/A' }}</strong></div>
                 <div class="booking-personal-summary-row"><span>Profession</span><strong id="bookingSummaryProfession">{{ $professionLabel }}</strong></div>
@@ -342,6 +374,11 @@
                         <div class="field-name">
                             <label>Name</label>
                             <input type="text" name="name" value="{{ $selectedName }}" data-personal-editable>
+                        </div>
+
+                        <div class="field-email">
+                            <label>Email</label>
+                            <input type="email" name="email" value="{{ $selectedEmail }}" data-personal-editable>
                         </div>
 
                         <div class="field-dob">
@@ -519,7 +556,8 @@
                     </div>
 
                     <div class="row buying-color-row">
-                        <select name="interested_vehicle_color" class="vehicle-color-select">
+                        <label class="required-field-label" for="bookingVehicleColor">Color *</label>
+                        <select id="bookingVehicleColor" name="interested_vehicle_color" class="vehicle-color-select" required>
                             <option value="">Select Color</option>
                             @foreach($vehicleColorOptions as $colorOption)
                                 <option value="{{ $colorOption }}" @selected($selectedVehicleColor === $colorOption)>{{ $colorOption }}</option>
@@ -610,8 +648,11 @@
                                 </select>
                             </div>
                             <div>
-                                <select class="buying-select" aria-label="Competition model year" disabled>
+                                <select id="competition_model_year" name="competition_model_year" class="buying-select" aria-label="Competition model year">
                                     <option value="">Model year</option>
+                                    @for($year = (int) now()->year + 1; $year >= 1950; $year--)
+                                        <option value="{{ $year }}" @selected((string) $selectedCompetitionYear === (string) $year)>{{ $year }}</option>
+                                    @endfor
                                 </select>
                             </div>
                         </div>
@@ -665,12 +706,34 @@
                             <label><input type="radio" name="finance_form" value="self" @checked($selectedFinanceForm === 'self')><span>Self</span></label>
                             <label><input type="radio" name="finance_form" value="other" @checked($selectedFinanceForm === 'other')><span>Other</span></label>
                         </div>
+                        <div id="financeBankWrap" class="{{ in_array($selectedFinanceForm, ['in_house', 'self'], true) ? '' : 'hidden' }}">
+                            <label>Bank</label>
+                            <select name="finance_bank" class="buying-select">
+                                <option value="">Select bank</option>
+                                @foreach($bankOptions as $bankOption)
+                                    <option value="{{ $bankOption }}" @selected($selectedFinanceBank === $bankOption)>{{ $bankOption }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div id="financeOtherWrap" class="{{ $selectedFinanceForm === 'other' ? '' : 'hidden' }}">
+                            <label>Other Details</label>
+                            <input type="text" name="finance_other_details" value="{{ $selectedFinanceOtherDetails }}" placeholder="Enter finance details">
+                        </div>
                     </div>
                 </div>
             </section>
 
             <section class="booking-section exchange-section {{ $currentStep === 3 ? 'active' : '' }}">
-                <h3 class="section-heading">Exchange Details</h3>
+                <label class="exchange-top-label">Exchange Type</label>
+                <div id="exchangeTypeRow" class="exchange-system-fields">
+                    <label><input type="radio" name="exchange_type" value="in_house" @checked($selectedExchangeType !== 'outhouse')><span>In - House</span></label>
+                    <label><input type="radio" name="exchange_type" value="outhouse" @checked($selectedExchangeType === 'outhouse')><span>Out- House</span></label>
+                </div>
+
+                <div id="exchangePurchaseRow" class="exchange-purchase-row {{ $selectedExchangeType === 'outhouse' ? 'hidden' : '' }}">
+                    <label>Purchase Value</label>
+                    <input id="exchangePurchaseValueInput" type="number" step="0.01" min="0" name="exchange_purchase_value" value="{{ $selectedExchangePurchaseValue }}">
+                </div>
 
                 <label class="exchange-question-label">Interested in Exchange?</label>
                 <div class="segment-row two exchange-interest-segment">
@@ -678,32 +741,25 @@
                     <label><input type="radio" name="interested_in_exchange" value="no" @checked($selectedInterestedExchange === 'no')><span>No</span></label>
                 </div>
 
-                <div id="exchangeTypeRow" class="exchange-system-fields {{ $selectedInterestedExchange === 'yes' ? '' : 'hidden' }}">
-                    <label><input type="radio" name="exchange_type" value="in_house" @checked($selectedExchangeType !== 'outhouse') @disabled($selectedInterestedExchange !== 'yes')><span>In-House</span></label>
-                    <label><input type="radio" name="exchange_type" value="outhouse" @checked($selectedExchangeType === 'outhouse') @disabled($selectedInterestedExchange !== 'yes')><span>Out-House</span></label>
-                </div>
-
                 <div id="exchangeDetailsWrap" class="exchange-detail-wrap {{ $showExchangeDetails ? '' : 'hidden' }}">
-                    <div class="section-head-inline">
-                        <label>Exchange Details</label>
-                        <label class="inline-edit-check">
-                            <input type="hidden" name="edit_exchange_details" value="0">
-                            <input type="checkbox" id="toggleExchangeEdit" name="edit_exchange_details" value="1" @checked($isExchangeEdit)>
-                            <span>Edit</span>
-                        </label>
-                    </div>
-
-                    <input type="hidden" name="exchange_purchase_value" value="{{ $selectedExchangePurchaseValue }}">
-
                     <div id="exchangeEditFields" class="exchange-edit-fields {{ $showExchangeDetails ? '' : 'hidden' }}">
                         <div class="row exchange-interested-row">
                             <label>Exchange Details</label>
-                            <div class="vehicle-pill-display">
+                            <div class="vehicle-pill-display exchange-vehicle-pill">
                                 <span>{{ strtoupper($exchangeVehicleLine) }}</span>
+                                <label class="inline-edit-check">
+                                    <input type="hidden" name="edit_exchange_details" value="0">
+                                    <input type="checkbox" id="toggleExchangeEdit" name="edit_exchange_details" value="1" @checked($isExchangeEdit)>
+                                    <span>Edit</span>
+                                </label>
                             </div>
                         </div>
 
-                        <div class="row split">
+                        <div
+                            id="exchangeBrandModelRow"
+                            class="row split {{ $isExchangeEdit ? '' : 'hidden' }}"
+                            data-requires-input="{{ $exchangeNeedsVehicleInput ? '1' : '0' }}"
+                        >
                             <div>
                                 <label>Select Brand</label>
                                 <select id="exchange_vehicle_brand" name="exchange_vehicle_brand" class="buying-select">
@@ -721,6 +777,7 @@
                                 <select id="exchange_vehicle_model" name="exchange_vehicle_model" class="buying-select" data-selected-model="{{ $selectedExchangeModel }}">
                                     <option value="">Select Model</option>
                                 </select>
+                                <input type="hidden" id="exchange_vehicle_model_backup" name="exchange_vehicle_model_backup" value="{{ $selectedExchangeModel }}">
                             </div>
                         </div>
 
@@ -832,7 +889,10 @@
 
                                 <div class="exchange-more-head">
                                     <label>Add more images</label>
-                                    <button type="button" id="bookingAddMoreImagesBtn" class="exchange-more-add-btn" aria-label="Add more images">+</button>
+                                    <label class="exchange-image-switch">
+                                        <input type="checkbox" id="bookingAddMoreImagesToggle" checked>
+                                        <span></span>
+                                    </label>
                                 </div>
 
                                 <div id="bookingExtraImageGrid" class="exchange-upload-grid exchange-upload-grid-extra">
@@ -1004,7 +1064,7 @@
                             <p><i></i><strong>First Time Buyer</strong><em>:</em><span>{{ $buyingYesNoLabel($selectedFirstTimeBuyer) ?: 'N/A' }}</span></p>
                             <p><i></i><strong>Mode of Purchase</strong><em>:</em><span>{{ $purchaseModeLabel ?: 'N/A' }}</span></p>
                             @if($selectedPurchaseMode === 'finance')
-                                <p><i></i><strong>Finance From</strong><em>:</em><span>{{ $financeFormLabel ?: 'N/A' }}</span></p>
+                                <p><i></i><strong>Finance From</strong><em>:</em><span>{{ $financeDetailsLabel ?: 'N/A' }}</span></p>
                             @endif
                         </div>
                     </article>
@@ -1013,6 +1073,16 @@
                         <h4>Exchange Details</h4>
                         <div class="booking-form-card-rows compact">
                             <p><i></i><strong>Interested in Exchange</strong><em>:</em><span>{{ $buyingYesNoLabel($selectedInterestedExchange) ?: 'N/A' }}</span></p>
+                            @if($selectedInterestedExchange === 'yes')
+                                <p><i></i><strong>Exchange Type</strong><em>:</em><span>{{ $exchangeTypeLabel ?: 'N/A' }}</span></p>
+                                <p><i></i><strong>Manufacture</strong><em>:</em><span>{{ $selectedExchangeBrand ?: 'N/A' }}</span></p>
+                                <p><i></i><strong>Model</strong><em>:</em><span>{{ $selectedExchangeModel ?: 'N/A' }}</span></p>
+                                <p><i></i><strong>Model Year</strong><em>:</em><span>{{ $selectedExchangeYear ?: 'N/A' }}</span></p>
+                                <p><i></i><strong>Ownership</strong><em>:</em><span>{{ $selectedExchangeOwnership ?: 'N/A' }}</span></p>
+                                <p><i></i><strong>Insurance Validity</strong><em>:</em><span>{{ $selectedExchangeInsuranceLabel ?: 'N/A' }}</span></p>
+                                <p><i></i><strong>Registration No</strong><em>:</em><span>{{ $selectedExchangeRegNo ?: 'N/A' }}</span></p>
+                                <p><i></i><strong>Total Km</strong><em>:</em><span>{{ $selectedExchangeMileage !== null && $selectedExchangeMileage !== '' ? number_format((float) $selectedExchangeMileage, 0) : 'N/A' }}</span></p>
+                            @endif
                         </div>
                     </article>
 
@@ -1058,7 +1128,60 @@
                     </div>
                     <div>
                         <label>Amount Collected</label>
-                        <input type="number" min="0" step="0.01" name="amount_collected" value="{{ $selectedAmountCollected }}">
+                        <input id="amountCollectedInput" type="number" min="0" step="0.01" name="amount_collected" value="{{ $selectedAmountCollected }}" readonly>
+                    </div>
+                </div>
+
+                <div id="bookingReceiptModal" class="booking-receipt-modal hidden" aria-hidden="true">
+                    <div class="booking-receipt-card" role="dialog" aria-modal="true" aria-labelledby="bookingReceiptTitle">
+                        <div class="booking-receipt-head">
+                            <h4 id="bookingReceiptTitle">Booking Receipts</h4>
+                            <button type="button" id="bookingReceiptClose" class="booking-receipt-close" aria-label="Close receipt details">&times;</button>
+                        </div>
+
+                        <div id="bookingReceiptRows" class="booking-receipt-rows">
+                            @foreach($selectedBookingReceipts as $receiptIndex => $receipt)
+                                <div class="booking-receipt-row">
+                                    <div>
+                                        <label>Receipt Name/No</label>
+                                        <input type="text" name="booking_receipts[{{ $receiptIndex }}][receipt_name_no]" value="{{ $receipt['receipt_name_no'] ?? '' }}">
+                                    </div>
+                                    <div>
+                                        <label>Receipt Date</label>
+                                        <input type="date" name="booking_receipts[{{ $receiptIndex }}][receipt_date]" value="{{ $receipt['receipt_date'] ?? '' }}">
+                                    </div>
+                                    <div>
+                                        <label>Receipt Amount</label>
+                                        <input type="number" min="0" step="0.01" name="booking_receipts[{{ $receiptIndex }}][receipt_amount]" value="{{ $receipt['receipt_amount'] ?? '' }}" data-receipt-amount>
+                                    </div>
+                                    <div>
+                                        <label>Mode of Payment</label>
+                                        <select name="booking_receipts[{{ $receiptIndex }}][payment_mode]">
+                                            <option value="">Select mode</option>
+                                            @foreach($bookingReceiptPaymentModes as $paymentMode)
+                                                <option value="{{ $paymentMode }}" @selected(($receipt['payment_mode'] ?? '') === $paymentMode)>{{ $paymentMode }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label>Receipt Type</label>
+                                        <input type="text" name="booking_receipts[{{ $receiptIndex }}][receipt_type]" value="Booking" readonly>
+                                    </div>
+                                    <button type="button" class="booking-receipt-remove" aria-label="Remove receipt">Remove</button>
+                                </div>
+                            @endforeach
+                        </div>
+
+                        <div class="booking-receipt-total">
+                            <span>Total Receipt Amount</span>
+                            <strong id="bookingReceiptTotalDisplay">{{ number_format((float) $selectedAmountCollected, 2) }}</strong>
+                        </div>
+
+                        <div class="booking-receipt-actions">
+                            <button type="button" id="bookingReceiptCancel">Cancel</button>
+                            <button type="button" id="bookingReceiptSave">Save</button>
+                            <button type="button" id="bookingReceiptAddMore">Add More</button>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -1083,9 +1206,13 @@
     <div class="booking-submit-popup" id="bookingSubmitPopup" role="dialog" aria-modal="true" aria-labelledby="bookingSubmitTitle">
         <div class="booking-submit-popup-card">
             <div class="booking-submit-icon" aria-hidden="true">&#10003;</div>
-            <h4 id="bookingSubmitTitle">Submitted Successfully</h4>
+            <h4 id="bookingSubmitTitle">Booking Submitted</h4>
             <p>{{ session('booking_submitted_message', 'Booking submitted successfully.') }}</p>
-            <button type="button" class="booking-submit-popup-btn" id="bookingSubmitPopupOk">OK</button>
+            <strong>Do you need to open Delivery now?</strong>
+            <div class="booking-submit-popup-actions">
+                <button type="button" class="booking-submit-popup-btn secondary" id="bookingSubmitPopupNo">No</button>
+                <button type="button" class="booking-submit-popup-btn" id="bookingSubmitPopupYes">Yes</button>
+            </div>
         </div>
     </div>
 @endif
@@ -1119,6 +1246,7 @@
         const bookingSummaryCustomerName = document.getElementById('bookingSummaryCustomerName');
         const bookingSummaryAddress = document.getElementById('bookingSummaryAddress');
         const bookingSummaryMobile = document.getElementById('bookingSummaryMobile');
+        const bookingSummaryEmail = document.getElementById('bookingSummaryEmail');
         const bookingSummaryCustomerType = document.getElementById('bookingSummaryCustomerType');
         const bookingSummaryCorporateRow = document.getElementById('bookingSummaryCorporateRow');
         const bookingSummaryCorporateName = document.getElementById('bookingSummaryCorporateName');
@@ -1149,26 +1277,43 @@
         const bookingTestDriveNoReasonSelect = document.getElementById('bookingTestDriveNoReasonSelect');
         const bookingTestDriveNoReasonOtherWrap = document.getElementById('bookingTestDriveNoReasonOtherWrap');
         const financeFormWrap = document.getElementById('financeFormWrap');
+        const financeBankWrap = document.getElementById('financeBankWrap');
+        const financeOtherWrap = document.getElementById('financeOtherWrap');
         const competitionWrap = document.getElementById('competitionWrap');
         const competitionBrandSelect = document.getElementById('competition_brand');
         const competitionModelSelect = document.getElementById('competition_model');
+        const competitionYearSelect = document.getElementById('competition_model_year');
         const existingVehicleWrap = document.getElementById('existingVehicleWrap');
         const existingVehicleBrandSelect = document.getElementById('existing_vehicle_brand');
         const existingVehicleModelSelect = document.getElementById('existing_vehicle_model');
         const exchangeTypeRow = document.getElementById('exchangeTypeRow');
+        const exchangePurchaseRow = document.getElementById('exchangePurchaseRow');
+        const exchangePurchaseValueInput = document.getElementById('exchangePurchaseValueInput');
         const exchangeDetailsWrap = document.getElementById('exchangeDetailsWrap');
         const toggleExchangeEdit = document.getElementById('toggleExchangeEdit');
         const exchangeEditFields = document.getElementById('exchangeEditFields');
+        const exchangeBrandModelRow = document.getElementById('exchangeBrandModelRow');
         const exchangeBrandSelect = document.getElementById('exchange_vehicle_brand');
         const exchangeModelSelect = document.getElementById('exchange_vehicle_model');
+        const exchangeModelBackupInput = document.getElementById('exchange_vehicle_model_backup');
         const exchangeExpectedPriceInput = document.getElementById('exchange_expected_price');
         const exchangeQuotedPriceInput = document.getElementById('exchange_quoted_price');
         const exchangeDifferenceInput = document.getElementById('exchange_price_difference');
         const bookingImagesToggle = document.getElementById('bookingImagesToggle');
         const bookingImageBody = document.getElementById('bookingImageBody');
-        const bookingAddMoreImagesBtn = document.getElementById('bookingAddMoreImagesBtn');
+        const bookingAddMoreImagesToggle = document.getElementById('bookingAddMoreImagesToggle');
         const bookingExtraImageGrid = document.getElementById('bookingExtraImageGrid');
         const exchangePreviewObjectUrls = new WeakMap();
+        const amountCollectedInput = document.getElementById('amountCollectedInput');
+        const bookingReceiptModal = document.getElementById('bookingReceiptModal');
+        const bookingReceiptRows = document.getElementById('bookingReceiptRows');
+        const bookingReceiptClose = document.getElementById('bookingReceiptClose');
+        const bookingReceiptCancel = document.getElementById('bookingReceiptCancel');
+        const bookingReceiptSave = document.getElementById('bookingReceiptSave');
+        const bookingReceiptAddMore = document.getElementById('bookingReceiptAddMore');
+        const bookingReceiptTotalDisplay = document.getElementById('bookingReceiptTotalDisplay');
+        const bookingReceiptPaymentModes = @json($bookingReceiptPaymentModes);
+        let bookingReceiptSnapshot = null;
         const purchaseOrderTile = document.getElementById('purchaseOrderTile');
         const purchaseOrderInput = document.getElementById('purchase_order_image');
         const purchaseOrderPreview = document.getElementById('purchaseOrderPreview');
@@ -1307,6 +1452,7 @@
             setSummaryText(bookingSummaryCustomerName, customerName);
             setSummaryText(bookingSummaryAddress, address);
             setSummaryText(bookingSummaryMobile, bookingMobileNumbersInput ? bookingMobileNumbersInput.value.trim() : '');
+            setSummaryText(bookingSummaryEmail, fieldValue('email'));
             setSummaryText(buyingSummaryCustomerName, customerName);
             setSummaryText(buyingSummaryAddress, address);
             setSummaryText(buyingSummaryMobile, bookingMobileNumbersInput ? bookingMobileNumbersInput.value.trim() : '');
@@ -1424,7 +1570,7 @@
             }
 
             if (competition === 'yes') {
-                const competitionVehicle = [selectText('competition_brand'), selectText('competition_model')].filter(Boolean).join(' ');
+                const competitionVehicle = [selectText('competition_brand'), selectText('competition_model'), selectText('competition_model_year')].filter(Boolean).join(' ');
                 setSummaryText(buyingSummaryCompetition, competitionVehicle ? `Yes - ${competitionVehicle}` : 'Yes');
             } else if (competition === 'not_asked') {
                 setSummaryText(buyingSummaryCompetition, 'I did not ask');
@@ -1442,24 +1588,40 @@
             } else {
                 setSummaryText(buyingSummaryFirstTime, yesNoSummary(firstTimeBuyer));
             }
-            setSummaryText(buyingSummaryPurchaseMode, purchaseMode === 'finance' ? 'Finance' : (purchaseMode === 'cash' ? 'Cash' : ''));
+            if (purchaseMode === 'finance') {
+                const financeForm = checkedValue('finance_form');
+                const financeLabel = {
+                    in_house: 'In House',
+                    self: 'Self',
+                    other: 'Other',
+                }[financeForm] || '';
+                const financeDetail = ['in_house', 'self'].includes(financeForm)
+                    ? selectText('finance_bank')
+                    : fieldValue('finance_other_details');
+                setSummaryText(buyingSummaryPurchaseMode, ['Finance', financeLabel, financeDetail].filter(Boolean).join(' - '));
+            } else {
+                setSummaryText(buyingSummaryPurchaseMode, purchaseMode === 'cash' ? 'Cash' : '');
+            }
         }
 
         function setSelectOptions(selectEl, values, placeholder, selectedValue) {
             if (!selectEl) return;
             const safeSelected = selectedValue || '';
 
-            let html = '<option value="">' + placeholder + '</option>';
+            const options = [new Option(placeholder, '')];
             values.forEach((value) => {
-                const selected = value === safeSelected ? ' selected' : '';
-                html += '<option value="' + value + '"' + selected + '>' + value + '</option>';
+                const option = new Option(value, value);
+                option.selected = value === safeSelected;
+                options.push(option);
             });
 
             if (safeSelected && !values.includes(safeSelected)) {
-                html += '<option value="' + safeSelected + '" selected>' + safeSelected + '</option>';
+                const selectedOption = new Option(safeSelected, safeSelected);
+                selectedOption.selected = true;
+                options.push(selectedOption);
             }
 
-            selectEl.innerHTML = html;
+            selectEl.replaceChildren(...options);
         }
 
         async function loadEngines(model, selectedEngine) {
@@ -1544,6 +1706,98 @@
             return selected ? selected.value : '';
         }
 
+        function escapeReceiptValue(value) {
+            return String(value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/"/g, '&quot;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+
+        function receiptRowTemplate(index, values = {}) {
+            const paymentOptions = ['<option value="">Select mode</option>']
+                .concat(bookingReceiptPaymentModes.map((mode) => {
+                    const selected = mode === (values.payment_mode || '') ? ' selected' : '';
+                    return `<option value="${mode}"${selected}>${mode}</option>`;
+                }))
+                .join('');
+
+            return `
+                <div class="booking-receipt-row">
+                    <div>
+                        <label>Receipt Name/No</label>
+                        <input type="text" name="booking_receipts[${index}][receipt_name_no]" value="${escapeReceiptValue(values.receipt_name_no)}">
+                    </div>
+                    <div>
+                        <label>Receipt Date</label>
+                        <input type="date" name="booking_receipts[${index}][receipt_date]" value="${escapeReceiptValue(values.receipt_date)}">
+                    </div>
+                    <div>
+                        <label>Receipt Amount</label>
+                        <input type="number" min="0" step="0.01" name="booking_receipts[${index}][receipt_amount]" value="${escapeReceiptValue(values.receipt_amount)}" data-receipt-amount>
+                    </div>
+                    <div>
+                        <label>Mode of Payment</label>
+                        <select name="booking_receipts[${index}][payment_mode]">${paymentOptions}</select>
+                    </div>
+                    <div>
+                        <label>Receipt Type</label>
+                        <input type="text" name="booking_receipts[${index}][receipt_type]" value="Booking" readonly>
+                    </div>
+                    <button type="button" class="booking-receipt-remove" aria-label="Remove receipt">Remove</button>
+                </div>
+            `;
+        }
+
+        function serializeReceiptRows() {
+            if (!bookingReceiptRows) return [];
+
+            return Array.from(bookingReceiptRows.querySelectorAll('.booking-receipt-row')).map((row) => ({
+                receipt_name_no: row.querySelector('[name$="[receipt_name_no]"]')?.value || '',
+                receipt_date: row.querySelector('[name$="[receipt_date]"]')?.value || '',
+                receipt_amount: row.querySelector('[name$="[receipt_amount]"]')?.value || '',
+                payment_mode: row.querySelector('[name$="[payment_mode]"]')?.value || '',
+                receipt_type: 'Booking',
+            }));
+        }
+
+        function renderReceiptRows(rows) {
+            if (!bookingReceiptRows) return;
+            const safeRows = rows.length ? rows : [{}];
+            bookingReceiptRows.innerHTML = safeRows
+                .map((row, index) => receiptRowTemplate(index, row))
+                .join('');
+            syncReceiptTotal();
+        }
+
+        function syncReceiptTotal() {
+            if (!bookingReceiptRows) return;
+            const total = Array.from(bookingReceiptRows.querySelectorAll('[data-receipt-amount]'))
+                .reduce((sum, input) => sum + (parseFloat(input.value || '0') || 0), 0);
+
+            if (amountCollectedInput) {
+                amountCollectedInput.value = total.toFixed(2);
+            }
+
+            if (bookingReceiptTotalDisplay) {
+                bookingReceiptTotalDisplay.textContent = total.toFixed(2);
+            }
+        }
+
+        function openReceiptModal() {
+            if (!bookingReceiptModal) return;
+            bookingReceiptSnapshot = serializeReceiptRows();
+            bookingReceiptModal.classList.remove('hidden');
+            bookingReceiptModal.setAttribute('aria-hidden', 'false');
+            bookingReceiptModal.querySelector('input, select, button')?.focus();
+        }
+
+        function closeReceiptModal() {
+            if (!bookingReceiptModal) return;
+            bookingReceiptModal.classList.add('hidden');
+            bookingReceiptModal.setAttribute('aria-hidden', 'true');
+        }
+
         function syncBuyingState() {
             if (quoteDateWrap) {
                 quoteDateWrap.classList.toggle('hidden', picked('quote_taken') !== 'yes');
@@ -1583,6 +1837,29 @@
                 financeFormWrap.classList.toggle('hidden', picked('purchase_mode') !== 'finance');
             }
 
+            const selectedFinanceForm = checkedValue('finance_form');
+            if (financeBankWrap) {
+                const showBank = picked('purchase_mode') === 'finance' && ['in_house', 'self'].includes(selectedFinanceForm);
+                financeBankWrap.classList.toggle('hidden', !showBank);
+                if (!showBank) {
+                    const bankSelect = financeBankWrap.querySelector('select');
+                    if (bankSelect) {
+                        bankSelect.value = '';
+                    }
+                }
+            }
+
+            if (financeOtherWrap) {
+                const showOtherFinance = picked('purchase_mode') === 'finance' && selectedFinanceForm === 'other';
+                financeOtherWrap.classList.toggle('hidden', !showOtherFinance);
+                if (!showOtherFinance) {
+                    const otherInput = financeOtherWrap.querySelector('input');
+                    if (otherInput) {
+                        otherInput.value = '';
+                    }
+                }
+            }
+
             if (competitionWrap) {
                 competitionWrap.classList.toggle('hidden', picked('interested_in_competition') !== 'yes');
             }
@@ -1592,26 +1869,20 @@
             }
 
             if (exchangeTypeRow) {
-                const showExchangeType = picked('interested_in_exchange') === 'yes';
-                exchangeTypeRow.classList.toggle('hidden', !showExchangeType);
-
-                const exchangeTypeInputs = exchangeTypeRow.querySelectorAll('input, select, textarea, button');
-                exchangeTypeInputs.forEach((input) => {
-                    input.disabled = !showExchangeType;
-                });
-
                 const exchangeTypeRadios = exchangeTypeRow.querySelectorAll('input[name="exchange_type"]');
-                if (showExchangeType && !picked('exchange_type')) {
+                if (!picked('exchange_type')) {
                     const defaultExchangeType = exchangeTypeRow.querySelector('input[name="exchange_type"][value="in_house"]');
                     if (defaultExchangeType) {
                         defaultExchangeType.checked = true;
                     }
                 }
+            }
 
-                if (!showExchangeType) {
-                    exchangeTypeRadios.forEach((radio) => {
-                        radio.checked = false;
-                    });
+            if (exchangePurchaseRow) {
+                const showPurchaseValue = picked('exchange_type') === 'in_house';
+                exchangePurchaseRow.classList.toggle('hidden', !showPurchaseValue);
+                if (!showPurchaseValue && exchangePurchaseValueInput) {
+                    exchangePurchaseValueInput.value = '';
                 }
             }
 
@@ -1625,6 +1896,7 @@
                 if (exchangeEditFields) {
                     exchangeEditFields.classList.toggle('hidden', !showExchangeDetails);
                 }
+                syncExchangeEditState();
             }
 
             syncExchangeNoActionMode();
@@ -1635,6 +1907,11 @@
             if (!exchangeDetailsWrap || !exchangeEditFields) return;
             const showExchangeDetails = !exchangeDetailsWrap.classList.contains('hidden');
             exchangeEditFields.classList.toggle('hidden', !showExchangeDetails);
+            if (exchangeBrandModelRow) {
+                const requiresInput = exchangeBrandModelRow.dataset.requiresInput === '1'
+                    || !((exchangeBrandSelect?.value || '').trim() && (exchangeModelSelect?.value || exchangeModelSelect?.dataset.selectedModel || '').trim());
+                exchangeBrandModelRow.classList.toggle('hidden', !(showExchangeDetails && (requiresInput || (toggleExchangeEdit && toggleExchangeEdit.checked))));
+            }
         }
 
         function syncCompetitionModels() {
@@ -1673,6 +1950,9 @@
 
             setSelectOptions(exchangeModelSelect, models, 'Select Model', selectedModel);
             exchangeModelSelect.dataset.selectedModel = '';
+            if (exchangeModelBackupInput) {
+                exchangeModelBackupInput.value = exchangeModelSelect.value || selectedModel || '';
+            }
         }
 
         function syncExchangeDifference() {
@@ -1818,6 +2098,12 @@
         function syncBookingImageBody() {
             if (!bookingImagesToggle || !bookingImageBody) return;
             bookingImageBody.classList.toggle('hidden', !bookingImagesToggle.checked);
+            syncBookingExtraImageBody();
+        }
+
+        function syncBookingExtraImageBody() {
+            if (!bookingAddMoreImagesToggle || !bookingExtraImageGrid) return;
+            bookingExtraImageGrid.classList.toggle('hidden', !bookingAddMoreImagesToggle.checked);
         }
 
         function syncExchangeNoActionMode() {
@@ -2049,7 +2335,7 @@
         })();
 
         document.querySelectorAll(
-            'input[name="quote_taken"], input[name="test_drive_given"], input[name="purchase_mode"], input[name="interested_in_exchange"], input[name="exchange_type"], input[name="interested_in_competition"], input[name="first_time_buyer"]'
+            'input[name="quote_taken"], input[name="test_drive_given"], input[name="purchase_mode"], input[name="finance_form"], input[name="interested_in_exchange"], input[name="exchange_type"], input[name="interested_in_competition"], input[name="first_time_buyer"]'
         ).forEach((input) => {
             input.addEventListener('change', syncBuyingState);
         });
@@ -2065,6 +2351,9 @@
                 syncCompetitionModels();
             });
         }
+
+        competitionModelSelect?.addEventListener('change', syncBuyingDetailsSummary);
+        competitionYearSelect?.addEventListener('change', syncBuyingDetailsSummary);
 
         if (existingVehicleBrandSelect) {
             existingVehicleBrandSelect.addEventListener('change', function () {
@@ -2098,12 +2387,24 @@
                     exchangeModelSelect.dataset.selectedModel = '';
                     exchangeModelSelect.value = '';
                 }
+                if (exchangeModelBackupInput) {
+                    exchangeModelBackupInput.value = '';
+                }
                 syncExchangeModels();
             });
         }
 
-        if (bookingAddMoreImagesBtn) {
-            bookingAddMoreImagesBtn.addEventListener('click', addExtraImageTile);
+        exchangeModelSelect?.addEventListener('change', () => {
+            if (exchangeModelBackupInput) {
+                exchangeModelBackupInput.value = exchangeModelSelect.value || '';
+            }
+            if (exchangeBrandModelRow && (exchangeModelSelect.value || '').trim()) {
+                exchangeBrandModelRow.dataset.requiresInput = '0';
+            }
+        });
+
+        if (bookingAddMoreImagesToggle) {
+            bookingAddMoreImagesToggle.addEventListener('change', syncBookingExtraImageBody);
         }
 
         if (bookingImagesToggle) {
@@ -2192,6 +2493,59 @@
             });
         }
 
+        amountCollectedInput?.addEventListener('click', openReceiptModal);
+        amountCollectedInput?.addEventListener('focus', openReceiptModal);
+
+        bookingReceiptRows?.addEventListener('input', (event) => {
+            if (event.target instanceof Element && event.target.matches('[data-receipt-amount]')) {
+                syncReceiptTotal();
+            }
+        });
+
+        bookingReceiptRows?.addEventListener('click', (event) => {
+            const target = event.target;
+            if (!(target instanceof Element)) return;
+            const removeButton = target.closest('.booking-receipt-remove');
+            if (!removeButton) return;
+
+            const row = removeButton.closest('.booking-receipt-row');
+            const rows = bookingReceiptRows.querySelectorAll('.booking-receipt-row');
+            if (row && rows.length > 1) {
+                row.remove();
+            } else if (row) {
+                row.querySelectorAll('input:not([readonly]), select').forEach((field) => {
+                    field.value = '';
+                });
+            }
+
+            renderReceiptRows(serializeReceiptRows());
+        });
+
+        bookingReceiptAddMore?.addEventListener('click', () => {
+            const rows = serializeReceiptRows();
+            rows.push({});
+            renderReceiptRows(rows);
+        });
+
+        bookingReceiptSave?.addEventListener('click', () => {
+            syncReceiptTotal();
+            closeReceiptModal();
+        });
+
+        function cancelReceiptChanges() {
+            renderReceiptRows(Array.isArray(bookingReceiptSnapshot) ? bookingReceiptSnapshot : []);
+            closeReceiptModal();
+        }
+
+        bookingReceiptCancel?.addEventListener('click', cancelReceiptChanges);
+        bookingReceiptClose?.addEventListener('click', cancelReceiptChanges);
+
+        bookingReceiptModal?.addEventListener('click', (event) => {
+            if (event.target === bookingReceiptModal) {
+                cancelReceiptChanges();
+            }
+        });
+
         [exchangeExpectedPriceInput, exchangeQuotedPriceInput].forEach((el) => {
             if (el) {
                 el.addEventListener('input', syncExchangeDifference);
@@ -2220,6 +2574,15 @@
             syncOfferRemarksState();
         }
 
+        form.addEventListener('submit', () => {
+            exchangeBrandSelect?.removeAttribute('disabled');
+            exchangeModelSelect?.removeAttribute('disabled');
+            if (exchangeModelBackupInput && exchangeModelSelect) {
+                exchangeModelBackupInput.value = exchangeModelSelect.value || exchangeModelBackupInput.value || '';
+            }
+            syncReceiptTotal();
+        });
+
         syncBuyingState();
         syncCompetitionModels();
         syncExistingVehicleModels();
@@ -2230,6 +2593,7 @@
         syncExchangeNoActionMode();
         renumberExtraImageTiles();
         syncBookingImageBody();
+        syncReceiptTotal();
         document.querySelectorAll('.exchange-file-input').forEach((inputEl) => {
             bindExchangeUploadPreview(inputEl);
         });
@@ -2241,14 +2605,28 @@
         const popup = document.getElementById('bookingSubmitPopup');
         if (!popup) return;
 
-        const okBtn = document.getElementById('bookingSubmitPopupOk');
-        const redirectUrl = @json(url('/epr'));
-        const goToEpr = () => {
-            window.location.href = redirectUrl;
+        const yesBtn = document.getElementById('bookingSubmitPopupYes');
+        const noBtn = document.getElementById('bookingSubmitPopupNo');
+        const deliveryUrl = @json(session('booking_delivery_url'));
+        const dashboardUrl = @json(route('dashboard.main'));
+
+        const closePopup = () => {
+            popup.remove();
+            document.body.classList.remove('booking-modal-open');
         };
 
-        okBtn?.addEventListener('click', goToEpr);
-        setTimeout(goToEpr, 1800);
+        document.body.classList.add('booking-modal-open');
+        yesBtn?.addEventListener('click', () => {
+            if (deliveryUrl) {
+                window.location.href = deliveryUrl;
+                return;
+            }
+
+            closePopup();
+        });
+        noBtn?.addEventListener('click', () => {
+            window.location.href = dashboardUrl;
+        });
     })();
 </script>
 @endif

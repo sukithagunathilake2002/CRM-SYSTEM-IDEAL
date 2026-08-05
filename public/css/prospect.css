@@ -97,8 +97,29 @@ body {
     color: #43506f;
 }
 
+.prospect-submit-popup-card strong {
+    display: block;
+    margin: 0 0 14px;
+    color: #18203a;
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.prospect-submit-popup-actions {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
 .prospect-submit-popup-btn {
-    min-width: 140px;
+    min-width: 118px;
+}
+
+.prospect-submit-popup-btn.secondary {
+    background: #e2e8f0;
+    color: #18203a;
+    border: 0;
 }
 
 .stepper {
@@ -876,7 +897,7 @@ body {
 }
 
 .personal-row-primary {
-    grid-template-columns: 0.8fr 1.55fr 0.95fr 1.25fr;
+    grid-template-columns: 0.8fr 1.35fr 1.35fr 0.95fr 1.25fr;
     align-items: end;
 }
 
@@ -1096,7 +1117,7 @@ body {
     }
 
     .personal-row-primary {
-        grid-template-columns: 0.9fr 1.4fr 1fr;
+        grid-template-columns: 0.9fr 1.4fr 1.4fr;
     }
 
     .field-pill-contact {
@@ -3018,7 +3039,7 @@ body {
 }
 
 .personal-row-primary {
-    grid-template-columns: 62px minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: 62px minmax(0, 1.25fr) minmax(0, 1.25fr) minmax(0, 0.85fr) minmax(0, 1fr);
     align-items: end;
 }
 

@@ -6,7 +6,9 @@ use App\Models\Booking;
 use App\Models\CompetitionVehicle;
 use App\Models\Delivery;
 use App\Models\Enquiry;
+use App\Models\User;
 use App\Models\Vehicle;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -81,11 +83,16 @@ class DeliveryController extends Controller
             ->filter()
             ->values()
             ->all();
+        $bookingReceiptTotal = collect(is_array($booking?->booking_receipts) ? $booking->booking_receipts : [])
+            ->sum(fn($receipt): float => (float) ($receipt['receipt_amount'] ?? 0));
+        $bookingAmountCollected = (float) ($booking?->amount_collected ?? 0);
+        $bookingPaymentAmount = $bookingAmountCollected > 0 ? $bookingAmountCollected : $bookingReceiptTotal;
 
         $defaultValues = [
             'title' => $delivery->title ?: $booking?->title ?: $customer?->title,
             'name' => $delivery->name ?: $booking?->name ?: $customer?->name,
             'contact_type' => $delivery->contact_type ?: $booking?->contact_type ?: 'Mobile',
+            'email' => $delivery->email ?: $booking?->email ?: $customer?->email,
             'mobile_numbers' => $delivery->mobile_numbers ?: $booking?->mobile_numbers ?: implode(', ', $mobileNumbers),
             'district' => $delivery->district ?: $booking?->district ?: $customer?->district,
             'location' => $delivery->location ?: $booking?->location ?: $customer?->location,
@@ -135,9 +142,15 @@ class DeliveryController extends Controller
             'offer_total_cost' => $booking?->offer_total_cost ?? $prospect?->offer_total_cost,
             'offer_total_discount' => $booking?->offer_total_discount ?? $prospect?->offer_total_discount,
             'offer_final_price' => $booking?->offer_final_price ?? $prospect?->offer_final_price,
-            'payment_receipt_amount_booking' => $delivery->payment_receipt_amount_booking,
+            'payment_receipt_amount_booking' => $delivery->payment_receipt_amount_booking ?? $bookingPaymentAmount,
             'payment_pre_delivery_amount' => $delivery->payment_pre_delivery_amount,
             'payment_delivery_amount' => $delivery->payment_delivery_amount,
+            'delivery_receipts' => is_array($delivery->delivery_receipts) ? $delivery->delivery_receipts : [],
+            'reference_taken' => (bool) ($delivery->reference_taken ?? false),
+            'selecting_brand_reasons' => is_array($delivery->selecting_brand_reasons) ? $delivery->selecting_brand_reasons : [],
+            'date_of_delivery' => $delivery->date_of_delivery ? substr((string) $delivery->date_of_delivery, 0, 10) : now()->toDateString(),
+            'chassis_number' => $delivery->chassis_number,
+            'pending_commitments' => $delivery->pending_commitments,
             'payment_finance_provider' => $delivery->payment_finance_provider ?: 'Self',
             'payment_pending_reason' => $delivery->payment_pending_reason,
             'payment_pending_amount' => $delivery->payment_pending_amount,
@@ -161,6 +174,7 @@ class DeliveryController extends Controller
             'currentStep' => $currentStep,
             'vehicleModels' => $vehicleModels,
             'competitionMap' => $competitionMap,
+            'deliveryReceiptPaymentModes' => $this->deliveryReceiptPaymentModes(),
         ]);
     }
 
@@ -200,6 +214,7 @@ class DeliveryController extends Controller
             'title' => ['nullable', 'string', 'max:20'],
             'name' => ['nullable', 'string', 'max:255'],
             'contact_type' => ['nullable', Rule::in(['Mobile', 'Home', 'Office'])],
+            'email' => ['nullable', 'email', 'max:255'],
             'mobile_numbers' => ['nullable', 'string', 'max:255'],
             'district' => ['nullable', 'string', 'max:255'],
             'location' => ['nullable', 'string', 'max:255'],
@@ -260,6 +275,18 @@ class DeliveryController extends Controller
             'payment_receipt_amount_booking' => ['nullable', 'numeric', 'min:0'],
             'payment_pre_delivery_amount' => ['nullable', 'numeric', 'min:0'],
             'payment_delivery_amount' => ['nullable', 'numeric', 'min:0'],
+            'delivery_receipts' => ['nullable', 'array'],
+            'delivery_receipts.*.receipt_name_no' => ['nullable', 'string', 'max:255'],
+            'delivery_receipts.*.receipt_date' => ['nullable', 'date'],
+            'delivery_receipts.*.receipt_amount' => ['nullable', 'numeric', 'min:0'],
+            'delivery_receipts.*.payment_mode' => ['nullable', Rule::in($this->deliveryReceiptPaymentModes())],
+            'delivery_receipts.*.receipt_type' => ['nullable', Rule::in(['Delivery'])],
+            'reference_taken' => ['nullable', 'in:0,1'],
+            'selecting_brand_reasons' => ['nullable', 'array'],
+            'selecting_brand_reasons.*' => ['nullable', Rule::in($this->selectingBrandReasonOptions())],
+            'date_of_delivery' => ['nullable', 'date'],
+            'chassis_number' => ['nullable', 'string', 'max:255'],
+            'pending_commitments' => ['nullable', 'string', 'max:1000'],
             'payment_finance_provider' => ['nullable', 'string', 'max:255'],
             'payment_pending_reason' => ['nullable', 'string', 'max:255'],
             'payment_pending_amount' => ['nullable', 'numeric', 'min:0'],
@@ -283,6 +310,8 @@ class DeliveryController extends Controller
         $currentStep = (int) ($validated['delivery_step'] ?? 1);
         $currentStep = max(1, min(6, $currentStep));
         $existingDelivery = $enquiry->delivery;
+        $deliveryReceipts = $this->normalizeDeliveryReceipts($validated['delivery_receipts'] ?? []);
+        $deliveryReceiptTotal = collect($deliveryReceipts)->sum(fn(array $receipt): float => (float) ($receipt['receipt_amount'] ?? 0));
         $removeDocumentFields = collect(array_merge(self::DOCUMENT_FIELDS, self::EXCHANGE_IMAGE_FIELDS))
             ->map(fn($field) => 'remove_' . $field)
             ->all();
@@ -308,6 +337,17 @@ class DeliveryController extends Controller
                 'edit_offer_details',
             ], $removeDocumentFields))
             ->all();
+        $payload['delivery_receipts'] = $deliveryReceipts;
+        if ($currentStep === 6) {
+            $payload['reference_taken'] = ($validated['reference_taken'] ?? '0') === '1';
+            $payload['selecting_brand_reasons'] = $validated['selecting_brand_reasons'] ?? [];
+            $payload['date_of_delivery'] = $validated['date_of_delivery'] ?? null;
+            $payload['chassis_number'] = $validated['chassis_number'] ?? null;
+            $payload['pending_commitments'] = $validated['pending_commitments'] ?? null;
+        }
+        if (!empty($deliveryReceipts)) {
+            $payload['payment_delivery_amount'] = $deliveryReceiptTotal;
+        }
 
         if (array_key_exists('customer_type', $payload) && ($payload['customer_type'] ?? null) !== 'corporate') {
             $payload['corporate_name'] = null;
@@ -582,6 +622,36 @@ class DeliveryController extends Controller
         }
 
         if ($actionType === 'submit' && $currentStep === 6) {
+            $viewer = $request->user();
+            $delivery = Delivery::query()->where('enquiry_id', $enquiry->id)->first();
+            if ($delivery) {
+                $approvalPayload = [
+                    'submitted_by' => $viewer?->id,
+                    'submitted_at' => now(),
+                ];
+
+                if ($viewer?->role === User::ROLE_SALES_CONSULTANT) {
+                    $approvalPayload['approval_status'] = Delivery::APPROVAL_PENDING;
+                    $approvalPayload['approved_by'] = null;
+                    $approvalPayload['approved_at'] = null;
+                    $approvalPayload['approval_note'] = null;
+                } else {
+                    $approvalPayload['approval_status'] = Delivery::APPROVAL_APPROVED;
+                    $approvalPayload['approved_by'] = $viewer?->id;
+                    $approvalPayload['approved_at'] = now();
+                    $approvalPayload['approval_note'] = null;
+                }
+
+                $delivery->fill($approvalPayload)->save();
+            }
+
+            if ($viewer?->role === User::ROLE_SALES_CONSULTANT) {
+                return redirect()
+                    ->route('delivery.show', ['enquiry' => $enquiry->id, 'step' => 6])
+                    ->with('delivery_submitted_popup', true)
+                    ->with('delivery_submitted_message', 'Delivery submitted successfully. Waiting for Area Manager approval.');
+            }
+
             return redirect()
                 ->route('delivery.show', ['enquiry' => $enquiry->id, 'step' => 6])
                 ->with('delivery_submitted_popup', true)
@@ -607,11 +677,144 @@ class DeliveryController extends Controller
             ->with('success', 'Delivery details saved.');
     }
 
+    public function approvals(Request $request)
+    {
+        $areaManager = $request->user();
+        abort_unless($areaManager?->role === User::ROLE_AREA_MANAGER, 403);
+
+        $deliveries = Delivery::query()
+            ->with([
+                'enquiry.customer:id,title,name,mobile_numbers',
+                'enquiry.vehicle:id,model,variant',
+                'enquiry.user:id,name,email,manager_id',
+                'submittedBy:id,name,email',
+                'approvedBy:id,name,email',
+            ])
+            ->whereHas('enquiry.user', function ($query) use ($areaManager): void {
+                $query->where('manager_id', $areaManager->id);
+            })
+            ->whereIn('approval_status', [Delivery::APPROVAL_PENDING, Delivery::APPROVAL_APPROVED, Delivery::APPROVAL_REJECTED])
+            ->latest('submitted_at')
+            ->get();
+
+        return view('delivery.approvals', [
+            'deliveries' => $deliveries,
+        ]);
+    }
+
+    public function approve(Request $request, Delivery $delivery): RedirectResponse
+    {
+        $areaManager = $request->user();
+        abort_unless($areaManager?->role === User::ROLE_AREA_MANAGER, 403);
+
+        $delivery->load('enquiry.user:id,manager_id');
+        abort_unless((int) ($delivery->enquiry?->user?->manager_id ?? 0) === (int) $areaManager->id, 403);
+
+        if ($delivery->approval_status !== Delivery::APPROVAL_PENDING) {
+            return back()->withErrors(['delivery' => 'This delivery is not pending approval.']);
+        }
+
+        $delivery->fill([
+            'approval_status' => Delivery::APPROVAL_APPROVED,
+            'approved_by' => $areaManager->id,
+            'approved_at' => now(),
+            'approval_note' => null,
+        ])->save();
+
+        return redirect()
+            ->route('delivery.approvals')
+            ->with('success', 'Delivery approved successfully.');
+    }
+
+    public function reject(Request $request, Delivery $delivery): RedirectResponse
+    {
+        $areaManager = $request->user();
+        abort_unless($areaManager?->role === User::ROLE_AREA_MANAGER, 403);
+
+        $validated = $request->validate([
+            'approval_note' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $delivery->load('enquiry.user:id,manager_id');
+        abort_unless((int) ($delivery->enquiry?->user?->manager_id ?? 0) === (int) $areaManager->id, 403);
+
+        if ($delivery->approval_status !== Delivery::APPROVAL_PENDING) {
+            return back()->withErrors(['delivery' => 'This delivery is not pending approval.']);
+        }
+
+        $delivery->fill([
+            'approval_status' => Delivery::APPROVAL_REJECTED,
+            'approved_by' => $areaManager->id,
+            'approved_at' => now(),
+            'approval_note' => $validated['approval_note'] ?? null,
+        ])->save();
+
+        return redirect()
+            ->route('delivery.approvals')
+            ->with('success', 'Delivery rejected.');
+    }
+
     private function redirectTerminalLead(Enquiry $enquiry)
     {
         return redirect()
             ->route('enquiries.list', $enquiry->terminalLeadRouteParameters())
             ->with('success', $enquiry->terminalLeadLabel() . ' lead is finalized. Delivery is not available.');
+    }
+
+    private function deliveryReceiptPaymentModes(): array
+    {
+        return [
+            'Cash',
+            'Cheque',
+            'Bank Transfer',
+            'Credit/Debit Card',
+        ];
+    }
+
+    private function selectingBrandReasonOptions(): array
+    {
+        return [
+            'Design',
+            'Performance',
+            'Mileage',
+            'Ride Comfort',
+            'Resale Value',
+            'Price',
+            'After Sale Support',
+            'New Model',
+            'Brand Appeal',
+            'Got Better Exchange Value At the Outlet',
+            'Got Credit Facility At the Outlet',
+            'Happy with Price/Discount',
+            'Happy with Finance Terms/Facility',
+            'Friends/Family Recommend',
+            'Other',
+            'I Did Not Ask',
+        ];
+    }
+
+    private function normalizeDeliveryReceipts(array $receipts): array
+    {
+        return collect($receipts)
+            ->map(function ($receipt): array {
+                $receipt = is_array($receipt) ? $receipt : [];
+
+                return [
+                    'receipt_name_no' => trim((string) ($receipt['receipt_name_no'] ?? '')),
+                    'receipt_date' => trim((string) ($receipt['receipt_date'] ?? '')),
+                    'receipt_amount' => (float) ($receipt['receipt_amount'] ?? 0),
+                    'payment_mode' => trim((string) ($receipt['payment_mode'] ?? '')),
+                    'receipt_type' => 'Delivery',
+                ];
+            })
+            ->filter(function (array $receipt): bool {
+                return $receipt['receipt_name_no'] !== ''
+                    || $receipt['receipt_date'] !== ''
+                    || $receipt['receipt_amount'] > 0
+                    || $receipt['payment_mode'] !== '';
+            })
+            ->values()
+            ->all();
     }
 
     private function resolveTestDriveVehicleUsed(?string $selectedVehicle, ?string $otherVehicle): ?string

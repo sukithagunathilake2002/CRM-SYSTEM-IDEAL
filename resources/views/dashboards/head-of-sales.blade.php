@@ -89,31 +89,108 @@
     <a class="hierarchy-metric-btn followup" href="{{ route('dashboard.followup_tracker') }}">FollowUp</a>
 </div>
 
-<section class="card district-card">
-    <h2>Hierarchy District Lead Overview</h2>
+<section id="districtOverviewCard" class="card district-card">
+    <h2>Sri Lanka District Lead Overview</h2>
     <p>Lead counts by district for users under your Head Of Sales hierarchy.</p>
-    <div class="analytics-table-wrap">
-        <table class="analytics-table district-summary-table">
-            <thead>
-                <tr>
-                    <th>District</th>
-                    <th>Leads</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse(($analytics['by_district'] ?? []) as $row)
-                    <tr>
-                        <td>{{ $row['district'] }}</td>
-                        <td>{{ $row['leads'] }}</td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="2">No district data available.</td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
+    <div class="district-overview-grid">
+        <div class="district-map-card">
+            <div id="districtLeadMap" class="district-lead-map"></div>
+            <div class="district-map-scale">
+                <span class="district-map-scale-title">Lead density</span>
+                <div class="district-map-scale-bar"></div>
+                <div class="district-map-scale-labels">
+                    <span>Low</span>
+                    <span>High</span>
+                </div>
+            </div>
+        </div>
+        <div class="district-summary-card">
+            <div id="districtLeadInfoCard" class="district-lead-info-card">
+                <span class="district-lead-info-label">Selected District</span>
+                <h3 id="districtLeadInfoName" class="district-lead-info-name">Click a district</h3>
+                <p class="district-lead-info-value"><span id="districtLeadInfoCount">0</span> Active Leads</p>
+            </div>
+            <div class="analytics-table-wrap">
+                <table class="analytics-table district-summary-table">
+                    <thead>
+                        <tr>
+                            <th>District</th>
+                            <th>Leads</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse(($analytics['by_district'] ?? []) as $row)
+                            <tr class="district-summary-row" data-district="{{ $row['district'] }}">
+                                <td>{{ $row['district'] }}</td>
+                                <td>{{ $row['leads'] }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="2">No district data available.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </section>
+
+<section id="provinceOverviewCard" class="card district-card">
+    <h2>Sri Lanka Province Lead Overview</h2>
+    <p>Lead counts by province for users under your Head Of Sales hierarchy.</p>
+    <div class="district-overview-grid">
+        <div class="district-map-card">
+            <div id="provinceLeadMap" class="district-lead-map"></div>
+            <div class="district-map-scale">
+                <span class="district-map-scale-title">Lead density</span>
+                <div class="district-map-scale-bar"></div>
+                <div class="district-map-scale-labels">
+                    <span>Low</span>
+                    <span>High</span>
+                </div>
+            </div>
+        </div>
+        <div class="district-summary-card">
+            <div id="provinceLeadInfoCard" class="district-lead-info-card">
+                <span class="district-lead-info-label">Selected Province</span>
+                <h3 id="provinceLeadInfoName" class="district-lead-info-name">Click a province</h3>
+                <p class="district-lead-info-value"><span id="provinceLeadInfoCount">0</span> Active Leads</p>
+            </div>
+            <div class="analytics-table-wrap">
+                <table class="analytics-table district-summary-table">
+                    <thead>
+                        <tr>
+                            <th>Province</th>
+                            <th>Leads</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse(($analytics['by_province'] ?? []) as $row)
+                            <tr class="district-summary-row province-summary-row" data-province="{{ $row['province'] }}">
+                                <td>{{ $row['province'] }}</td>
+                                <td>{{ $row['leads'] }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="2">No province data available.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+window.IdealLeadMapConfig = {
+    mapUrl: @json(asset('data/sri-lanka-districts-map.json')),
+    districts: @json($analytics['by_district'] ?? []),
+    provinces: @json($analytics['by_province'] ?? []),
+    provinceDistrictMap: @json(\App\Models\User::PROVINCE_DISTRICT_MAP),
+};
+</script>
+<script src="{{ asset('js/sri-lanka-lead-map.js') }}"></script>
 
 @endsection
