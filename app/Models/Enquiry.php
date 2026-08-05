@@ -105,9 +105,7 @@ class Enquiry extends Model
     {
         return $query
             ->registeredLead()
-            ->whereHas('booking', function ($query): void {
-                $query->whereNotNull('booking_completed_at');
-            })
+            ->has('booking')
             ->doesntHave('delivery');
     }
 
@@ -115,9 +113,7 @@ class Enquiry extends Model
     {
         return $query
             ->registeredLead()
-            ->whereDoesntHave('booking', function ($query): void {
-                $query->whereNotNull('booking_completed_at');
-            })
+            ->doesntHave('booking')
             ->doesntHave('delivery');
     }
 

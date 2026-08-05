@@ -190,7 +190,10 @@
         const quoteDate = fieldValue('input[name="quote_date"]');
         const testDriveGiven = selectedValue('test_drive_given');
         const testDriveDate = fieldValue('input[name="test_drive_date"]');
-        const testDriveReason = fieldValue('input[name="test_drive_not_given_reason"]');
+        const testDriveReasonSelect = form.querySelector('select[name="test_drive_not_given_reason"]');
+        const testDriveReason = testDriveReasonSelect && testDriveReasonSelect.value === 'Others'
+            ? fieldValue('input[name="test_drive_not_given_reason_other"]')
+            : selectedText(testDriveReasonSelect);
         const competitionInterest = selectedValue('interested_in_competition');
         const competitionBrand = selectedText(document.getElementById('competition_brand'));
         const competitionModel = selectedText(document.getElementById('competition_model'));
@@ -293,6 +296,21 @@
         const otherWrap = document.getElementById('prospectTestDriveVehicleOtherWrap');
         const otherInput = form.querySelector('input[name="test_drive_vehicle_model_other"]');
         const showOther = vehicleSelect && vehicleSelect.value === 'Other';
+
+        if (otherWrap) {
+            otherWrap.style.display = showOther ? '' : 'none';
+        }
+
+        if (!showOther && otherInput) {
+            otherInput.value = '';
+        }
+    }
+
+    function updateTestDriveNoReasonOtherField() {
+        const reasonSelect = form.querySelector('select[name="test_drive_not_given_reason"]');
+        const otherWrap = document.getElementById('prospectTestDriveNoReasonOtherWrap');
+        const otherInput = form.querySelector('input[name="test_drive_not_given_reason_other"]');
+        const showOther = reasonSelect && reasonSelect.value === 'Others';
 
         if (otherWrap) {
             otherWrap.style.display = showOther ? '' : 'none';
@@ -1105,6 +1123,11 @@
         updateProspectSummary();
     });
 
+    form.querySelector('select[name="test_drive_not_given_reason"]')?.addEventListener('change', () => {
+        updateTestDriveNoReasonOtherField();
+        updateProspectSummary();
+    });
+
     const brandSelect = document.getElementById('competition_brand');
     if (brandSelect) {
         brandSelect.addEventListener('change', updateCompetitionModels);
@@ -1393,6 +1416,7 @@
     updateStepper();
     updateConditionals();
     updateTestDriveVehicleOtherField();
+    updateTestDriveNoReasonOtherField();
     updateCompetitionModels();
     updateExchangeModels();
     updateExistingModels();

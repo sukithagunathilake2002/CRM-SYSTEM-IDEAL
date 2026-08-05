@@ -9,6 +9,23 @@
     $mobileString = collect($customer->mobile_numbers ?? [])->implode(', ');
     $selectedQuote = old('quote_taken', $prospect->quote_taken);
     $selectedTestDrive = old('test_drive_given', $prospect->test_drive_given);
+    $selectedTestDriveNoReasonRaw = old('test_drive_not_given_reason', $prospect->test_drive_not_given_reason);
+    $testDriveNoReasons = [
+        'Not interested',
+        'Vehicle not available',
+        'Vehicle damaged/under repair',
+        'Not met in person',
+        'Already driven',
+        'I Did Not Offer',
+        'Others',
+    ];
+    $isSelectedTestDriveNoReasonOther = $selectedTestDriveNoReasonRaw === 'Others'
+        || (trim((string) $selectedTestDriveNoReasonRaw) !== '' && !in_array($selectedTestDriveNoReasonRaw, $testDriveNoReasons, true));
+    $selectedTestDriveNoReason = $isSelectedTestDriveNoReasonOther ? 'Others' : $selectedTestDriveNoReasonRaw;
+    $selectedTestDriveNoReasonOther = old(
+        'test_drive_not_given_reason_other',
+        $isSelectedTestDriveNoReasonOther && $selectedTestDriveNoReasonRaw !== 'Others' ? $selectedTestDriveNoReasonRaw : ''
+    );
     $selectedPurchaseMode = old('purchase_mode', $prospect->purchase_mode);
     $selectedCompetition = old('interested_in_competition', $prospect->interested_in_competition);
     $selectedFirstTimeBuyer = old('first_time_buyer', $prospect->first_time_buyer);
@@ -451,7 +468,16 @@
 
             <div class="buying-test-no" data-conditional="test_drive_given" data-value="no">
                 <label>Why Not Given?</label>
-                <input type="text" name="test_drive_not_given_reason" value="{{ old('test_drive_not_given_reason', $prospect->test_drive_not_given_reason) }}" placeholder="Reason">
+                <select name="test_drive_not_given_reason" id="prospectTestDriveNoReasonSelect">
+                    <option value="">Select reason</option>
+                    @foreach($testDriveNoReasons as $reasonOption)
+                        <option value="{{ $reasonOption }}" @selected($selectedTestDriveNoReason === $reasonOption)>{{ $reasonOption }}</option>
+                    @endforeach
+                </select>
+                <div id="prospectTestDriveNoReasonOtherWrap" style="{{ $selectedTestDriveNoReason === 'Others' ? '' : 'display:none;' }}">
+                    <label>Other Details</label>
+                    <input type="text" name="test_drive_not_given_reason_other" value="{{ $selectedTestDriveNoReasonOther }}" placeholder="Enter reason">
+                </div>
             </div>
 
             <label>Mode of Purchase</label>

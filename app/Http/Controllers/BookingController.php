@@ -222,7 +222,13 @@ class BookingController extends Controller
             'test_drive_vehicle_model' => ['nullable', 'string', 'max:255'],
             'test_drive_vehicle_model_other' => ['nullable', 'string', 'max:255', Rule::requiredIf(fn() => $request->input('test_drive_given') === 'yes' && $request->input('test_drive_vehicle_model') === 'Other')],
             'test_drive_to_whom' => ['nullable', 'string', 'max:255'],
-            'test_drive_not_given_reason' => ['nullable', 'string', 'max:255'],
+            'test_drive_not_given_reason' => ['nullable', Rule::in($this->testDriveNotGivenReasons())],
+            'test_drive_not_given_reason_other' => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::requiredIf(fn() => $request->input('test_drive_given') === 'no' && $request->input('test_drive_not_given_reason') === 'Others'),
+            ],
             'purchase_mode' => ['nullable', Rule::in(['cash', 'finance'])],
             'finance_form' => ['nullable', Rule::in(['in_house', 'self', 'other'])],
             'interested_in_competition' => ['nullable', Rule::in(['yes', 'no', 'not_asked'])],
@@ -367,7 +373,10 @@ class BookingController extends Controller
         }
 
         if (($validated['test_drive_given'] ?? null) === 'no') {
-            $payload['test_drive_not_given_reason'] = $validated['test_drive_not_given_reason'] ?? null;
+            $payload['test_drive_not_given_reason'] = $this->resolveTestDriveNotGivenReason(
+                $validated['test_drive_not_given_reason'] ?? null,
+                $validated['test_drive_not_given_reason_other'] ?? null
+            );
         }
 
         if (($validated['interested_in_competition'] ?? null) === 'yes') {
@@ -561,8 +570,8 @@ class BookingController extends Controller
 
         if ($actionType === 'save_exit') {
             return redirect()
-                ->route('enquiries.list', ['booking' => 'inactive'])
-                ->with('success', 'Booking details saved as inactive.');
+                ->route('enquiries.list', ['booking' => 'active'])
+                ->with('success', 'Booking details saved.');
         }
 
         if ($actionType === 'save') {
@@ -574,8 +583,8 @@ class BookingController extends Controller
         if ($actionType === 'submit') {
             if (!$bookingComplete) {
                 return redirect()
-                    ->route('enquiries.list', ['booking' => 'inactive'])
-                    ->with('success', 'Booking saved as inactive. Please complete all booking details before making it active.');
+                    ->route('enquiries.list', ['booking' => 'active'])
+                    ->with('success', 'Booking saved. Complete the remaining details when available.');
             }
 
             return redirect()
@@ -681,5 +690,30 @@ class BookingController extends Controller
         }
 
         return $selectedVehicle !== '' ? $selectedVehicle : null;
+    }
+
+    private function testDriveNotGivenReasons(): array
+    {
+        return [
+            'Not interested',
+            'Vehicle not available',
+            'Vehicle damaged/under repair',
+            'Not met in person',
+            'Already driven',
+            'I Did Not Offer',
+            'Others',
+        ];
+    }
+
+    private function resolveTestDriveNotGivenReason(?string $selectedReason, ?string $otherReason): ?string
+    {
+        $selectedReason = trim((string) $selectedReason);
+        $otherReason = trim((string) $otherReason);
+
+        if ($selectedReason === 'Others') {
+            return $otherReason !== '' ? $otherReason : null;
+        }
+
+        return $selectedReason !== '' ? $selectedReason : null;
     }
 }

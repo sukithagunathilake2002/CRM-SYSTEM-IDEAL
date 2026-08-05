@@ -30,9 +30,25 @@
         'did_not_ask' => 'I Did not ask',
         'other' => 'Other',
     ];
+    $testDriveNoReasons = [
+        'Not interested',
+        'Vehicle not available',
+        'Vehicle damaged/under repair',
+        'Not met in person',
+        'Already driven',
+        'I Did Not Offer',
+        'Others',
+    ];
     $existingFollowupPicture1Url = !empty($enquiry->followup_picture_1) ? asset('storage/' . $enquiry->followup_picture_1) : null;
     $existingFollowupPicture2Url = !empty($enquiry->followup_picture_2) ? asset('storage/' . $enquiry->followup_picture_2) : null;
     $dialPhone = preg_replace('/\D+/', '', (string) $primaryPhone);
+    $isSelectedFollowupTestDriveNoReasonOther = $selectedTestDriveNoReason === 'Others'
+        || (trim((string) $selectedTestDriveNoReason) !== '' && !in_array($selectedTestDriveNoReason, $testDriveNoReasons, true));
+    $selectedFollowupTestDriveNoReasonSelect = $isSelectedFollowupTestDriveNoReasonOther ? 'Others' : $selectedTestDriveNoReason;
+    $selectedFollowupTestDriveNoReasonOther = old(
+        'followup_test_drive_not_given_reason_other',
+        $isSelectedFollowupTestDriveNoReasonOther && $selectedTestDriveNoReason !== 'Others' ? $selectedTestDriveNoReason : ''
+    );
     $followupTestDriveVehicleOptions = collect([$enquiry->vehicle?->model])
         ->merge($vehicleModels ?? [])
         ->map(fn($model) => trim((string) $model))
@@ -304,12 +320,16 @@
 
                     <div id="testDriveNoWrap" class="row {{ $selectedTestDriveGiven === 'no' ? '' : 'hidden' }}">
                         <label>Why not given?</label>
-                        <select name="followup_test_drive_not_given_reason" class="pill-select">
+                        <select name="followup_test_drive_not_given_reason" id="followupTestDriveNoReasonSelect" class="pill-select">
                             <option value="">Select reason</option>
-                            @foreach(['Not interested', 'Vehicle not available', 'Vehicle damaged/under repair', 'Not met in person', 'Already driven', 'I Did Not Offer', 'Others'] as $reasonOption)
-                                <option value="{{ $reasonOption }}" @selected($selectedTestDriveNoReason === $reasonOption)>{{ $reasonOption }}</option>
+                            @foreach($testDriveNoReasons as $reasonOption)
+                                <option value="{{ $reasonOption }}" @selected($selectedFollowupTestDriveNoReasonSelect === $reasonOption)>{{ $reasonOption }}</option>
                             @endforeach
                         </select>
+                        <div id="followupTestDriveNoReasonOtherWrap" class="{{ $selectedFollowupTestDriveNoReasonSelect === 'Others' ? '' : 'hidden' }}">
+                            <label>Other Details</label>
+                            <input type="text" name="followup_test_drive_not_given_reason_other" value="{{ $selectedFollowupTestDriveNoReasonOther }}" class="pill-input" placeholder="Enter reason">
+                        </div>
                     </div>
 
                     <div id="testDriveYesWrap" class="row split {{ $selectedTestDriveGiven === 'yes' ? '' : 'hidden' }}">
@@ -639,6 +659,8 @@ html.theme-dark .reason-option input:checked + .reason-card .reason-text {
         const resultRadios = Array.from(document.querySelectorAll('input[name="followup_result"]'));
         const testDriveNoWrap = document.getElementById('testDriveNoWrap');
         const testDriveYesWrap = document.getElementById('testDriveYesWrap');
+        const followupTestDriveNoReasonSelect = document.getElementById('followupTestDriveNoReasonSelect');
+        const followupTestDriveNoReasonOtherWrap = document.getElementById('followupTestDriveNoReasonOtherWrap');
         const followupTestDriveVehicleSelect = document.getElementById('followupTestDriveVehicleSelect');
         const followupTestDriveVehicleOtherWrap = document.getElementById('followupTestDriveVehicleOtherWrap');
         const firstTimeBuyerNoWrap = document.getElementById('firstTimeBuyerNoWrap');
@@ -936,6 +958,17 @@ html.theme-dark .reason-option input:checked + .reason-card .reason-text {
                 testDriveNoWrap.classList.toggle('hidden', selectedTestDriveGiven !== 'no');
             }
 
+            if (followupTestDriveNoReasonOtherWrap) {
+                const showOtherReason = followupTestDriveNoReasonSelect && followupTestDriveNoReasonSelect.value === 'Others';
+                followupTestDriveNoReasonOtherWrap.classList.toggle('hidden', !showOtherReason);
+                if (!showOtherReason) {
+                    const otherInput = followupTestDriveNoReasonOtherWrap.querySelector('input');
+                    if (otherInput) {
+                        otherInput.value = '';
+                    }
+                }
+            }
+
             if (testDriveYesWrap) {
                 testDriveYesWrap.classList.toggle('hidden', selectedTestDriveGiven !== 'yes');
             }
@@ -1003,6 +1036,7 @@ html.theme-dark .reason-option input:checked + .reason-card .reason-text {
             input.addEventListener('change', syncState);
         });
         followupTestDriveVehicleSelect?.addEventListener('change', syncState);
+        followupTestDriveNoReasonSelect?.addEventListener('change', syncState);
 
         document.querySelectorAll('input[name="followup_first_time_buyer"]').forEach((input) => {
             input.addEventListener('change', syncState);

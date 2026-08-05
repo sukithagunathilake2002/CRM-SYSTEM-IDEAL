@@ -216,12 +216,22 @@ class FollowUpController extends Controller
             'followup_test_drive_given' => ['nullable', Rule::in(['yes', 'no'])],
             'followup_test_drive_not_given_reason' => [
                 'nullable',
+                Rule::in($this->testDriveNotGivenReasons()),
+                Rule::requiredIf(
+                    fn() => $request->input('followup_status') === 'done'
+                        && $request->input('followup_result') === 'active'
+                        && $request->input('followup_test_drive_given') === 'no'
+                ),
+            ],
+            'followup_test_drive_not_given_reason_other' => [
+                'nullable',
                 'string',
                 'max:255',
                 Rule::requiredIf(
                     fn() => $request->input('followup_status') === 'done'
                         && $request->input('followup_result') === 'active'
                         && $request->input('followup_test_drive_given') === 'no'
+                        && $request->input('followup_test_drive_not_given_reason') === 'Others'
                 ),
             ],
             'followup_test_drive_when' => [
@@ -423,7 +433,10 @@ class FollowUpController extends Controller
                 $enquiry->followup_conversion_month = $validated['followup_conversion_month'] ?? null;
                 $enquiry->followup_test_drive_given = $validated['followup_test_drive_given'] ?? null;
                 $enquiry->followup_test_drive_not_given_reason = ($validated['followup_test_drive_given'] ?? null) === 'no'
-                    ? ($validated['followup_test_drive_not_given_reason'] ?? null)
+                    ? $this->resolveTestDriveNotGivenReason(
+                        $validated['followup_test_drive_not_given_reason'] ?? null,
+                        $validated['followup_test_drive_not_given_reason_other'] ?? null
+                    )
                     : null;
                 $enquiry->followup_test_drive_when = ($validated['followup_test_drive_given'] ?? null) === 'yes'
                     ? ($validated['followup_test_drive_when'] ?? null)
@@ -586,6 +599,31 @@ class FollowUpController extends Controller
             'Purchase second-hand car',
             'Other',
         ];
+    }
+
+    private function testDriveNotGivenReasons(): array
+    {
+        return [
+            'Not interested',
+            'Vehicle not available',
+            'Vehicle damaged/under repair',
+            'Not met in person',
+            'Already driven',
+            'I Did Not Offer',
+            'Others',
+        ];
+    }
+
+    private function resolveTestDriveNotGivenReason(?string $selectedReason, ?string $otherReason): ?string
+    {
+        $selectedReason = trim((string) $selectedReason);
+        $otherReason = trim((string) $otherReason);
+
+        if ($selectedReason === 'Others') {
+            return $otherReason !== '' ? $otherReason : null;
+        }
+
+        return $selectedReason !== '' ? $selectedReason : null;
     }
 
     private function canAccessEnquiry(User $viewer, Enquiry $enquiry): bool

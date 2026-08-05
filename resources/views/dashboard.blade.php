@@ -130,7 +130,6 @@ $viewerId = (int) ($user?->id ?? 0);
                         <a href="{{ route('enquiries.list', ['lead_result' => 'closed']) }}">Closed Lead</a>
                         <a href="{{ route('enquiries.list', ['registration' => 'pending']) }}">EPR</a>
                         <a href="{{ route('enquiries.list', ['booking' => 'active']) }}">Active Booking</a>
-                        <a href="{{ route('enquiries.list', ['booking' => 'inactive']) }}">Inactive Booking</a>
                         <a href="{{ url('/epr') }}">Cancelled Booking</a>
                         <a href="{{ route('enquiries.list', ['delivery' => 'active']) }}">Deliveries</a>
                         <a href="{{ route('enquiries.list', ['view' => 'all']) }}">All Leads</a>
@@ -258,18 +257,18 @@ $viewerId = (int) ($user?->id ?? 0);
 
                             <article class="crm-stats-card" aria-label="Performance summary">
                                 <div class="crm-stats-list">
-                                    <div class="crm-stat-pill">
+                                    <a href="{{ route('enquiries.list', ['booking' => 'active']) }}" class="crm-stat-pill" aria-label="View active bookings">
                                         <span class="crm-stat-dot"></span>
                                         <span class="crm-stat-label">Active Bookings – <strong>{{ str_pad((string) $activeBookings, 2, '0', STR_PAD_LEFT) }}</strong></span>
-                                    </div>
-                        <div class="crm-stat-pill">
+                                    </a>
+                        <a href="{{ route('enquiries.list', ['inquiry' => 'active']) }}" class="crm-stat-pill" aria-label="View active inquiries">
                             <span class="crm-stat-dot"></span>
                             <span class="crm-stat-label">Active Inquiries – <strong>{{ str_pad((string) $activeInquiries, 2, '0', STR_PAD_LEFT) }}</strong></span>
-                        </div>
-                        <div class="crm-stat-pill">
+                        </a>
+                        <a href="{{ route('enquiries.list', ['view' => 'all']) }}" class="crm-stat-pill" aria-label="View total inquiries">
                             <span class="crm-stat-dot"></span>
                             <span class="crm-stat-label">Total Inquiries – <strong>{{ str_pad((string) $totalInquiries, 2, '0', STR_PAD_LEFT) }}</strong></span>
-                        </div>
+                        </a>
                     </div>
                 </article>
                         </div>

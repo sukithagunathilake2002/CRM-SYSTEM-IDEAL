@@ -41,7 +41,16 @@
             'Referral' => ['Customer Referral', 'Employee Referral', 'Dealer Referral', 'Friends/Family', 'Other'],
             'Press' => ['Newspaper', 'Magazine', 'Radio', 'TV', 'Other'],
         ];
-        $selectedSourceInformation = old('source_of_information', '');
+        $selectedLeadSourceForForm = old('lead_source', 'Walk-In');
+        $sourceInformationOptionsForSelected = $sourceInfoMap[$selectedLeadSourceForForm] ?? [];
+        $selectedSourceInformationRaw = old('source_of_information', '');
+        $isSelectedSourceInformationOther = $selectedSourceInformationRaw === 'Other'
+            || (trim((string) $selectedSourceInformationRaw) !== '' && !in_array($selectedSourceInformationRaw, $sourceInformationOptionsForSelected, true));
+        $selectedSourceInformation = $isSelectedSourceInformationOther ? 'Other' : $selectedSourceInformationRaw;
+        $selectedSourceInformationOther = old(
+            'source_of_information_other',
+            $isSelectedSourceInformationOther && $selectedSourceInformationRaw !== 'Other' ? $selectedSourceInformationRaw : ''
+        );
         $selectedFollowTime = old('follow_time')
             ? substr((string) old('follow_time'), 0, 5)
             : \Carbon\Carbon::now('Asia/Colombo')->format('H:i');
@@ -173,7 +182,7 @@
             </div>
 
             <h4 class="section-title">Lead Source</h4>
-            <input type="hidden" id="lead_source" name="lead_source" value="{{ old('lead_source', 'Walk-In') }}">
+            <input type="hidden" id="lead_source" name="lead_source" value="{{ $selectedLeadSourceForForm }}">
             <div class="segmented-row six-col" id="leadSourceGroup">
                 <button type="button" class="segment-btn source-btn" data-value="Walk-In" onclick="selectSource(this)">Walk-In</button>
                 <button type="button" class="segment-btn source-btn" data-value="Tele-In" onclick="selectSource(this)">Tele-In</button>
@@ -195,6 +204,17 @@
                     >
                         <option value="">Select Source of Information</option>
                     </select>
+                    <div id="sourceInformationOtherWrap" style="{{ $selectedSourceInformation === 'Other' ? '' : 'display:none;' }}">
+                        <label class="stack-label" for="sourceInformationOtherInput">Other Details</label>
+                        <input
+                            type="text"
+                            id="sourceInformationOtherInput"
+                            name="source_of_information_other"
+                            class="input-pill"
+                            value="{{ $selectedSourceInformationOther }}"
+                            placeholder="Enter source details"
+                        >
+                    </div>
                 </div>
             </div>
 
@@ -579,6 +599,22 @@
 
         sourceSelect.disabled = options.length === 0;
         sourceSelect.dataset.selectedSourceInfo = '';
+        updateSourceInformationOtherField();
+    }
+
+    function updateSourceInformationOtherField() {
+        const sourceSelect = document.getElementById('sourceOfInformationSelect');
+        const otherWrap = document.getElementById('sourceInformationOtherWrap');
+        const otherInput = document.getElementById('sourceInformationOtherInput');
+        const showOther = sourceSelect && sourceSelect.value === 'Other';
+
+        if (otherWrap) {
+            otherWrap.style.display = showOther ? '' : 'none';
+        }
+
+        if (!showOther && otherInput) {
+            otherInput.value = '';
+        }
     }
 
     (function initializeSegmentedSelections() {
@@ -597,6 +633,8 @@
             if (fallback) selectSource(fallback);
         }
         updateSourceInformationOptions();
+
+        document.getElementById('sourceOfInformationSelect')?.addEventListener('change', updateSourceInformationOtherField);
 
         if (followBtn) {
             selectFollow(followBtn);
