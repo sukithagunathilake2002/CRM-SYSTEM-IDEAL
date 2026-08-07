@@ -796,12 +796,12 @@
 
                     <div id="extraExchangeImagesContainer" class="exchange-upload-grid exchange-upload-grid-extra">
                         <div class="extra-image-row">
-                            <label class="exchange-upload-tile exchange-upload-tile-extra" data-upload-tile>
+                            <div class="exchange-upload-tile exchange-upload-tile-extra" data-upload-tile>
                                 <span class="exchange-upload-text">Car Picture 3</span>
                                 <img class="exchange-upload-preview" alt="Image 1 preview" hidden>
                                 <button type="button" class="extra-image-remove-top" aria-label="Remove image slot">-</button>
                                 <input type="file" name="extra_exchange_images[]" accept="image/*">
-                            </label>
+                            </div>
                             <div class="exchange-upload-actions">
                                 <button type="button" data-exchange-upload-action="choose">Add</button>
                                 <button type="button" data-exchange-upload-action="view" disabled>View</button>
@@ -809,12 +809,12 @@
                             </div>
                         </div>
                         <div class="extra-image-row">
-                            <label class="exchange-upload-tile exchange-upload-tile-extra" data-upload-tile>
+                            <div class="exchange-upload-tile exchange-upload-tile-extra" data-upload-tile>
                                 <span class="exchange-upload-text">Car Picture 4</span>
                                 <img class="exchange-upload-preview" alt="Image 2 preview" hidden>
                                 <button type="button" class="extra-image-remove-top" aria-label="Remove image slot">-</button>
                                 <input type="file" name="extra_exchange_images[]" accept="image/*">
-                            </label>
+                            </div>
                             <div class="exchange-upload-actions">
                                 <button type="button" data-exchange-upload-action="choose">Add</button>
                                 <button type="button" data-exchange-upload-action="view" disabled>View</button>
@@ -822,12 +822,12 @@
                             </div>
                         </div>
                         <div class="extra-image-row">
-                            <label class="exchange-upload-tile exchange-upload-tile-extra" data-upload-tile>
+                            <div class="exchange-upload-tile exchange-upload-tile-extra" data-upload-tile>
                                 <span class="exchange-upload-text">Car Picture 5</span>
                                 <img class="exchange-upload-preview" alt="Image 3 preview" hidden>
                                 <button type="button" class="extra-image-remove-top" aria-label="Remove image slot">-</button>
                                 <input type="file" name="extra_exchange_images[]" accept="image/*">
-                            </label>
+                            </div>
                             <div class="exchange-upload-actions">
                                 <button type="button" data-exchange-upload-action="choose">Add</button>
                                 <button type="button" data-exchange-upload-action="view" disabled>View</button>
