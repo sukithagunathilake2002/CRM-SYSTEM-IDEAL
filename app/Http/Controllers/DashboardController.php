@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Enquiry;
+use App\Models\Delivery;
 use App\Models\FollowupAttempt;
 use App\Models\LeadTransferRequest;
 use App\Models\SalesConsultantReminder;
@@ -234,6 +235,22 @@ class DashboardController extends Controller
             ->where('area_manager_id', $user->id)
             ->where('status', LeadTransferRequest::STATUS_PENDING)
             ->count();
+        $deliveryApprovalBaseQuery = Delivery::query()
+            ->whereHas('enquiry.user', function ($query) use ($user): void {
+                $query->where('manager_id', $user->id);
+            });
+        $deliveryApprovalSummary = [
+            'pending' => (clone $deliveryApprovalBaseQuery)
+                ->where('approval_status', Delivery::APPROVAL_PENDING)
+                ->count(),
+            'approved' => (clone $deliveryApprovalBaseQuery)
+                ->where('approval_status', Delivery::APPROVAL_APPROVED)
+                ->count(),
+            'rejected' => (clone $deliveryApprovalBaseQuery)
+                ->where('approval_status', Delivery::APPROVAL_REJECTED)
+                ->count(),
+        ];
+        $pendingDeliveryApprovalCount = $deliveryApprovalSummary['pending'];
         $manageableUsers = $salesConsultants->values();
         $consultantPendingDetails = $this->buildAreaManagerConsultantPendingDetails($salesConsultants, $user);
         $analytics = $this->buildAnalytics($user, $request);
@@ -242,7 +259,7 @@ class DashboardController extends Controller
         
         $districtEpData = $this->getDistrictEpData($user);
 
-        return view('dashboards.area-manager', compact('salesConsultants', 'manageableUsers', 'consultantPendingDetails', 'pendingTransferRequestCount', 'analytics', 'dashboardEpds', 'districtEpData'));
+        return view('dashboards.area-manager', compact('salesConsultants', 'manageableUsers', 'consultantPendingDetails', 'pendingTransferRequestCount', 'pendingDeliveryApprovalCount', 'deliveryApprovalSummary', 'analytics', 'dashboardEpds', 'districtEpData'));
     }
 
     public function sendSalesConsultantSystemReminder(Request $request, User $consultant): RedirectResponse

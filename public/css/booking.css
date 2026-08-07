@@ -244,7 +244,7 @@ body {
 
 .personal-row-top {
     display: grid;
-    grid-template-columns: 84px 1.6fr 170px 1.3fr;
+    grid-template-columns: 84px 1.35fr 1.35fr 170px 1.3fr;
     gap: 10px;
     align-items: end;
 }
@@ -264,6 +264,7 @@ body {
 }
 
 .personal-section input[type="text"],
+.personal-section input[type="email"],
 .personal-section input[type="date"],
 .personal-section select {
     border: 1px solid #b7bac4;
@@ -919,6 +920,14 @@ select {
     width: min(500px, 100%);
 }
 
+.booking-page .buying-color-row .required-field-label {
+    display: block;
+    margin: 0 0 6px;
+    color: #111827;
+    font-size: 13px;
+    font-weight: 800;
+}
+
 .booking-page .buying-section .segment-row {
     overflow: hidden;
     border: 1px solid #d2d4d8;
@@ -1000,6 +1009,307 @@ select {
 
     .booking-page .buying-section .vehicle-pill-display {
         font-size: 16px;
+    }
+}
+
+/* Booking exchange details reference layout */
+.booking-page.booking-step-3 .exchange-section.active {
+    max-width: none;
+    padding: 38px 34px 44px;
+    background: #ffffff;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-top-label,
+.booking-page.booking-step-3 .exchange-section .exchange-question-label,
+.booking-page.booking-step-3 .exchange-section .exchange-purchase-row label,
+.booking-page.booking-step-3 .exchange-section .exchange-interested-row > label,
+.booking-page.booking-step-3 .exchange-section .exchange-edit-fields .row:not(.exchange-interested-row) label,
+.booking-page.booking-step-3 .exchange-section .exchange-edit-fields .row:not(.exchange-interested-row) > div > label,
+.booking-page.booking-step-3 .exchange-section .exchange-image-head label,
+.booking-page.booking-step-3 .exchange-section .exchange-more-head label {
+    display: block;
+    margin: 0 0 12px;
+    color: #111111;
+    font-size: 20px;
+    line-height: 1.2;
+    font-weight: 800;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-system-fields,
+.booking-page.booking-step-3 .exchange-section .exchange-interest-segment {
+    width: min(620px, 100%);
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: hidden;
+    border: 1px solid #d0d0d0;
+    border-radius: 16px;
+    background: #ffffff;
+    box-shadow: inset 0 2px 5px rgba(15, 23, 42, 0.18);
+    margin: 0 0 24px;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-system-fields label,
+.booking-page.booking-step-3 .exchange-section .exchange-interest-segment label {
+    margin: 0;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-system-fields input,
+.booking-page.booking-step-3 .exchange-section .exchange-interest-segment input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-system-fields span,
+.booking-page.booking-step-3 .exchange-section .exchange-interest-segment span {
+    min-height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-right: 1px solid #d0d0d0;
+    background: #ffffff;
+    color: #151515;
+    font-size: 18px;
+    font-weight: 500;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-system-fields label:last-child span,
+.booking-page.booking-step-3 .exchange-section .exchange-interest-segment label:last-child span {
+    border-right: 0;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-system-fields input:checked + span,
+.booking-page.booking-step-3 .exchange-section .exchange-interest-segment input:checked + span {
+    background: #df0000;
+    color: #ffffff;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-purchase-row {
+    width: min(620px, 100%);
+    margin: 0 0 26px;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-purchase-row input,
+.booking-page.booking-step-3 .exchange-section .exchange-edit-fields input[type="text"],
+.booking-page.booking-step-3 .exchange-section .exchange-edit-fields input[type="number"],
+.booking-page.booking-step-3 .exchange-section .exchange-edit-fields input[type="date"],
+.booking-page.booking-step-3 .exchange-section .exchange-edit-fields select,
+.booking-page.booking-step-3 .exchange-section .exchange-interested-row .vehicle-pill-display {
+    width: 100%;
+    min-height: 56px;
+    border: 1px solid #c8c8c8;
+    border-radius: 14px;
+    background: #ffffff;
+    color: #111111;
+    padding: 0 28px;
+    font-size: 18px;
+    font-weight: 500;
+    box-shadow: none;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-detail-wrap {
+    margin-top: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-edit-fields {
+    display: block;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-interested-row {
+    margin: 0 0 16px;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-interested-row .vehicle-pill-display {
+    min-height: 58px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-interested-row .vehicle-pill-display span:first-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.booking-page.booking-step-3 .exchange-section .inline-edit-check {
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #df0000;
+    font-size: 16px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.booking-page.booking-step-3 .exchange-section .inline-edit-check input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    accent-color: #ef3127;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-edit-fields .row {
+    margin: 0 0 18px;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-edit-fields .row.split {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-edit-fields .row.triple {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-wide-field {
+    width: 100%;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-tyre-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 24px;
+    margin: 34px 0 22px;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-tyre-row label:first-child {
+    margin: 0;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-image-switch input {
+    display: none;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-image-switch span {
+    width: 42px;
+    height: 22px;
+    border-radius: 999px;
+    background: #111111;
+    position: relative;
+    display: block;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-image-switch span::before {
+    content: "";
+    width: 16px;
+    height: 16px;
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    border-radius: 50%;
+    background: #ffffff;
+    transition: transform 0.2s ease;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-image-switch input:checked + span {
+    background: #b72b35;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-image-switch input:checked + span::before {
+    transform: translateX(20px);
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-tyre-segment {
+    width: min(900px, 100%);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 0 0 24px;
+    border-radius: 14px;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-tyre-segment span {
+    min-height: 42px;
+    font-size: 16px;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-tyre-segment input:checked + span {
+    background: #df0000;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-difference-input,
+.booking-page.booking-step-3 .exchange-section .exchange-difference-input[readonly] {
+    background: #ffffff !important;
+    border-color: #c8c8c8 !important;
+    color: #111111 !important;
+    -webkit-text-fill-color: #111111;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-image-section {
+    margin-top: 18px;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-image-head,
+.booking-page.booking-step-3 .exchange-section .exchange-more-head {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 16px;
+    margin: 20px 0 16px;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-image-head label:first-child,
+.booking-page.booking-step-3 .exchange-section .exchange-more-head label:first-child {
+    margin: 0;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-upload-grid-primary {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-upload-grid-extra {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    max-width: 880px;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-upload-grid {
+    gap: 10px;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-upload-tile {
+    min-height: 160px;
+    border: 1px solid #d9dde4;
+    border-radius: 8px;
+    background: #f4f5f7;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-upload-title {
+    color: #111111;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-remove-btn {
+    display: none;
+}
+
+@media (max-width: 760px) {
+    .booking-page.booking-step-3 .exchange-section.active {
+        padding: 24px 14px 32px;
+    }
+
+    .booking-page.booking-step-3 .exchange-section .exchange-edit-fields .row.split,
+    .booking-page.booking-step-3 .exchange-section .exchange-edit-fields .row.triple,
+    .booking-page.booking-step-3 .exchange-section .exchange-upload-grid-primary,
+    .booking-page.booking-step-3 .exchange-section .exchange-upload-grid-extra {
+        grid-template-columns: 1fr;
+    }
+
+    .booking-page.booking-step-3 .exchange-section .exchange-system-fields span,
+    .booking-page.booking-step-3 .exchange-section .exchange-interest-segment span,
+    .booking-page.booking-step-3 .exchange-section .exchange-tyre-segment span {
+        font-size: 14px;
     }
 }
 
@@ -1767,6 +2077,21 @@ select {
     color: #334155;
 }
 
+.booking-submit-popup-card strong {
+    display: block;
+    margin: 0 0 14px;
+    color: #0f172a;
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.booking-submit-popup-actions {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
 .booking-submit-popup-btn {
     border: 0;
     min-width: 110px;
@@ -1777,6 +2102,11 @@ select {
     font-size: 14px;
     font-weight: 700;
     cursor: pointer;
+}
+
+.booking-submit-popup-btn.secondary {
+    background: #e2e8f0;
+    color: #0f172a;
 }
 
 input:focus,
@@ -2345,7 +2675,7 @@ select:focus {
 }
 
 .booking-page .personal-row-top {
-    grid-template-columns: 62px minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: 62px minmax(0, 1.25fr) minmax(0, 1.25fr) minmax(0, 0.85fr) minmax(0, 1fr);
     gap: 10px;
     align-items: end;
 }
@@ -2371,6 +2701,7 @@ select:focus {
 }
 
 .booking-page .personal-section input[type="text"],
+.booking-page .personal-section input[type="email"],
 .booking-page .personal-section input[type="date"],
 .booking-page .personal-section select {
     width: 100%;
@@ -4559,4 +4890,624 @@ select:focus {
     .booking-page.booking-step-5 .booking-form-fields div:nth-child(3) {
         grid-column: auto;
     }
+}
+
+/* Final Booking Exchange Details layout override */
+.booking-page.booking-step-3 .exchange-section.active {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 38px 34px 44px !important;
+    background: #ffffff !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-top-label,
+.booking-page.booking-step-3 .exchange-section .exchange-question-label,
+.booking-page.booking-step-3 .exchange-section .exchange-purchase-row label,
+.booking-page.booking-step-3 .exchange-section .exchange-interested-row > label,
+.booking-page.booking-step-3 .exchange-section .exchange-edit-fields .row:not(.exchange-interested-row) label,
+.booking-page.booking-step-3 .exchange-section .exchange-edit-fields .row:not(.exchange-interested-row) > div > label,
+.booking-page.booking-step-3 .exchange-section .exchange-image-head > label:first-child,
+.booking-page.booking-step-3 .exchange-section .exchange-more-head > label:first-child {
+    display: block !important;
+    margin: 0 0 12px !important;
+    color: #111111 !important;
+    font-size: 20px !important;
+    line-height: 1.2 !important;
+    font-weight: 800 !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-system-fields,
+.booking-page.booking-step-3 .exchange-section .exchange-interest-segment {
+    width: min(620px, 100%) !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    overflow: hidden !important;
+    border: 1px solid #d0d0d0 !important;
+    border-radius: 16px !important;
+    background: #ffffff !important;
+    box-shadow: inset 0 2px 5px rgba(15, 23, 42, 0.18) !important;
+    margin: 0 0 24px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-system-fields label,
+.booking-page.booking-step-3 .exchange-section .exchange-interest-segment label {
+    margin: 0 !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-system-fields input,
+.booking-page.booking-step-3 .exchange-section .exchange-interest-segment input {
+    position: absolute !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-system-fields span,
+.booking-page.booking-step-3 .exchange-section .exchange-interest-segment span {
+    min-height: 46px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-right: 1px solid #d0d0d0 !important;
+    background: #ffffff !important;
+    color: #151515 !important;
+    font-size: 18px !important;
+    font-weight: 500 !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-system-fields label:last-child span,
+.booking-page.booking-step-3 .exchange-section .exchange-interest-segment label:last-child span {
+    border-right: 0 !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-system-fields input:checked + span,
+.booking-page.booking-step-3 .exchange-section .exchange-interest-segment input:checked + span,
+.booking-page.booking-step-3 .exchange-section .exchange-tyre-segment input:checked + span {
+    background: #df0000 !important;
+    color: #ffffff !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-purchase-row {
+    width: min(620px, 100%) !important;
+    margin: 0 0 26px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-purchase-row input,
+.booking-page.booking-step-3 .exchange-section .exchange-edit-fields input[type="text"],
+.booking-page.booking-step-3 .exchange-section .exchange-edit-fields input[type="number"],
+.booking-page.booking-step-3 .exchange-section .exchange-edit-fields input[type="date"],
+.booking-page.booking-step-3 .exchange-section .exchange-edit-fields select,
+.booking-page.booking-step-3 .exchange-section .exchange-interested-row .vehicle-pill-display {
+    width: 100% !important;
+    min-height: 56px !important;
+    border: 1px solid #c8c8c8 !important;
+    border-radius: 14px !important;
+    background: #ffffff !important;
+    color: #111111 !important;
+    padding: 0 28px !important;
+    font-size: 18px !important;
+    font-weight: 500 !important;
+    box-shadow: none !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-detail-wrap {
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-edit-fields {
+    display: block !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-interested-row .vehicle-pill-display {
+    min-height: 58px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 16px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .inline-edit-check {
+    margin: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    color: #df0000 !important;
+    font-size: 16px !important;
+    font-weight: 800 !important;
+    white-space: nowrap !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .inline-edit-check input[type="checkbox"] {
+    width: 20px !important;
+    height: 20px !important;
+    accent-color: #ef3127 !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-edit-fields .row {
+    margin: 0 0 18px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-edit-fields .row.split {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 24px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-edit-fields .row.triple {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-tyre-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 24px !important;
+    margin: 34px 0 22px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-tyre-row label:first-child {
+    margin: 0 !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-image-switch input {
+    display: none !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-image-switch span {
+    width: 42px !important;
+    height: 22px !important;
+    border-radius: 999px !important;
+    background: #111111 !important;
+    position: relative !important;
+    display: block !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-image-switch span::before {
+    content: "" !important;
+    width: 16px !important;
+    height: 16px !important;
+    position: absolute !important;
+    top: 3px !important;
+    left: 3px !important;
+    border-radius: 50% !important;
+    background: #ffffff !important;
+    transition: transform 0.2s ease !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-image-switch input:checked + span {
+    background: #b72b35 !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-image-switch input:checked + span::before {
+    transform: translateX(20px) !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-tyre-segment {
+    width: min(900px, 100%) !important;
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    margin: 0 0 24px !important;
+    border-radius: 14px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-tyre-segment span {
+    min-height: 42px !important;
+    font-size: 16px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-difference-input,
+.booking-page.booking-step-3 .exchange-section .exchange-difference-input[readonly] {
+    background: #ffffff !important;
+    border-color: #c8c8c8 !important;
+    color: #111111 !important;
+    -webkit-text-fill-color: #111111 !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-image-head,
+.booking-page.booking-step-3 .exchange-section .exchange-more-head {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 16px !important;
+    margin: 20px 0 16px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-upload-grid-primary {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-upload-grid-extra {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    max-width: 880px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-upload-grid {
+    gap: 10px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-upload-tile {
+    min-height: 160px !important;
+    border: 1px solid #d9dde4 !important;
+    border-radius: 8px !important;
+    background: #f4f5f7 !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-upload-title {
+    color: #111111 !important;
+    font-size: 18px !important;
+    font-weight: 700 !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-remove-btn {
+    display: none !important;
+}
+
+@media (max-width: 760px) {
+    .booking-page.booking-step-3 .exchange-section.active {
+        padding: 24px 14px 32px !important;
+    }
+
+    .booking-page.booking-step-3 .exchange-section .exchange-edit-fields .row.split,
+    .booking-page.booking-step-3 .exchange-section .exchange-edit-fields .row.triple,
+    .booking-page.booking-step-3 .exchange-section .exchange-upload-grid-primary,
+    .booking-page.booking-step-3 .exchange-section .exchange-upload-grid-extra {
+        grid-template-columns: 1fr !important;
+    }
+
+    .booking-page.booking-step-3 .exchange-section .exchange-system-fields span,
+    .booking-page.booking-step-3 .exchange-section .exchange-interest-segment span,
+    .booking-page.booking-step-3 .exchange-section .exchange-tyre-segment span {
+        font-size: 14px !important;
+    }
+}
+
+.booking-page.booking-step-3 #exchangeBrandModelRow.hidden {
+    display: none !important;
+}
+
+.booking-page.booking-step-3 .exchange-summary {
+    width: min(620px, 100%) !important;
+    margin: 0 0 18px !important;
+    padding: 10px 14px !important;
+    border-radius: 8px !important;
+}
+
+.booking-page.booking-step-3 .exchange-summary-row {
+    min-height: 26px !important;
+    grid-template-columns: 18px minmax(130px, 0.8fr) 10px minmax(0, 1.2fr) !important;
+    gap: 8px !important;
+}
+
+.booking-page.booking-step-3 .exchange-summary-row::before {
+    width: 12px !important;
+    height: 12px !important;
+}
+
+.booking-page.booking-step-3 .exchange-summary-row span,
+.booking-page.booking-step-3 .exchange-summary-row::after,
+.booking-page.booking-step-3 .exchange-summary-row strong {
+    font-size: 11px !important;
+}
+
+.booking-page.booking-step-3 .exchange-summary-row span {
+    min-width: 130px !important;
+}
+
+/* Compact standard size for Booking Exchange Details */
+.booking-page.booking-step-3 .exchange-section.active {
+    padding: 20px 24px 28px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-top-label,
+.booking-page.booking-step-3 .exchange-section .exchange-question-label,
+.booking-page.booking-step-3 .exchange-section .exchange-purchase-row label,
+.booking-page.booking-step-3 .exchange-section .exchange-interested-row > label,
+.booking-page.booking-step-3 .exchange-section .exchange-edit-fields .row:not(.exchange-interested-row) label,
+.booking-page.booking-step-3 .exchange-section .exchange-edit-fields .row:not(.exchange-interested-row) > div > label,
+.booking-page.booking-step-3 .exchange-section .exchange-image-head > label:first-child,
+.booking-page.booking-step-3 .exchange-section .exchange-more-head > label:first-child {
+    margin-bottom: 7px !important;
+    font-size: 14px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-system-fields,
+.booking-page.booking-step-3 .exchange-section .exchange-interest-segment {
+    width: min(520px, 100%) !important;
+    border-radius: 12px !important;
+    margin-bottom: 16px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-system-fields span,
+.booking-page.booking-step-3 .exchange-section .exchange-interest-segment span {
+    min-height: 36px !important;
+    font-size: 14px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-purchase-row {
+    width: min(520px, 100%) !important;
+    margin-bottom: 18px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-purchase-row input,
+.booking-page.booking-step-3 .exchange-section .exchange-edit-fields input[type="text"],
+.booking-page.booking-step-3 .exchange-section .exchange-edit-fields input[type="number"],
+.booking-page.booking-step-3 .exchange-section .exchange-edit-fields input[type="date"],
+.booking-page.booking-step-3 .exchange-section .exchange-edit-fields select,
+.booking-page.booking-step-3 .exchange-section .exchange-interested-row .vehicle-pill-display {
+    min-height: 38px !important;
+    border-radius: 10px !important;
+    padding: 0 14px !important;
+    font-size: 13px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-interested-row .vehicle-pill-display {
+    min-height: 40px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .inline-edit-check {
+    gap: 6px !important;
+    font-size: 13px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .inline-edit-check input[type="checkbox"] {
+    width: 16px !important;
+    height: 16px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-edit-fields .row {
+    margin-bottom: 12px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-edit-fields .row.split {
+    gap: 16px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-edit-fields .row.triple {
+    gap: 10px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-tyre-row {
+    gap: 14px !important;
+    margin: 18px 0 12px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-image-switch span {
+    width: 34px !important;
+    height: 18px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-image-switch span::before {
+    width: 12px !important;
+    height: 12px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-image-switch input:checked + span::before {
+    transform: translateX(16px) !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-tyre-segment {
+    width: min(760px, 100%) !important;
+    margin-bottom: 16px !important;
+    border-radius: 10px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-tyre-segment span {
+    min-height: 34px !important;
+    font-size: 12px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-image-head,
+.booking-page.booking-step-3 .exchange-section .exchange-more-head {
+    gap: 12px !important;
+    margin: 14px 0 10px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-upload-grid {
+    gap: 8px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-upload-grid-extra {
+    max-width: 760px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-upload-tile {
+    min-height: 116px !important;
+    border-radius: 7px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-upload-tile::before {
+    width: 26px !important;
+    height: 26px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-upload-title {
+    font-size: 13px !important;
+}
+
+.booking-page #amountCollectedInput {
+    cursor: pointer;
+    background: #ffffff;
+}
+
+.booking-receipt-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    background: rgba(15, 23, 42, 0.46);
+}
+
+.booking-receipt-card {
+    width: min(980px, 100%);
+    max-height: calc(100vh - 36px);
+    overflow: auto;
+    border-radius: 12px;
+    background: #ffffff;
+    padding: 16px;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+}
+
+.booking-receipt-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.booking-receipt-head h4 {
+    margin: 0;
+    color: #111827;
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.booking-receipt-close {
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: 50%;
+    background: #eef1f6;
+    color: #111827;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.booking-receipt-rows {
+    display: grid;
+    gap: 10px;
+}
+
+.booking-receipt-row {
+    display: grid;
+    grid-template-columns: minmax(150px, 1.1fr) minmax(130px, 0.9fr) minmax(130px, 0.8fr) minmax(150px, 1fr) minmax(110px, 0.7fr) auto;
+    gap: 14px 10px;
+    align-items: end;
+    padding: 12px;
+    border: 1px solid #d6dae3;
+    border-radius: 8px;
+    background: #f8f9fc;
+}
+
+.booking-receipt-row > div {
+    min-width: 0;
+    display: grid;
+    gap: 6px;
+}
+
+.booking-receipt-row label {
+    display: block;
+    margin: 0;
+    color: #111827;
+    font-size: 11px;
+    line-height: 1.2;
+    font-weight: 800;
+}
+
+.booking-receipt-row input,
+.booking-receipt-row select {
+    width: 100%;
+    height: 38px;
+    min-height: 38px;
+    border: 1px solid #c8ccd5;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #111827;
+    padding: 0 10px;
+    font-size: 12px;
+    box-sizing: border-box;
+}
+
+.booking-receipt-row input[readonly] {
+    background: #eef1f6;
+}
+
+.booking-receipt-remove,
+.booking-receipt-actions button {
+    min-height: 34px;
+    border: 0;
+    border-radius: 8px;
+    padding: 0 14px;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.booking-receipt-remove,
+.booking-receipt-actions button:first-child {
+    background: #6b7280;
+}
+
+.booking-receipt-actions button:nth-child(2) {
+    background: #111827;
+}
+
+.booking-receipt-actions button:nth-child(3) {
+    background: #df0000;
+}
+
+.booking-receipt-total {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 12px;
+    color: #111827;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.booking-receipt-total strong {
+    min-width: 120px;
+    text-align: right;
+    color: #df0000;
+    font-size: 16px;
+}
+
+.booking-receipt-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+@media (max-width: 900px) {
+    .booking-receipt-row {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 560px) {
+    .booking-receipt-row {
+        grid-template-columns: 1fr;
+    }
+
+    .booking-receipt-actions {
+        flex-direction: column;
+    }
+}
+
+.booking-page.booking-step-3 .exchange-summary {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 0 18px !important;
+    padding: 10px 16px !important;
+}
+
+.booking-page.booking-step-3 .exchange-summary-row {
+    grid-template-columns: 18px 210px 10px minmax(0, 1fr) !important;
 }

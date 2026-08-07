@@ -10,9 +10,36 @@
         <a class="btn-link" href="{{ route('lead_transfer.approvals') }}">
             Transfer Approvals{{ ($pendingTransferRequestCount ?? 0) > 0 ? ' (' . $pendingTransferRequestCount . ')' : '' }}
         </a>
+        <a class="btn-link" href="{{ route('delivery.approvals') }}">
+            Delivery Approvals{{ ($pendingDeliveryApprovalCount ?? 0) > 0 ? ' (' . $pendingDeliveryApprovalCount . ')' : '' }}
+        </a>
         <a class="btn-link alt" href="{{ url('/new-enquiry') }}">Create New Enquiry</a>
         <a class="btn-link" href="{{ route('dashboard.analytics') }}">Analytics Filters</a>
         <a class="btn-link alt" href="{{ url('/epr') }}">Open EPR</a>
+    </div>
+</section>
+
+<section class="card delivery-approval-summary-card">
+    <div class="consultant-pending-head">
+        <div>
+            <h2>Delivery Pending and Approval</h2>
+            <p>Review delivery submissions from Sales Consultants assigned under you.</p>
+        </div>
+        <a class="btn-link" href="{{ route('delivery.approvals') }}">Open Delivery Approvals</a>
+    </div>
+    <div class="stats-grid">
+        <div class="stat">
+            <strong>{{ (int) ($deliveryApprovalSummary['pending'] ?? 0) }}</strong>
+            <span>Pending Delivery</span>
+        </div>
+        <div class="stat">
+            <strong>{{ (int) ($deliveryApprovalSummary['approved'] ?? 0) }}</strong>
+            <span>Approved Delivery</span>
+        </div>
+        <div class="stat">
+            <strong>{{ (int) ($deliveryApprovalSummary['rejected'] ?? 0) }}</strong>
+            <span>Rejected Delivery</span>
+        </div>
     </div>
 </section>
 

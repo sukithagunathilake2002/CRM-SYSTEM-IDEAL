@@ -16,6 +16,7 @@
     $selectedTitle = old('title', $defaultValues['title']);
     $selectedName = old('name', $defaultValues['name']);
     $selectedContactType = old('contact_type', $defaultValues['contact_type']);
+    $selectedEmail = old('email', $defaultValues['email']);
     $selectedMobile = old('mobile_numbers', $defaultValues['mobile_numbers']);
     $selectedDistrict = old('district', $defaultValues['district']);
     $selectedLocation = old('location', $defaultValues['location']);
@@ -89,6 +90,18 @@
     $selectedPaymentReceiptBooking = old('payment_receipt_amount_booking', $defaultValues['payment_receipt_amount_booking']);
     $selectedPaymentPreDelivery = old('payment_pre_delivery_amount', $defaultValues['payment_pre_delivery_amount']);
     $selectedPaymentDelivery = old('payment_delivery_amount', $defaultValues['payment_delivery_amount']);
+    $deliveryReceiptPaymentModes = $deliveryReceiptPaymentModes ?? ['Cash', 'Cheque', 'Bank Transfer', 'Credit/Debit Card'];
+    $selectedDeliveryReceipts = old('delivery_receipts', $defaultValues['delivery_receipts'] ?? []);
+    $selectedDeliveryReceipts = is_array($selectedDeliveryReceipts) ? array_values($selectedDeliveryReceipts) : [];
+    if (empty($selectedDeliveryReceipts)) {
+        $selectedDeliveryReceipts = [[
+            'receipt_name_no' => '',
+            'receipt_date' => '',
+            'receipt_amount' => (float) ($selectedPaymentDelivery ?? 0) > 0 ? $selectedPaymentDelivery : '',
+            'payment_mode' => '',
+            'receipt_type' => 'Delivery',
+        ]];
+    }
     $selectedPaymentFinanceProvider = old('payment_finance_provider', $defaultValues['payment_finance_provider']);
     $selectedPaymentPendingReason = old('payment_pending_reason', $defaultValues['payment_pending_reason']);
     $selectedPaymentPendingAmount = old('payment_pending_amount', $defaultValues['payment_pending_amount']);
@@ -99,10 +112,17 @@
     $selectedPaymentCreditAmount = old('payment_credit_amount_pending', $defaultValues['payment_credit_amount_pending']);
     $selectedPaymentCreditPermittedBy = old('payment_credit_permitted_by', $defaultValues['payment_credit_permitted_by']);
     $selectedPaymentCreditExpectedDate = old('payment_credit_expected_date', $defaultValues['payment_credit_expected_date']);
+    $selectedReferenceTaken = old('reference_taken', (int) ($defaultValues['reference_taken'] ?? 0)) == 1;
+    $selectedBrandReasons = old('selecting_brand_reasons', $defaultValues['selecting_brand_reasons'] ?? []);
+    $selectedBrandReasons = is_array($selectedBrandReasons) ? $selectedBrandReasons : [];
+    $selectedDateOfDelivery = old('date_of_delivery', $defaultValues['date_of_delivery']);
+    $selectedChassisNumber = old('chassis_number', $defaultValues['chassis_number']);
+    $selectedPendingCommitments = old('pending_commitments', $defaultValues['pending_commitments']);
     $paymentReceivedTotal = (float) ($selectedPaymentReceiptBooking ?? 0)
         + (float) ($selectedPaymentPreDelivery ?? 0)
         + (float) ($selectedPaymentDelivery ?? 0);
     $selectedPaymentPendingAmount = $selectedPaymentPendingAmount ?? max(0, (float) ($selectedOfferFinalPrice ?? 0) - $paymentReceivedTotal);
+    $selectedPaymentFinalBalance = max(0, (float) ($selectedOfferFinalPrice ?? 0) - $paymentReceivedTotal);
 
     $vehicleColorOptions = ['White', 'Black', 'Silver', 'Grey', 'Red', 'Blue', 'Green', 'Brown', 'Orange', 'Other'];
     $testDriveNoReasons = [
@@ -123,6 +143,24 @@
     );
     $competitionMap = collect($competitionMap ?? []);
     $competitionBrands = $competitionMap->keys()->values()->all();
+    $selectingBrandReasonOptions = [
+        'Design',
+        'Performance',
+        'Mileage',
+        'Ride Comfort',
+        'Resale Value',
+        'Price',
+        'After Sale Support',
+        'New Model',
+        'Brand Appeal',
+        'Got Better Exchange Value At the Outlet',
+        'Got Credit Facility At the Outlet',
+        'Happy with Price/Discount',
+        'Happy with Finance Terms/Facility',
+        'Friends/Family Recommend',
+        'Other',
+        'I Did Not Ask',
+    ];
 
     $documentFields = [
         'purchase_order_image' => 'Purchase Order',
@@ -182,7 +220,7 @@
             'rows' => [
                 ['label' => 'Customer Name', 'value' => $customerDisplayName],
                 ['label' => 'Mobile No', 'value' => $summaryMobile],
-                ['label' => 'Email', 'value' => $displayValue($customer?->email, 'null')],
+                ['label' => 'Email', 'value' => $displayValue($selectedEmail)],
                 ['label' => 'Address', 'value' => $displayValue($summaryAddress)],
                 ['label' => 'Type of Customer', 'value' => ucfirst((string) ($selectedCustomerType ?: 'N/A'))],
                 ['label' => 'Profession', 'value' => ucwords(str_replace('_', ' ', (string) ($selectedProfession ?: 'N/A')))],
@@ -258,7 +296,9 @@
             </section>
             <section class="delivery-payment-total-summary">
                 <div><span>Total Final Closure Amount</span><strong>{{ number_format((float) ($selectedOfferFinalPrice ?? 0), 0) }}</strong></div>
+                <div><span>Booking Amount Paid</span><strong id="paymentSummaryBookingAmount">{{ number_format((float) ($selectedPaymentReceiptBooking ?? 0), 0) }}</strong></div>
                 <div><span>Total payable Amount</span><strong>{{ number_format((float) ($selectedOfferFinalPrice ?? 0), 0) }}</strong></div>
+                <div><span>Pending Amount</span><strong id="paymentSummaryPendingAmount">{{ number_format((float) ($selectedPaymentPendingAmount ?? 0), 0) }}</strong></div>
             </section>
         @elseif($currentStep === 6)
         @elseif($currentStep === 2)
@@ -288,6 +328,7 @@
                 <div><span>Name</span><strong>{{ $summaryName }}</strong></div>
                 <div><span>Interested In</span><strong>{{ $summaryVehicle ?: 'N/A' }}</strong></div>
                 <div><span>Mobile No.</span><strong>{{ $summaryMobile }}</strong></div>
+                <div><span>Email</span><strong>{{ $selectedEmail ?: 'N/A' }}</strong></div>
                 <div><span>Address</span><strong>{{ $summaryAddress ?: 'N/A' }}</strong></div>
                 <div><span>Type of Customer</span><strong>{{ ucfirst((string) ($selectedCustomerType ?: 'N/A')) }}</strong></div>
                 <div><span>Profession</span><strong>{{ ucwords(str_replace('_', ' ', (string) ($selectedProfession ?: 'N/A'))) }}</strong></div>
@@ -320,6 +361,11 @@
                 <label class="delivery-pill">
                     <span>Name</span>
                     <input type="text" name="name" value="{{ $selectedName }}" data-lockable>
+                </label>
+
+                <label class="delivery-pill">
+                    <span>Email</span>
+                    <input type="email" name="email" value="{{ $selectedEmail }}" data-lockable>
                 </label>
 
                 <label class="delivery-pill">
@@ -900,7 +946,7 @@
                     <h3>Payment Received</h3>
                     <div class="delivery-payment-grid">
                         <label>
-                            <span>Receipt Amount (Booking)</span>
+                            <span>Booking Amount Paid</span>
                             <input type="number" step="0.01" min="0" name="payment_receipt_amount_booking" id="paymentReceiptBooking" value="{{ $selectedPaymentReceiptBooking }}">
                         </label>
                         <label>
@@ -910,15 +956,15 @@
                         <label>
                             <span>Delivery</span>
                             <span class="delivery-payment-receipt-wrap">
-                                <input type="number" step="0.01" min="0" name="payment_delivery_amount" id="paymentDelivery" value="{{ $selectedPaymentDelivery }}">
-                                <button type="button">Add Receipts</button>
+                                <input type="number" step="0.01" min="0" name="payment_delivery_amount" id="paymentDelivery" value="{{ $selectedPaymentDelivery }}" readonly>
+                                <button type="button" id="deliveryReceiptOpen">Add Receipts</button>
                             </span>
                         </label>
                         <label>
                             <span>Finance</span>
                             <span class="delivery-payment-finance-wrap">
-                                <input type="text" name="payment_finance_provider" value="{{ $selectedPaymentFinanceProvider }}">
-                                <i aria-hidden="true"></i>
+                                <input type="text" name="payment_finance_provider" id="paymentFinanceProvider" value="{{ $selectedPaymentFinanceProvider }}" readonly>
+                                <button type="button" id="paymentFinanceEdit" aria-label="Edit finance"></button>
                             </span>
                         </label>
                     </div>
@@ -927,54 +973,60 @@
                         <span>Pending Amount</span>
                         <strong id="paymentPendingDisplay">{{ number_format((float) ($selectedPaymentPendingAmount ?? 0), 0) }}</strong>
                     </div>
-                </section>
+                    <input type="hidden" name="payment_pending_amount" id="paymentPendingAmount" value="{{ $selectedPaymentPendingAmount }}">
 
-                <section class="delivery-payment-card delivery-payment-reason">
-                    <h3>Reason</h3>
-                    <label class="delivery-payment-full">
-                        <select name="payment_pending_reason">
-                            <option value="">Select reason</option>
-                            @foreach([
-                                'Old Car Payment Pending from Agent',
-                                'Finance Pending',
-                                'Customer Payment Pending',
-                                'Cheque Pending',
-                                'Bank Transfer Pending',
-                                'Other',
-                            ] as $reasonOption)
-                                <option value="{{ $reasonOption }}" @selected($selectedPaymentPendingReason === $reasonOption)>{{ $reasonOption }}</option>
-                            @endforeach
-                        </select>
-                    </label>
-                    <label class="delivery-payment-full">
-                        <input type="number" step="0.01" min="0" name="payment_pending_amount" id="paymentPendingAmount" value="{{ $selectedPaymentPendingAmount }}" placeholder="Amount Pending">
-                    </label>
-                    <label class="delivery-payment-full">
-                        <input type="text" name="payment_agent_name" value="{{ $selectedPaymentAgentName }}" placeholder="Agent Name">
-                    </label>
-                    <label class="delivery-payment-full">
-                        <input type="text" name="payment_agent_number" value="{{ $selectedPaymentAgentNumber }}" placeholder="Agent Number">
-                    </label>
-                    <label class="delivery-payment-full">
-                        <input type="date" name="payment_expected_date" value="{{ $selectedPaymentExpectedDate }}" placeholder="Expected date of payment">
-                    </label>
-                    <label class="delivery-payment-full">
-                        <select name="payment_credit_given_to_customer">
-                            <option value="">Credit Given To Customer</option>
-                            @foreach(['Credit Given To Customer', 'No Credit Given', 'Part Credit Given'] as $creditOption)
-                                <option value="{{ $creditOption }}" @selected($selectedPaymentCreditGiven === $creditOption)>{{ $creditOption }}</option>
-                            @endforeach
-                        </select>
-                    </label>
-                    <label class="delivery-payment-full">
-                        <input type="number" step="0.01" min="0" name="payment_credit_amount_pending" value="{{ $selectedPaymentCreditAmount }}" placeholder="Amount Pending">
-                    </label>
-                    <label class="delivery-payment-full">
-                        <input type="text" name="payment_credit_permitted_by" value="{{ $selectedPaymentCreditPermittedBy }}" placeholder="Permitted By">
-                    </label>
-                    <label class="delivery-payment-full">
-                        <input type="date" name="payment_credit_expected_date" value="{{ $selectedPaymentCreditExpectedDate }}" placeholder="Expected date of payment">
-                    </label>
+                    <div id="deliveryReceiptModal" class="delivery-receipt-modal hidden" aria-hidden="true">
+                        <div class="delivery-receipt-card" role="dialog" aria-modal="true" aria-labelledby="deliveryReceiptTitle">
+                            <div class="delivery-receipt-head">
+                                <h4 id="deliveryReceiptTitle">Delivery Receipts</h4>
+                                <button type="button" id="deliveryReceiptClose" class="delivery-receipt-close" aria-label="Close receipt details">&times;</button>
+                            </div>
+
+                            <div id="deliveryReceiptRows" class="delivery-receipt-rows">
+                                @foreach($selectedDeliveryReceipts as $receiptIndex => $receipt)
+                                    <div class="delivery-receipt-row">
+                                        <div>
+                                            <label>Receipt Name/No</label>
+                                            <input type="text" name="delivery_receipts[{{ $receiptIndex }}][receipt_name_no]" value="{{ $receipt['receipt_name_no'] ?? '' }}">
+                                        </div>
+                                        <div>
+                                            <label>Receipt Date</label>
+                                            <input type="date" name="delivery_receipts[{{ $receiptIndex }}][receipt_date]" value="{{ $receipt['receipt_date'] ?? '' }}">
+                                        </div>
+                                        <div>
+                                            <label>Receipt Amount</label>
+                                            <input type="number" min="0" step="0.01" name="delivery_receipts[{{ $receiptIndex }}][receipt_amount]" value="{{ $receipt['receipt_amount'] ?? '' }}" data-delivery-receipt-amount>
+                                        </div>
+                                        <div>
+                                            <label>Mode of Payment</label>
+                                            <select name="delivery_receipts[{{ $receiptIndex }}][payment_mode]">
+                                                <option value="">Select mode</option>
+                                                @foreach($deliveryReceiptPaymentModes as $paymentMode)
+                                                    <option value="{{ $paymentMode }}" @selected(($receipt['payment_mode'] ?? '') === $paymentMode)>{{ $paymentMode }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label>Receipt Type</label>
+                                            <input type="text" name="delivery_receipts[{{ $receiptIndex }}][receipt_type]" value="Delivery" readonly>
+                                        </div>
+                                        <button type="button" class="delivery-receipt-remove" aria-label="Remove receipt">Remove</button>
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            <div class="delivery-receipt-total">
+                                <span>Total Receipt Amount</span>
+                                <strong id="deliveryReceiptTotalDisplay">{{ number_format((float) ($selectedPaymentDelivery ?? 0), 2) }}</strong>
+                            </div>
+
+                            <div class="delivery-receipt-actions">
+                                <button type="button" id="deliveryReceiptCancel">Cancel</button>
+                                <button type="button" id="deliveryReceiptSave">Save</button>
+                                <button type="button" id="deliveryReceiptAddMore">Add More</button>
+                            </div>
+                        </div>
+                    </div>
                 </section>
             </div>
             @elseif($currentStep === 6)
@@ -994,16 +1046,95 @@
                         </div>
                     </section>
                 @endforeach
+
+                <section class="delivery-review-card delivery-final-offer-card">
+                    <h2>Offer Details</h2>
+                    <div class="delivery-final-offer-table">
+                        <div class="delivery-final-offer-head">
+                            <span></span>
+                            <strong>Cost</strong>
+                            <strong>Offer</strong>
+                            <strong>Payable</strong>
+                        </div>
+                        <div class="delivery-final-offer-row">
+                            <strong>Vat</strong>
+                            <span>{{ number_format((float) ($selectedOfferVatAmount ?? 0), 0) }}</span>
+                            <span>{{ number_format((float) ($selectedOfferVatDiscount ?? 0), 0) }}</span>
+                            <span>{{ number_format(max(0, (float) ($selectedOfferVatAmount ?? 0) - (float) ($selectedOfferVatDiscount ?? 0)), 0) }}</span>
+                        </div>
+                        <div class="delivery-final-offer-row">
+                            <strong>Unit price (without vat)</strong>
+                            <span>{{ number_format((float) ($selectedOfferUnitPrice ?? 0), 0) }}</span>
+                            <span>{{ number_format((float) ($selectedOfferUnitPriceDiscount ?? 0), 0) }}</span>
+                            <span>{{ number_format(max(0, (float) ($selectedOfferUnitPrice ?? 0) - (float) ($selectedOfferUnitPriceDiscount ?? 0)), 0) }}</span>
+                        </div>
+                        <div class="delivery-final-offer-total">
+                            <strong>Total</strong>
+                            <span>{{ number_format((float) ($selectedOfferTotalCost ?? 0), 0) }}</span>
+                            <span>{{ number_format((float) ($selectedOfferTotalDiscount ?? 0), 0) }}</span>
+                            <span>{{ number_format((float) ($selectedOfferFinalPrice ?? 0), 0) }}</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="delivery-review-card delivery-final-payment-card">
+                    <h2>Payment Details</h2>
+                    <div class="delivery-final-payment-rows">
+                        <div><span>Total Deal Closure Amount</span><strong>{{ number_format((float) ($selectedOfferFinalPrice ?? 0), 0) }}</strong></div>
+                        <div><span>Total Payable Amount</span><strong>{{ number_format((float) ($selectedOfferFinalPrice ?? 0), 0) }}</strong></div>
+                        <div><span>Receipt Amount (Booking)</span><strong>{{ number_format((float) ($selectedPaymentReceiptBooking ?? 0), 0) }}</strong><i aria-hidden="true"></i></div>
+                        <div><span>Receipt Amount (Delivery)</span><strong>{{ number_format((float) ($selectedPaymentDelivery ?? 0), 0) }}</strong><i aria-hidden="true"></i></div>
+                        <div><span>Final Balance</span><strong>{{ number_format((float) ($selectedPaymentFinalBalance ?? 0), 0) }}</strong></div>
+                    </div>
+                </section>
+
+                <div class="delivery-final-reference">
+                    <span>Reference Taken</span>
+                    <label class="delivery-final-switch">
+                        <input type="hidden" name="reference_taken" value="0">
+                        <input type="checkbox" name="reference_taken" value="1" @checked($selectedReferenceTaken)>
+                        <i></i>
+                    </label>
+                </div>
+
+                <section class="delivery-final-form-card">
+                    <h2>Top Reason For Selecting Brand</h2>
+                    <div class="delivery-final-reasons">
+                        @foreach($selectingBrandReasonOptions as $reasonOption)
+                            <label>
+                                <input type="checkbox" name="selecting_brand_reasons[]" value="{{ $reasonOption }}" @checked(in_array($reasonOption, $selectedBrandReasons, true))>
+                                <span>{{ $reasonOption }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+
+                    <div class="delivery-final-input-grid">
+                        <label>
+                            <span>Date of Delivery</span>
+                            <input type="date" name="date_of_delivery" value="{{ $selectedDateOfDelivery }}">
+                        </label>
+                        <label>
+                            <span>Chassis Number</span>
+                            <input type="text" name="chassis_number" value="{{ $selectedChassisNumber }}" placeholder="Chassis Number">
+                        </label>
+                        <label>
+                            <span>Pending Commitments</span>
+                            <input type="text" name="pending_commitments" value="{{ $selectedPendingCommitments }}" placeholder="Pending Commitments">
+                        </label>
+                    </div>
+                </section>
             </div>
             @endif
 
-            <div class="delivery-actions {{ $currentStep === 1 ? 'no-back' : '' }}">
+            <div class="delivery-actions {{ $currentStep === 1 ? 'no-back' : '' }} {{ $currentStep === 6 ? 'delivery-final-actions' : '' }}">
                 @if($currentStep > 1)
                     <a href="{{ route('delivery.show', ['enquiry' => $enquiry->id, 'step' => $currentStep - 1]) }}" class="delivery-action back">Back</a>
                 @endif
-                <button type="submit" name="action_type" value="save_exit" class="delivery-action save-exit">Save &amp; Exit</button>
+                @if($currentStep !== 6)
+                    <button type="submit" name="action_type" value="save_exit" class="delivery-action save-exit">Save &amp; Exit</button>
+                @endif
                 @if($currentStep === 6)
-                    <button type="submit" name="action_type" value="submit" class="delivery-action save-next delivery-submit-action">Submit</button>
+                    <button type="submit" name="action_type" value="submit" class="delivery-action save-next delivery-submit-action">Deliver Now</button>
                 @else
                     <button type="submit" name="action_type" value="save_next" class="delivery-action save-next">Save &amp; Next</button>
                 @endif
@@ -1258,6 +1389,116 @@
     const paymentDelivery = document.getElementById('paymentDelivery');
     const paymentPendingDisplay = document.getElementById('paymentPendingDisplay');
     const paymentPendingAmount = document.getElementById('paymentPendingAmount');
+    const paymentSummaryBookingAmount = document.getElementById('paymentSummaryBookingAmount');
+    const paymentSummaryPendingAmount = document.getElementById('paymentSummaryPendingAmount');
+    const paymentFinanceProvider = document.getElementById('paymentFinanceProvider');
+    const paymentFinanceEdit = document.getElementById('paymentFinanceEdit');
+    const deliveryReceiptOpen = document.getElementById('deliveryReceiptOpen');
+    const deliveryReceiptModal = document.getElementById('deliveryReceiptModal');
+    const deliveryReceiptRows = document.getElementById('deliveryReceiptRows');
+    const deliveryReceiptClose = document.getElementById('deliveryReceiptClose');
+    const deliveryReceiptCancel = document.getElementById('deliveryReceiptCancel');
+    const deliveryReceiptSave = document.getElementById('deliveryReceiptSave');
+    const deliveryReceiptAddMore = document.getElementById('deliveryReceiptAddMore');
+    const deliveryReceiptTotalDisplay = document.getElementById('deliveryReceiptTotalDisplay');
+    const deliveryReceiptPaymentModes = @json($deliveryReceiptPaymentModes);
+    let deliveryReceiptSnapshot = null;
+
+    const escapeDeliveryReceiptValue = (value) => String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
+    const deliveryReceiptRowTemplate = (index, values = {}) => {
+        const paymentOptions = ['<option value="">Select mode</option>']
+            .concat(deliveryReceiptPaymentModes.map((mode) => {
+                const selected = mode === (values.payment_mode || '') ? ' selected' : '';
+                return `<option value="${mode}"${selected}>${mode}</option>`;
+            }))
+            .join('');
+
+        return `
+            <div class="delivery-receipt-row">
+                <div>
+                    <label>Receipt Name/No</label>
+                    <input type="text" name="delivery_receipts[${index}][receipt_name_no]" value="${escapeDeliveryReceiptValue(values.receipt_name_no)}">
+                </div>
+                <div>
+                    <label>Receipt Date</label>
+                    <input type="date" name="delivery_receipts[${index}][receipt_date]" value="${escapeDeliveryReceiptValue(values.receipt_date)}">
+                </div>
+                <div>
+                    <label>Receipt Amount</label>
+                    <input type="number" min="0" step="0.01" name="delivery_receipts[${index}][receipt_amount]" value="${escapeDeliveryReceiptValue(values.receipt_amount)}" data-delivery-receipt-amount>
+                </div>
+                <div>
+                    <label>Mode of Payment</label>
+                    <select name="delivery_receipts[${index}][payment_mode]">${paymentOptions}</select>
+                </div>
+                <div>
+                    <label>Receipt Type</label>
+                    <input type="text" name="delivery_receipts[${index}][receipt_type]" value="Delivery" readonly>
+                </div>
+                <button type="button" class="delivery-receipt-remove" aria-label="Remove receipt">Remove</button>
+            </div>
+        `;
+    };
+
+    const serializeDeliveryReceiptRows = () => {
+        if (!deliveryReceiptRows) return [];
+
+        return Array.from(deliveryReceiptRows.querySelectorAll('.delivery-receipt-row')).map((row) => ({
+            receipt_name_no: row.querySelector('[name$="[receipt_name_no]"]')?.value || '',
+            receipt_date: row.querySelector('[name$="[receipt_date]"]')?.value || '',
+            receipt_amount: row.querySelector('[name$="[receipt_amount]"]')?.value || '',
+            payment_mode: row.querySelector('[name$="[payment_mode]"]')?.value || '',
+            receipt_type: 'Delivery',
+        }));
+    };
+
+    const syncDeliveryReceiptTotal = () => {
+        if (!deliveryReceiptRows) return;
+
+        const total = Array.from(deliveryReceiptRows.querySelectorAll('[data-delivery-receipt-amount]'))
+            .reduce((sum, input) => sum + (parseFloat(input.value || '0') || 0), 0);
+
+        if (paymentDelivery) {
+            paymentDelivery.value = total.toFixed(2);
+        }
+        if (deliveryReceiptTotalDisplay) {
+            deliveryReceiptTotalDisplay.textContent = total.toFixed(2);
+        }
+        syncPaymentPendingAmount();
+    };
+
+    const renderDeliveryReceiptRows = (rows) => {
+        if (!deliveryReceiptRows) return;
+
+        const safeRows = rows.length ? rows : [{}];
+        deliveryReceiptRows.innerHTML = safeRows
+            .map((row, index) => deliveryReceiptRowTemplate(index, row))
+            .join('');
+        syncDeliveryReceiptTotal();
+    };
+
+    const openDeliveryReceiptModal = () => {
+        if (!deliveryReceiptModal) return;
+
+        deliveryReceiptSnapshot = serializeDeliveryReceiptRows();
+        deliveryReceiptModal.hidden = false;
+        deliveryReceiptModal.classList.remove('hidden');
+        deliveryReceiptModal.setAttribute('aria-hidden', 'false');
+        deliveryReceiptModal.querySelector('input, select, button')?.focus();
+    };
+
+    const closeDeliveryReceiptModal = () => {
+        if (!deliveryReceiptModal) return;
+
+        deliveryReceiptModal.classList.add('hidden');
+        deliveryReceiptModal.hidden = true;
+        deliveryReceiptModal.setAttribute('aria-hidden', 'true');
+    };
 
     const syncPaymentPendingAmount = () => {
         if (!paymentPendingDisplay || !paymentPendingAmount) {
@@ -1269,7 +1510,14 @@
             return sum + (Number.isNaN(value) ? 0 : Math.max(0, value));
         }, 0);
         const pending = Math.max(0, paymentTotalPayable - received);
+        const bookingPaid = parseFloat(paymentReceiptBooking?.value || '0');
 
+        if (paymentSummaryBookingAmount) {
+            paymentSummaryBookingAmount.textContent = Math.round(Number.isNaN(bookingPaid) ? 0 : Math.max(0, bookingPaid)).toLocaleString('en-US');
+        }
+        if (paymentSummaryPendingAmount) {
+            paymentSummaryPendingAmount.textContent = Math.round(pending).toLocaleString('en-US');
+        }
         paymentPendingDisplay.textContent = Math.round(pending).toLocaleString('en-US');
         paymentPendingAmount.value = pending.toFixed(2);
     };
@@ -1277,6 +1525,67 @@
     [paymentReceiptBooking, paymentPreDelivery, paymentDelivery].forEach((field) => {
         field?.addEventListener('input', syncPaymentPendingAmount);
     });
+    deliveryReceiptOpen?.addEventListener('click', openDeliveryReceiptModal);
+    deliveryReceiptRows?.addEventListener('input', (event) => {
+        if (event.target instanceof Element && event.target.matches('[data-delivery-receipt-amount]')) {
+            syncDeliveryReceiptTotal();
+        }
+    });
+    deliveryReceiptRows?.addEventListener('click', (event) => {
+        const target = event.target;
+        if (!(target instanceof Element)) return;
+
+        const removeButton = target.closest('.delivery-receipt-remove');
+        if (!removeButton) return;
+
+        const row = removeButton.closest('.delivery-receipt-row');
+        const rows = deliveryReceiptRows.querySelectorAll('.delivery-receipt-row');
+        if (row && rows.length > 1) {
+            row.remove();
+        } else if (row) {
+            row.querySelectorAll('input:not([readonly]), select').forEach((field) => {
+                field.value = '';
+            });
+        }
+
+        renderDeliveryReceiptRows(serializeDeliveryReceiptRows());
+    });
+    deliveryReceiptAddMore?.addEventListener('click', () => {
+        const rows = serializeDeliveryReceiptRows();
+        rows.push({});
+        renderDeliveryReceiptRows(rows);
+    });
+    deliveryReceiptSave?.addEventListener('click', () => {
+        syncDeliveryReceiptTotal();
+        closeDeliveryReceiptModal();
+    });
+
+    const cancelDeliveryReceiptChanges = () => {
+        renderDeliveryReceiptRows(Array.isArray(deliveryReceiptSnapshot) ? deliveryReceiptSnapshot : []);
+        closeDeliveryReceiptModal();
+    };
+
+    deliveryReceiptCancel?.addEventListener('click', cancelDeliveryReceiptChanges);
+    deliveryReceiptClose?.addEventListener('click', cancelDeliveryReceiptChanges);
+    deliveryReceiptModal?.addEventListener('click', (event) => {
+        if (event.target === deliveryReceiptModal) {
+            cancelDeliveryReceiptChanges();
+        }
+    });
+    const enablePaymentFinanceEdit = () => {
+        if (!paymentFinanceProvider) {
+            return;
+        }
+
+        paymentFinanceProvider.readOnly = false;
+        paymentFinanceProvider.closest('.delivery-payment-finance-wrap')?.classList.add('is-editing');
+        paymentFinanceProvider.focus();
+        paymentFinanceProvider.select();
+    };
+
+    paymentFinanceEdit?.addEventListener('click', enablePaymentFinanceEdit);
+    paymentFinanceProvider?.addEventListener('dblclick', enablePaymentFinanceEdit);
+    syncDeliveryReceiptTotal();
     syncPaymentPendingAmount();
 
     document.querySelectorAll('[data-image-tile]').forEach((tile) => {
@@ -1558,6 +1867,7 @@
             window.location.href = card?.dataset.dashboardUrl || '{{ route('dashboard.main') }}';
         });
     }
+
 })();
 </script>
 @endsection

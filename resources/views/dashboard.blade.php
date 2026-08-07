@@ -132,6 +132,10 @@ $viewerId = (int) ($user?->id ?? 0);
                         <a href="{{ route('enquiries.list', ['booking' => 'active']) }}">Active Booking</a>
                         <a href="{{ url('/epr') }}">Cancelled Booking</a>
                         <a href="{{ route('enquiries.list', ['delivery' => 'active']) }}">Deliveries</a>
+                        @if(auth()->user()?->role === \App\Models\User::ROLE_SALES_CONSULTANT)
+                            <a href="{{ route('enquiries.list', ['delivery_approval' => 'pending']) }}">Pending Delivery</a>
+                            <a href="{{ route('enquiries.list', ['delivery_approval' => 'approved']) }}">Approved Delivery</a>
+                        @endif
                         <a href="{{ route('enquiries.list', ['view' => 'all']) }}">All Leads</a>
                     </div>
 
@@ -165,6 +169,14 @@ $viewerId = (int) ($user?->id ?? 0);
                         </a>
 
                         <div class="top-icons-right crm-header-actions">
+                            <a href="{{ route('dashboard.main') }}" class="crm-home-nav" aria-label="Open dashboard" title="Dashboard">
+                                <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                                    <path d="M3.5 11.5 12 4l8.5 7.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                                    <path d="M6.5 10.5V20h11V10.5" stroke-linejoin="round"></path>
+                                    <path d="M10 20v-5h4v5" stroke-linejoin="round"></path>
+                                </svg>
+                            </a>
+
                             <details class="crm-notifications">
                                 <summary class="crm-notify-btn" aria-label="Today's follow-up notifications">
                                     <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">

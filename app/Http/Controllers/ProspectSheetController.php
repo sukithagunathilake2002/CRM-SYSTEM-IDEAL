@@ -60,6 +60,7 @@ class ProspectSheetController extends Controller
             $districtOptions[] = $currentDistrict;
             sort($districtOptions);
         }
+        $vehicleColorOptions = $this->vehicleColorOptions($prospect->interested_vehicle_color);
 
         return view('prospect.show', compact(
             'enquiry',
@@ -68,7 +69,8 @@ class ProspectSheetController extends Controller
             'vehicleModels',
             'sourceInfoMap',
             'districtOptions',
-            'initialStep'
+            'initialStep',
+            'vehicleColorOptions'
         ));
     }
 
@@ -90,6 +92,7 @@ class ProspectSheetController extends Controller
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:20'],
             'name' => ['required', 'string', 'max:255'],
+            'email' => ['nullable', 'email', 'max:255'],
             'mobile_numbers' => ['required', 'string', 'max:255'],
             'district' => ['nullable', 'string', 'max:255', Rule::in($districtOptions)],
             'location' => ['nullable', 'string', 'max:255'],
@@ -258,6 +261,7 @@ class ProspectSheetController extends Controller
         $customer->update([
             'title' => $validated['title'],
             'name' => $validated['name'],
+            'email' => $validated['email'] ?? null,
             'mobile_numbers' => $mobileNumbers,
             'district' => $validated['district'] ?? $customer->district ?? '',
             'location' => $validated['location'] ?? null,
@@ -624,8 +628,11 @@ class ProspectSheetController extends Controller
 
         if ($currentStep >= 5) {
             return redirect()
-                ->route('enquiries.list')
-                ->with('success', 'Prospect sheet submitted and lead categorized as ' . ucfirst((string) $validated['lead_status']) . '.');
+                ->route('prospect.show', ['enquiry' => $enquiry->id, 'step' => 5])
+                ->with('success', 'Prospect sheet submitted successfully.')
+                ->with('prospect_submitted_popup', true)
+                ->with('prospect_submitted_message', 'Prospect Sheet submitted successfully.')
+                ->with('prospect_booking_url', route('booking.show', $enquiry->id));
         }
 
         return redirect()
@@ -638,6 +645,35 @@ class ProspectSheetController extends Controller
         return redirect()
             ->route('enquiries.list', $enquiry->terminalLeadRouteParameters())
             ->with('success', $enquiry->terminalLeadLabel() . ' lead is finalized. Prospect registration is not available.');
+    }
+
+    private function vehicleColorOptions(?string $selectedColor = null): array
+    {
+        $colors = [
+            'White',
+            'Pearl White',
+            'Black',
+            'Silver',
+            'Grey',
+            'Red',
+            'Blue',
+            'Green',
+            'Brown',
+            'Orange',
+            'Yellow',
+            'Beige',
+            'Gold',
+            'Maroon',
+            'Purple',
+            'Other',
+        ];
+
+        $selectedColor = trim((string) $selectedColor);
+        if ($selectedColor !== '' && !in_array($selectedColor, $colors, true)) {
+            $colors[] = $selectedColor;
+        }
+
+        return $colors;
     }
 
     private function resolveTestDriveVehicleUsed(?string $selectedVehicle, ?string $otherVehicle): ?string

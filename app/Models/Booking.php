@@ -17,6 +17,7 @@ class Booking extends Model
         'title',
         'name',
         'contact_type',
+        'email',
         'mobile_numbers',
         'district',
         'location',
@@ -40,9 +41,12 @@ class Booking extends Model
         'test_drive_not_given_reason',
         'purchase_mode',
         'finance_form',
+        'finance_bank',
+        'finance_other_details',
         'interested_in_competition',
         'competition_brand',
         'competition_model',
+        'competition_model_year',
         'first_time_buyer',
         'existing_vehicle_brand',
         'existing_vehicle_model',
@@ -80,12 +84,14 @@ class Booking extends Model
         'expected_delivery_date',
         'booking_date',
         'amount_collected',
+        'booking_receipts',
         'booking_completed_at',
         'purchase_order_image',
     ];
 
     protected $casts = [
         'booking_same_as_customer' => 'boolean',
+        'competition_model_year' => 'integer',
         'exchange_purchase_value' => 'decimal:2',
         'exchange_insurance_validity' => 'date',
         'exchange_tyre_replacements' => 'array',
@@ -102,6 +108,7 @@ class Booking extends Model
         'expected_delivery_date' => 'date',
         'booking_date' => 'date',
         'amount_collected' => 'decimal:2',
+        'booking_receipts' => 'array',
         'booking_completed_at' => 'datetime',
     ];
 

@@ -7,6 +7,7 @@
     $customer = $enquiry->customer;
     $vehicle = $enquiry->vehicle;
     $mobileString = collect($customer->mobile_numbers ?? [])->implode(', ');
+    $selectedEmail = old('email', $customer->email ?? '');
     $selectedQuote = old('quote_taken', $prospect->quote_taken);
     $selectedTestDrive = old('test_drive_given', $prospect->test_drive_given);
     $selectedTestDriveNoReasonRaw = old('test_drive_not_given_reason', $prospect->test_drive_not_given_reason);
@@ -67,7 +68,7 @@
         $isSelectedTestDriveVehicleOther && $selectedTestDriveVehicleRaw !== 'Other' ? $selectedTestDriveVehicleRaw : ''
     );
     $selectedInterestedColor = old('interested_vehicle_color', $prospect->interested_vehicle_color);
-    $vehicleColorOptions = ['White', 'Black', 'Silver', 'Grey', 'Red', 'Blue', 'Green', 'Brown', 'Orange', 'Other'];
+    $vehicleColorOptions = $vehicleColorOptions ?? [];
     $selectedLeadSource = old('lead_source', $enquiry->lead_source);
     $selectedSourceOfInformation = old('source_of_information', $prospect->source_of_information ?? $enquiry->source_of_information);
     $selectedInterestedExchange = old('interested_in_exchange', $prospect->interested_in_exchange);
@@ -173,13 +174,17 @@
         <div class="top-icons-right"></div>
     </header>
 
-    @if(session('success') === 'Prospect sheet submitted successfully.')
+    @if(session('prospect_submitted_popup'))
         <div class="prospect-submit-popup" id="prospectSubmitPopup" role="dialog" aria-modal="true" aria-labelledby="prospectSubmitTitle">
             <div class="prospect-submit-popup-card">
                 <div class="prospect-submit-icon" aria-hidden="true">✓</div>
                 <h4 id="prospectSubmitTitle">Prospect Sheet Submitted</h4>
-                <p>Prospect sheet submit correctly.</p>
-                <button type="button" class="btn btn-primary prospect-submit-popup-btn" id="prospectSubmitPopupOk">OK</button>
+                <p>{{ session('prospect_submitted_message', 'Prospect Sheet submitted successfully.') }}</p>
+                <strong>Do you need to book now?</strong>
+                <div class="prospect-submit-popup-actions">
+                    <button type="button" class="btn prospect-submit-popup-btn secondary" id="prospectSubmitPopupNo">No</button>
+                    <button type="button" class="btn btn-primary prospect-submit-popup-btn" id="prospectSubmitPopupYes">Yes</button>
+                </div>
             </div>
         </div>
     @elseif(session('success'))
@@ -218,6 +223,7 @@
         <div class="summary-row summary-base-row summary-sc-row"><span>SC Name</span><strong>{{ $enquiry->user?->name ?? 'N/A' }}</strong></div>
 
         <div class="summary-row summary-detail-row" data-summary-step="1"><span>Contact No</span><strong data-summary-field="mobile_numbers">{{ $mobileString ?: 'N/A' }}</strong></div>
+        <div class="summary-row summary-detail-row" data-summary-step="1"><span>Email</span><strong data-summary-field="email">{{ $selectedEmail ?: 'N/A' }}</strong></div>
         <div class="summary-row summary-detail-row" data-summary-step="1"><span>Date of Birth</span><strong data-summary-field="date_of_birth">{{ old('date_of_birth', $prospect->date_of_birth) ?: 'N/A' }}</strong></div>
         <div class="summary-row summary-detail-row" data-summary-step="1"><span>Address</span><strong data-summary-field="location">{{ trim(($customer->location ?? '') . (($customer->district ?? '') ? ', ' . $customer->district : '')) ?: 'N/A' }}</strong></div>
         <div class="summary-row summary-detail-row" data-summary-step="1"><span>Customer Type</span><strong data-summary-field="customer_type">{{ $selectedCustomerType ? ucfirst($selectedCustomerType) : 'N/A' }}</strong></div>
@@ -283,6 +289,11 @@
                     <div class="field-pill">
                         <label>Customer Name</label>
                         <input class="lockable" type="text" name="name" value="{{ old('name', $customer->name) }}">
+                    </div>
+
+                    <div class="field-pill field-pill-email">
+                        <label>Email</label>
+                        <input class="lockable" type="email" name="email" value="{{ $selectedEmail }}">
                     </div>
 
                     <div class="field-pill field-pill-dob">
@@ -410,6 +421,9 @@
                 @foreach($vehicleColorOptions as $colorOption)
                     <option value="{{ $colorOption }}" @selected($selectedInterestedColor === $colorOption)>{{ $colorOption }}</option>
                 @endforeach
+                @if(!empty($selectedInterestedColor) && !in_array($selectedInterestedColor, $vehicleColorOptions, true))
+                    <option value="{{ $selectedInterestedColor }}" selected>{{ $selectedInterestedColor }}</option>
+                @endif
             </select>
 
             <label>Lead Source</label>
@@ -1107,12 +1121,20 @@
             return;
         }
 
-        const closeBtn = document.getElementById('prospectSubmitPopupOk');
-        const eprUrl = @json(url('/epr'));
+        const yesBtn = document.getElementById('prospectSubmitPopupYes');
+        const noBtn = document.getElementById('prospectSubmitPopupNo');
+        const bookingUrl = @json(session('prospect_booking_url'));
+        const dashboardUrl = @json(route('dashboard.main'));
         const closePopup = () => popup.classList.add('hidden');
 
-        closeBtn?.addEventListener('click', () => {
-            window.location.href = eprUrl;
+        yesBtn?.addEventListener('click', () => {
+            if (bookingUrl) {
+                window.location.href = bookingUrl;
+            }
+        });
+
+        noBtn?.addEventListener('click', () => {
+            window.location.href = dashboardUrl;
         });
         popup.addEventListener('click', (event) => {
             if (event.target === popup) {

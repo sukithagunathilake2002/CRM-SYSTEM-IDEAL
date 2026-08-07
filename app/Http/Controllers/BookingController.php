@@ -97,10 +97,12 @@ class BookingController extends Controller
             'competitionMap' => $competitionMap,
             'districtOptions' => $districtOptions,
             'currentStep' => $currentStep,
+            'vehicleColorOptions' => $this->vehicleColorOptions($booking->interested_vehicle_color ?: $prospect?->interested_vehicle_color),
             'defaultValues' => [
                 'title' => $booking->title ?: $customer?->title,
                 'name' => $booking->name ?: $customer?->name,
                 'contact_type' => $booking->contact_type ?: 'Mobile',
+                'email' => $booking->email ?: $customer?->email,
                 'mobile_numbers' => $booking->mobile_numbers ?: $defaultMobileString,
                 'district' => $booking->district ?: $customer?->district,
                 'location' => $booking->location ?: $customer?->location,
@@ -124,9 +126,12 @@ class BookingController extends Controller
                 'test_drive_not_given_reason' => $booking->test_drive_not_given_reason ?: $prospect?->test_drive_not_given_reason,
                 'purchase_mode' => $booking->purchase_mode ?: $prospect?->purchase_mode,
                 'finance_form' => $booking->finance_form,
+                'finance_bank' => $booking->finance_bank,
+                'finance_other_details' => $booking->finance_other_details,
                 'interested_in_competition' => $booking->interested_in_competition ?: $prospect?->interested_in_competition,
                 'competition_brand' => $booking->competition_brand ?: $prospect?->competition_brand,
                 'competition_model' => $booking->competition_model ?: $prospect?->competition_model,
+                'competition_model_year' => $booking->competition_model_year,
                 'first_time_buyer' => $booking->first_time_buyer ?: $prospect?->first_time_buyer,
                 'existing_vehicle_brand' => $booking->existing_vehicle_brand ?: $prospect?->existing_vehicle_brand,
                 'existing_vehicle_model' => $booking->existing_vehicle_model ?: $prospect?->existing_vehicle_model,
@@ -159,11 +164,14 @@ class BookingController extends Controller
                 'expected_delivery_date' => $booking->expected_delivery_date,
                 'booking_date' => $booking->booking_date,
                 'amount_collected' => $booking->amount_collected ?? 0,
+                'booking_receipts' => is_array($booking->booking_receipts) ? $booking->booking_receipts : [],
             ],
             'sameAsCustomer' => old(
                 'booking_same_as_customer',
                 $booking->exists ? (string) ((int) $booking->booking_same_as_customer) : '1'
             ) === '1',
+            'bankOptions' => $this->bankOptions(),
+            'bookingReceiptPaymentModes' => $this->bookingReceiptPaymentModes(),
         ];
 
         return view('booking.show', $viewData);
@@ -201,6 +209,7 @@ class BookingController extends Controller
             'title' => ['nullable', 'string', 'max:20'],
             'name' => ['nullable', 'string', 'max:255', 'required_if:booking_same_as_customer,0'],
             'contact_type' => ['nullable', Rule::in(['Mobile', 'Home', 'Office'])],
+            'email' => ['nullable', 'email', 'max:255'],
             'mobile_numbers' => ['nullable', 'string', 'max:255', 'required_if:booking_same_as_customer,0'],
             'district' => ['nullable', 'string', 'max:255', Rule::in($districtOptions)],
             'location' => ['nullable', 'string', 'max:255'],
@@ -214,7 +223,7 @@ class BookingController extends Controller
             'interested_model' => ['nullable', 'string', 'max:255'],
             'interested_engine' => ['nullable', 'string', 'max:255'],
             'interested_variant' => ['nullable', 'string', 'max:255'],
-            'interested_vehicle_color' => ['nullable', 'string', 'max:50'],
+            'interested_vehicle_color' => ['required', 'string', 'max:50'],
             'quote_taken' => ['nullable', Rule::in(['yes', 'no'])],
             'quote_date' => ['nullable', 'date'],
             'test_drive_given' => ['nullable', Rule::in(['yes', 'no'])],
@@ -231,9 +240,23 @@ class BookingController extends Controller
             ],
             'purchase_mode' => ['nullable', Rule::in(['cash', 'finance'])],
             'finance_form' => ['nullable', Rule::in(['in_house', 'self', 'other'])],
+            'finance_bank' => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::in($this->bankOptions()),
+                Rule::requiredIf(fn() => $request->input('purchase_mode') === 'finance' && in_array($request->input('finance_form'), ['in_house', 'self'], true)),
+            ],
+            'finance_other_details' => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::requiredIf(fn() => $request->input('purchase_mode') === 'finance' && $request->input('finance_form') === 'other'),
+            ],
             'interested_in_competition' => ['nullable', Rule::in(['yes', 'no', 'not_asked'])],
             'competition_brand' => ['nullable', 'string', 'max:255'],
             'competition_model' => ['nullable', 'string', 'max:255'],
+            'competition_model_year' => ['nullable', 'integer', 'between:1950,2100'],
             'first_time_buyer' => ['nullable', Rule::in(['yes', 'no'])],
             'existing_vehicle_brand' => ['nullable', 'string', 'max:255'],
             'existing_vehicle_model' => ['nullable', 'string', 'max:255'],
@@ -243,6 +266,7 @@ class BookingController extends Controller
             'exchange_purchase_value' => ['nullable', 'numeric', 'min:0'],
             'exchange_vehicle_brand' => ['nullable', 'string', 'max:255'],
             'exchange_vehicle_model' => ['nullable', 'string', 'max:255'],
+            'exchange_vehicle_model_backup' => ['nullable', 'string', 'max:255'],
             'exchange_manufacture_year' => ['nullable', 'integer', 'between:1950,2100'],
             'exchange_ownership' => ['nullable', 'string', 'max:50'],
             'exchange_insurance_validity' => ['nullable', 'date'],
@@ -273,6 +297,12 @@ class BookingController extends Controller
             'expected_delivery_date' => ['nullable', 'date'],
             'booking_date' => ['nullable', 'date'],
             'amount_collected' => ['nullable', 'numeric', 'min:0'],
+            'booking_receipts' => ['nullable', 'array'],
+            'booking_receipts.*.receipt_name_no' => ['nullable', 'string', 'max:255'],
+            'booking_receipts.*.receipt_date' => ['nullable', 'date'],
+            'booking_receipts.*.receipt_amount' => ['nullable', 'numeric', 'min:0'],
+            'booking_receipts.*.payment_mode' => ['nullable', Rule::in($this->bookingReceiptPaymentModes())],
+            'booking_receipts.*.receipt_type' => ['nullable', Rule::in(['Booking'])],
             'edit_offer_details' => ['nullable', 'in:0,1'],
             'purchase_order_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'remove_purchase_order_image' => ['nullable', 'in:0,1'],
@@ -287,6 +317,15 @@ class BookingController extends Controller
         $prospect = $enquiry->prospectSheet;
         $actionType = $validated['action_type'] ?? 'next';
         $removePurchaseOrder = ($validated['remove_purchase_order_image'] ?? '0') === '1';
+        $bookingReceipts = $this->normalizeBookingReceipts($validated['booking_receipts'] ?? []);
+        $receiptTotal = collect($bookingReceipts)->sum(fn(array $receipt): float => (float) ($receipt['receipt_amount'] ?? 0));
+
+        if (
+            trim((string) ($validated['exchange_vehicle_model'] ?? '')) === ''
+            && trim((string) ($validated['exchange_vehicle_model_backup'] ?? '')) !== ''
+        ) {
+            $validated['exchange_vehicle_model'] = $validated['exchange_vehicle_model_backup'];
+        }
 
         $mobileNumbers = collect($customer?->mobile_numbers ?? [])
             ->map(fn($mobile) => trim((string) $mobile))
@@ -299,6 +338,7 @@ class BookingController extends Controller
             'title' => $validated['title'] ?? null,
             'name' => $validated['name'] ?? null,
             'contact_type' => $validated['contact_type'] ?? 'Mobile',
+            'email' => $validated['email'] ?? null,
             'mobile_numbers' => $validated['mobile_numbers'] ?? null,
             'district' => $validated['district'] ?? null,
             'location' => $validated['location'] ?? null,
@@ -322,9 +362,12 @@ class BookingController extends Controller
             'test_drive_not_given_reason' => null,
             'purchase_mode' => $validated['purchase_mode'] ?? null,
             'finance_form' => ($validated['purchase_mode'] ?? null) === 'finance' ? ($validated['finance_form'] ?? null) : null,
+            'finance_bank' => null,
+            'finance_other_details' => null,
             'interested_in_competition' => $validated['interested_in_competition'] ?? null,
             'competition_brand' => null,
             'competition_model' => null,
+            'competition_model_year' => null,
             'first_time_buyer' => $validated['first_time_buyer'] ?? null,
             'existing_vehicle_brand' => null,
             'existing_vehicle_model' => null,
@@ -379,9 +422,18 @@ class BookingController extends Controller
             );
         }
 
+        if (($payload['purchase_mode'] ?? null) === 'finance') {
+            if (in_array($payload['finance_form'] ?? null, ['in_house', 'self'], true)) {
+                $payload['finance_bank'] = $validated['finance_bank'] ?? null;
+            } elseif (($payload['finance_form'] ?? null) === 'other') {
+                $payload['finance_other_details'] = $validated['finance_other_details'] ?? null;
+            }
+        }
+
         if (($validated['interested_in_competition'] ?? null) === 'yes') {
             $payload['competition_brand'] = $validated['competition_brand'] ?? null;
             $payload['competition_model'] = $validated['competition_model'] ?? null;
+            $payload['competition_model_year'] = $validated['competition_model_year'] ?? null;
         }
 
         if (($validated['first_time_buyer'] ?? null) === 'no') {
@@ -390,9 +442,12 @@ class BookingController extends Controller
             $payload['existing_vehicle_year'] = $validated['existing_vehicle_year'] ?? null;
         }
 
+        $payload['exchange_type'] = $validated['exchange_type'] ?? $booking->exchange_type ?? 'in_house';
+        $payload['exchange_purchase_value'] = ($payload['exchange_type'] ?? null) === 'in_house'
+            ? ($validated['exchange_purchase_value'] ?? $booking->exchange_purchase_value)
+            : null;
+
         if (($validated['interested_in_exchange'] ?? null) === 'yes') {
-            $payload['exchange_type'] = $validated['exchange_type'] ?? 'in_house';
-            $payload['exchange_purchase_value'] = $validated['exchange_purchase_value'] ?? null;
             $payload['exchange_vehicle_brand'] = $validated['exchange_vehicle_brand'] ?? null;
             $payload['exchange_vehicle_model'] = $validated['exchange_vehicle_model'] ?? null;
             $payload['exchange_manufacture_year'] = $validated['exchange_manufacture_year'] ?? null;
@@ -500,12 +555,16 @@ class BookingController extends Controller
         $payload['offer_remark'] = $validated['offer_remark'] ?? $booking->offer_remark ?? $prospect?->offer_remark;
         $payload['expected_delivery_date'] = $validated['expected_delivery_date'] ?? $booking->expected_delivery_date;
         $payload['booking_date'] = $validated['booking_date'] ?? $booking->booking_date ?? now()->toDateString();
-        $payload['amount_collected'] = $validated['amount_collected'] ?? $booking->amount_collected ?? 0;
+        $payload['booking_receipts'] = $bookingReceipts;
+        $payload['amount_collected'] = !empty($bookingReceipts)
+            ? $receiptTotal
+            : ($validated['amount_collected'] ?? $booking->amount_collected ?? 0);
 
         if ($sameAsCustomer) {
             $payload['title'] = $customer?->title;
             $payload['name'] = $customer?->name;
             $payload['contact_type'] = 'Mobile';
+            $payload['email'] = $customer?->email;
             $payload['mobile_numbers'] = implode(', ', $mobileNumbers);
             $payload['district'] = $customer?->district;
             $payload['location'] = $customer?->location;
@@ -568,6 +627,14 @@ class BookingController extends Controller
             $payload
         );
 
+        $exchangeErrors = $this->missingExchangeRequiredErrors($payload);
+        if (!empty($exchangeErrors) && (($actionType === 'next' && $currentStep === 3) || $actionType === 'submit')) {
+            return redirect()
+                ->route('booking.show', ['enquiry' => $enquiry->id, 'step' => 3])
+                ->withErrors($exchangeErrors)
+                ->withInput();
+        }
+
         if ($actionType === 'save_exit') {
             return redirect()
                 ->route('enquiries.list', ['booking' => 'active'])
@@ -583,13 +650,16 @@ class BookingController extends Controller
         if ($actionType === 'submit') {
             if (!$bookingComplete) {
                 return redirect()
-                    ->route('enquiries.list', ['booking' => 'active'])
-                    ->with('success', 'Booking saved. Complete the remaining details when available.');
+                    ->route('booking.show', ['enquiry' => $enquiry->id, 'step' => 5])
+                    ->withErrors(['booking' => 'Please complete the required booking details before opening Delivery.']);
             }
 
             return redirect()
-                ->route('enquiries.list', ['booking' => 'active'])
-                ->with('success', 'Booking submitted successfully.');
+                ->route('booking.show', ['enquiry' => $enquiry->id, 'step' => 5])
+                ->with('success', 'Booking submitted successfully. Delivery is now enabled.')
+                ->with('booking_submitted_popup', true)
+                ->with('booking_submitted_message', 'Booking submitted successfully. Delivery is now enabled.')
+                ->with('booking_delivery_url', route('delivery.show', ['enquiry' => $enquiry->id, 'step' => 1]));
         }
 
         $nextStep = min(5, $currentStep + 1);
@@ -609,6 +679,7 @@ class BookingController extends Controller
             'district',
             'interested_model',
             'interested_variant',
+            'interested_vehicle_color',
             'expected_delivery_date',
             'booking_date',
         ] as $field) {
@@ -629,6 +700,16 @@ class BookingController extends Controller
             return false;
         }
 
+        if (($payload['purchase_mode'] ?? null) === 'finance') {
+            if (in_array($payload['finance_form'] ?? null, ['in_house', 'self'], true) && !$filled('finance_bank')) {
+                return false;
+            }
+
+            if (($payload['finance_form'] ?? null) === 'other' && !$filled('finance_other_details')) {
+                return false;
+            }
+        }
+
         if (($payload['interested_in_exchange'] ?? null) === 'yes') {
             foreach ([
                 'exchange_type',
@@ -647,9 +728,37 @@ class BookingController extends Controller
                     return false;
                 }
             }
+
+            if (($payload['exchange_type'] ?? null) === 'in_house' && !$filled('exchange_purchase_value')) {
+                return false;
+            }
         }
 
         return true;
+    }
+
+    private function missingExchangeRequiredErrors(array $payload): array
+    {
+        if (($payload['interested_in_exchange'] ?? null) !== 'yes') {
+            return [];
+        }
+
+        $filled = fn(string $field): bool => trim((string) ($payload[$field] ?? '')) !== '';
+        $errors = [];
+
+        if (!$filled('exchange_type')) {
+            $errors['exchange_type'] = 'Please select Exchange Type.';
+        }
+
+        if (($payload['exchange_type'] ?? null) === 'in_house' && !$filled('exchange_purchase_value')) {
+            $errors['exchange_purchase_value'] = 'Please fill Exchange Purchase Value.';
+        }
+
+        if (!$filled('exchange_vehicle_model')) {
+            $errors['exchange_vehicle_model'] = 'Please select Exchange Vehicle Model.';
+        }
+
+        return $errors;
     }
 
     private function redirectTerminalLead(Enquiry $enquiry)
@@ -703,6 +812,99 @@ class BookingController extends Controller
             'I Did Not Offer',
             'Others',
         ];
+    }
+
+    private function bankOptions(): array
+    {
+        return [
+            'Amana Bank PLC',
+            'Bank of Ceylon',
+            'Bank of China Ltd',
+            'Cargills Bank PLC',
+            'Citibank, N.A.',
+            'Commercial Bank of Ceylon PLC',
+            'Deutsche Bank AG',
+            'DFCC Bank PLC',
+            'Habib Bank Ltd',
+            'Hatton National Bank PLC',
+            'Indian Bank',
+            'Indian Overseas Bank',
+            'MCB Bank Ltd',
+            'National Development Bank PLC',
+            'Nations Trust Bank PLC',
+            'Pan Asia Banking Corporation PLC',
+            "People's Bank",
+            'Public Bank Berhad',
+            'Sampath Bank PLC',
+            'Seylan Bank PLC',
+            'Standard Chartered Bank',
+            'State Bank of India',
+            'The Hongkong & Shanghai Banking Corporation Ltd (HSBC)',
+            'Union Bank of Colombo PLC',
+        ];
+    }
+
+    private function vehicleColorOptions(?string $selectedColor = null): array
+    {
+        $colors = [
+            'White',
+            'Pearl White',
+            'Black',
+            'Silver',
+            'Grey',
+            'Red',
+            'Blue',
+            'Green',
+            'Brown',
+            'Orange',
+            'Yellow',
+            'Beige',
+            'Gold',
+            'Maroon',
+            'Purple',
+            'Other',
+        ];
+
+        $selectedColor = trim((string) $selectedColor);
+        if ($selectedColor !== '' && !in_array($selectedColor, $colors, true)) {
+            $colors[] = $selectedColor;
+        }
+
+        return $colors;
+    }
+
+    private function bookingReceiptPaymentModes(): array
+    {
+        return [
+            'Cash',
+            'Cheque',
+            'Bank Transfer',
+            'Credit/Debit Card',
+        ];
+    }
+
+    private function normalizeBookingReceipts(array $receipts): array
+    {
+        return collect($receipts)
+            ->map(function ($receipt): array {
+                $receipt = is_array($receipt) ? $receipt : [];
+
+                return [
+                    'receipt_name_no' => trim((string) ($receipt['receipt_name_no'] ?? '')),
+                    'receipt_date' => trim((string) ($receipt['receipt_date'] ?? '')),
+                    'receipt_amount' => (float) ($receipt['receipt_amount'] ?? 0),
+                    'payment_mode' => trim((string) ($receipt['payment_mode'] ?? '')),
+                    'receipt_type' => 'Booking',
+                ];
+            })
+            ->filter(function (array $receipt): bool {
+                return $receipt['receipt_name_no'] !== ''
+                    || $receipt['receipt_date'] !== ''
+                    || $receipt['receipt_amount'] > 0
+                    || $receipt['payment_mode'] !== '';
+            })
+            ->values()
+            ->all();
     }
 
     private function resolveTestDriveNotGivenReason(?string $selectedReason, ?string $otherReason): ?string

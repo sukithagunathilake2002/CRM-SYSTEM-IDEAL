@@ -105,7 +105,9 @@ class Enquiry extends Model
     {
         return $query
             ->registeredLead()
-            ->has('booking')
+            ->whereHas('booking', function ($query): void {
+                $query->whereNull('booking_completed_at');
+            })
             ->doesntHave('delivery');
     }
 
@@ -123,8 +125,7 @@ class Enquiry extends Model
             ->nonTerminalLead()
             ->whereHas('booking', function ($query): void {
                 $query->whereNotNull('booking_completed_at');
-            })
-            ->whereHas('delivery');
+            });
     }
 
     public function hasCompletedProspectSheet(): bool

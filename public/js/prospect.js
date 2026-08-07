@@ -171,6 +171,7 @@
     function updateProspectSummary() {
         const title = fieldValue('select[name="title"]');
         const name = fieldValue('input[name="name"]');
+        const email = fieldValue('input[name="email"]');
         const mobileNumbers = fieldValue('input[name="mobile_numbers"]');
         const dateOfBirth = fieldValue('input[name="date_of_birth"]');
         const location = fieldValue('input[name="location"]');
@@ -224,6 +225,7 @@
         setSummaryField('name', [title, name].filter(Boolean).join(' '));
         setSummaryField('interested_in', currentVehicle);
         setSummaryField('mobile_numbers', mobileNumbers);
+        setSummaryField('email', email);
         setSummaryField('date_of_birth', dateOfBirth);
         setSummaryField('location', [location, district].filter(Boolean).join(', '));
         setSummaryField('customer_type', displayChoice(customerType));

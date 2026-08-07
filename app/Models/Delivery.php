@@ -9,11 +9,17 @@ class Delivery extends Model
 {
     use HasFactory;
 
+    public const APPROVAL_DRAFT = 'draft';
+    public const APPROVAL_PENDING = 'pending';
+    public const APPROVAL_APPROVED = 'approved';
+    public const APPROVAL_REJECTED = 'rejected';
+
     protected $fillable = [
         'enquiry_id',
         'title',
         'name',
         'contact_type',
+        'email',
         'mobile_numbers',
         'district',
         'location',
@@ -74,6 +80,18 @@ class Delivery extends Model
         'payment_receipt_amount_booking',
         'payment_pre_delivery_amount',
         'payment_delivery_amount',
+        'delivery_receipts',
+        'reference_taken',
+        'selecting_brand_reasons',
+        'date_of_delivery',
+        'chassis_number',
+        'pending_commitments',
+        'approval_status',
+        'submitted_by',
+        'submitted_at',
+        'approved_by',
+        'approved_at',
+        'approval_note',
         'payment_finance_provider',
         'payment_pending_reason',
         'payment_pending_amount',
@@ -100,6 +118,14 @@ class Delivery extends Model
         'payment_receipt_amount_booking' => 'decimal:2',
         'payment_pre_delivery_amount' => 'decimal:2',
         'payment_delivery_amount' => 'decimal:2',
+        'delivery_receipts' => 'array',
+        'reference_taken' => 'boolean',
+        'selecting_brand_reasons' => 'array',
+        'date_of_delivery' => 'date',
+        'submitted_by' => 'integer',
+        'submitted_at' => 'datetime',
+        'approved_by' => 'integer',
+        'approved_at' => 'datetime',
         'payment_pending_amount' => 'decimal:2',
         'payment_expected_date' => 'date',
         'payment_credit_amount_pending' => 'decimal:2',
@@ -109,5 +135,15 @@ class Delivery extends Model
     public function enquiry()
     {
         return $this->belongsTo(Enquiry::class);
+    }
+
+    public function submittedBy()
+    {
+        return $this->belongsTo(User::class, 'submitted_by');
+    }
+
+    public function approvedBy()
+    {
+        return $this->belongsTo(User::class, 'approved_by');
     }
 }
