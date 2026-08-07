@@ -4294,3 +4294,190 @@ html.theme-dark .login-ui-right {
 html.theme-dark .login-ui-right::before {
     background: linear-gradient(135deg, rgba(5, 8, 20, 0.24), rgba(20, 7, 38, 0.34)) !important;
 }
+
+.portal-topbar,
+body.login-page .portal-topbar {
+    position: relative !important;
+    z-index: 1500 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important;
+    align-items: center !important;
+    gap: 10px !important;
+    min-height: 64px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 12px 26px !important;
+    border: 0 !important;
+    background: #000000 !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+}
+
+.portal-menu-link {
+    grid-column: 1 !important;
+    justify-self: start !important;
+    width: 34px !important;
+    height: 34px !important;
+    border: 2px solid #f5f5f5 !important;
+    border-radius: 999px !important;
+    background: transparent !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+    gap: 4px !important;
+}
+
+.portal-menu-link span {
+    width: 18px !important;
+    height: 2px !important;
+    border-radius: 999px !important;
+    background: #ffffff !important;
+}
+
+.portal-brand {
+    grid-column: 2 !important;
+    justify-self: center !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    line-height: 0 !important;
+    text-decoration: none !important;
+}
+
+.portal-brand-logo {
+    width: clamp(150px, 13vw, 270px) !important;
+    max-height: 72px !important;
+    object-fit: contain !important;
+    display: block !important;
+}
+
+.portal-topbar-right {
+    grid-column: 3 !important;
+    justify-self: end !important;
+    margin-left: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+}
+
+.portal-quick-icons {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+}
+
+.portal-quick-icon,
+.portal-topbar-right > .theme-toggle-btn {
+    width: 34px !important;
+    height: 34px !important;
+    border: 2px solid #f5f5f5 !important;
+    border-radius: 999px !important;
+    background: transparent !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-decoration: none !important;
+}
+
+.portal-quick-icon:hover,
+.portal-quick-icon:focus-visible,
+.portal-topbar-right > .theme-toggle-btn:hover,
+.portal-topbar-right > .theme-toggle-btn:focus-visible,
+.portal-menu-link:hover,
+.portal-menu-link:focus-visible {
+    transform: translateY(-1px) !important;
+    border-color: #ffffff !important;
+    background: transparent !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+    outline: 0 !important;
+}
+
+.portal-quick-icon svg,
+.portal-topbar-right > .theme-toggle-btn svg {
+    width: 18px !important;
+    height: 18px !important;
+    fill: none !important;
+    stroke: currentColor !important;
+    stroke-width: 2.2 !important;
+}
+
+.portal-profile-btn circle {
+    fill: currentColor !important;
+    stroke: currentColor !important;
+}
+
+html.theme-dark .portal-topbar,
+html.theme-dark body.login-page .portal-topbar {
+    background: #000000 !important;
+    border: 0 !important;
+    color: #ffffff !important;
+}
+
+html.theme-dark .portal-menu-link,
+html.theme-dark .portal-quick-icon,
+html.theme-dark .portal-topbar-right > .theme-toggle-btn,
+html.theme-dark .portal-menu-link:hover,
+html.theme-dark .portal-quick-icon:hover,
+html.theme-dark .portal-quick-icon:focus-visible,
+html.theme-dark .portal-topbar-right > .theme-toggle-btn:hover,
+html.theme-dark .portal-topbar-right > .theme-toggle-btn:focus-visible {
+    background: transparent !important;
+    border-color: #f5f5f5 !important;
+    color: #ffffff !important;
+}
+
+html.theme-dark .portal-brand {
+    color: #ffffff !important;
+}
+
+@media (max-width: 760px) {
+    .portal-topbar,
+    body.login-page .portal-topbar {
+        min-height: 54px !important;
+        gap: 7px !important;
+        padding: 9px 8px !important;
+    }
+
+    .portal-menu-link {
+        width: 28px !important;
+        height: 28px !important;
+        border-width: 2px !important;
+        gap: 4px !important;
+    }
+
+    .portal-menu-link span {
+        width: 16px !important;
+        height: 2px !important;
+    }
+
+    .portal-brand {
+        min-width: 0 !important;
+        overflow: visible !important;
+        white-space: normal !important;
+    }
+
+    .portal-brand-logo {
+        width: clamp(104px, 32vw, 150px) !important;
+        max-height: 44px !important;
+    }
+
+    .portal-topbar-right,
+    .portal-quick-icons {
+        gap: 5px !important;
+    }
+
+    .portal-quick-icon,
+    .portal-topbar-right > .theme-toggle-btn {
+        width: 28px !important;
+        height: 28px !important;
+        border-width: 2px !important;
+    }
+
+    .portal-quick-icon svg,
+    .portal-topbar-right > .theme-toggle-btn svg {
+        width: 15px !important;
+        height: 15px !important;
+    }
+}

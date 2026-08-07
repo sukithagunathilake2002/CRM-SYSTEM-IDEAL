@@ -51,16 +51,28 @@
             const resolveUnifiedTopbar = () =>
                 document.querySelector('.epr-topbar, .prospect-topbar, .emi-topbar, .topbar, .booking-topbar, .followup-topbar, .map-topbar');
 
-            const ensureUnifiedSearch = (topbar) => {
-                if (!topbar || topbar.querySelector('.global-header-search, .crm-search, .prospect-top-search, .search-box, .search-wrap')) {
+            const createGlobalMenuLink = () => {
+                const existing = document.querySelector('.global-header-menu-link');
+                if (existing) {
+                    return existing;
+                }
+
+                const menu = document.createElement('a');
+                menu.href = dashboardMainUrl;
+                menu.className = 'global-menu-link global-header-menu-link';
+                menu.setAttribute('aria-label', 'Open menu');
+                menu.setAttribute('title', 'Menu');
+                menu.innerHTML = '<span></span><span></span><span></span>';
+                return menu;
+            };
+
+            const ensureLeftMenu = (topbar) => {
+                if (!topbar || topbar.querySelector('.crm-menu-toggle, .global-header-menu-link')) {
                     return;
                 }
 
-                const searchWrap = document.createElement('label');
-                searchWrap.className = 'global-header-search';
-                searchWrap.setAttribute('for', 'globalHeaderSearchInput');
-                searchWrap.innerHTML = '<input id="globalHeaderSearchInput" type="search" placeholder="Search here">';
-                topbar.appendChild(searchWrap);
+                const logo = topbar.querySelector('.brand-logo-link, .portal-brand');
+                topbar.insertBefore(createGlobalMenuLink(), logo || topbar.firstChild);
             };
 
             const createQuickIcons = () => {
@@ -72,17 +84,6 @@
                 const quickIcons = document.createElement('div');
                 quickIcons.className = 'global-quick-icons';
                 quickIcons.innerHTML = `
-                    <a href="${dashboardMainUrl}" class="global-menu-link" aria-label="Open menu" title="Menu">
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                    </a>
-                    <a href="${notificationUrl}" class="global-quick-icon" aria-label="Notifications" title="Notifications">
-                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <path d="M12 4a4 4 0 0 0-4 4v2.6c0 .8-.2 1.6-.6 2.3L6 15h12l-1.4-2.1c-.4-.7-.6-1.5-.6-2.3V8a4 4 0 0 0-4-4Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
-                            <path d="M10 17a2 2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
-                        </svg>
-                    </a>
                     <a href="${dashboardMainUrl}" class="global-quick-icon" aria-label="Dashboard" title="Dashboard">
                         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <path d="M3.5 11.5 12 4l8.5 7.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
@@ -115,6 +116,12 @@
                             </form>
                         </div>
                     </details>
+                    <a href="${notificationUrl}" class="global-quick-icon" aria-label="Notifications" title="Notifications">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path d="M12 4a4 4 0 0 0-4 4v2.6c0 .8-.2 1.6-.6 2.3L6 15h12l-1.4-2.1c-.4-.7-.6-1.5-.6-2.3V8a4 4 0 0 0-4-4Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+                            <path d="M10 17a2 2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                        </svg>
+                    </a>
                 `;
 
                 return quickIcons;
@@ -150,7 +157,7 @@
                 const unifiedTopbar = resolveUnifiedTopbar();
                 if (unifiedTopbar) {
                     unifiedTopbar.classList.add('global-unified-topbar');
-                    ensureUnifiedSearch(unifiedTopbar);
+                    ensureLeftMenu(unifiedTopbar);
                 }
 
                 const iconHost = resolveIconHost();

@@ -35,6 +35,7 @@
         $portalNotificationCount = $portalSystemReminders->count();
     @endphp
     <div class="portal-shell">
+        @unless($isLoginRoute)
         <header class="portal-topbar">
             @auth
                 @unless($isLoginRoute)
@@ -45,12 +46,22 @@
                     </button>
                 @endunless
             @endauth
-            <a href="{{ route('dashboard.main') }}" class="portal-brand">IDEAL MOTORS CRM</a>
+            <a href="{{ route('dashboard.main') }}" class="portal-brand" aria-label="Go to dashboard">
+                <img src="{{ asset('icons/logo.png') }}" alt="Ideal Motors" class="portal-brand-logo">
+            </a>
             <div class="portal-topbar-right">
                 @auth
                     @unless($isLoginRoute)
                     <div class="portal-quick-icons" aria-label="Quick navigation">
-                        <a href="{{ route('dashboard.main') }}" class="portal-quick-icon" aria-label="Open CRM dashboard overview" title="CRM Dashboard Overview">
+                        <a href="{{ route('dashboard.main') }}" class="portal-quick-icon" aria-label="Open CRM dashboard" title="Dashboard">
+                            <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                                <path d="M3.5 11.5 12 4l8.5 7.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                                <path d="M6.5 10.5V20h11V10.5" stroke-linejoin="round"></path>
+                                <path d="M10 20v-5h4v5" stroke-linejoin="round"></path>
+                            </svg>
+                        </a>
+
+                        <a href="{{ route('dashboard.home') }}" class="portal-quick-icon" aria-label="Open analyzing dashboard" title="Analyzing Dashboard">
                             <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
                                 <path d="M4 19h16" stroke-linecap="round"></path>
                                 <path d="M7 18v-5" stroke-linecap="round"></path>
@@ -59,6 +70,32 @@
                                 <path d="M6 11l4-3 3 2 5-5" stroke-linecap="round" stroke-linejoin="round"></path>
                             </svg>
                         </a>
+
+                        <details class="portal-profile-menu-wrap">
+                            <summary class="portal-quick-icon portal-profile-btn" aria-label="Open profile menu" title="Profile">
+                                <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                                    <circle cx="12" cy="8" r="3.5"></circle>
+                                    <path d="M5 19c0-3.3 3.1-6 7-6s7 2.7 7 6" stroke-linecap="round"></path>
+                                </svg>
+                            </summary>
+                            <div class="portal-popover portal-profile-menu">
+                                <div class="portal-profile-summary">
+                                    <span>{{ $portalInitial }}</span>
+                                    <div>
+                                        <p class="portal-popover-title">{{ $portalUser?->name ?? 'User' }}</p>
+                                        <p class="portal-popover-detail">{{ $portalUser?->role_label ?? 'User' }}</p>
+                                    </div>
+                                </div>
+                                <p class="portal-popover-detail">{{ $portalUser?->email ?? 'No email' }}</p>
+                                @if(!empty($portalUser?->phone))
+                                    <p class="portal-popover-detail">{{ $portalUser->phone }}</p>
+                                @endif
+                                <form method="POST" action="{{ route('auth.logout') }}" class="portal-profile-logout-form">
+                                    @csrf
+                                    <button type="submit" class="portal-profile-logout-btn">Logout</button>
+                                </form>
+                            </div>
+                        </details>
 
                         <details class="portal-notifications">
                             <summary class="portal-quick-icon" aria-label="Open notifications" title="Notifications">
@@ -91,38 +128,13 @@
                                 @endforelse
                             </div>
                         </details>
-
-                        <details class="portal-profile-menu-wrap">
-                            <summary class="portal-quick-icon portal-profile-btn" aria-label="Open profile menu" title="Profile">
-                                <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-                                    <circle cx="12" cy="8" r="3.5"></circle>
-                                    <path d="M5 19c0-3.3 3.1-6 7-6s7 2.7 7 6" stroke-linecap="round"></path>
-                                </svg>
-                            </summary>
-                            <div class="portal-popover portal-profile-menu">
-                                <div class="portal-profile-summary">
-                                    <span>{{ $portalInitial }}</span>
-                                    <div>
-                                        <p class="portal-popover-title">{{ $portalUser?->name ?? 'User' }}</p>
-                                        <p class="portal-popover-detail">{{ $portalUser?->role_label ?? 'User' }}</p>
-                                    </div>
-                                </div>
-                                <p class="portal-popover-detail">{{ $portalUser?->email ?? 'No email' }}</p>
-                                @if(!empty($portalUser?->phone))
-                                    <p class="portal-popover-detail">{{ $portalUser->phone }}</p>
-                                @endif
-                                <form method="POST" action="{{ route('auth.logout') }}" class="portal-profile-logout-form">
-                                    @csrf
-                                    <button type="submit" class="portal-profile-logout-btn">Logout</button>
-                                </form>
-                            </div>
-                        </details>
                     </div>
                     @endunless
                 @endauth
                 <button type="button" id="themeToggle" class="theme-toggle-btn theme-toggle-icon" aria-label="Toggle dark mode" aria-pressed="false"></button>
             </div>
         </header>
+        @endunless
 
         @auth
             @unless($isLoginRoute)

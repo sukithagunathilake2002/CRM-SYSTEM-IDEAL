@@ -2197,3 +2197,237 @@ html.theme-dark .plan-follow-type-segment input:checked + span {
     border-color: rgba(255, 255, 255, 0.2) !important;
     color: #ffffff !important;
 }
+
+.crm-header,
+.global-unified-topbar {
+    position: relative !important;
+    z-index: 1500 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important;
+    align-items: center !important;
+    gap: 14px !important;
+    min-height: 86px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 12px 26px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: #000000 !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+}
+
+.crm-menu-toggle,
+.global-menu-link {
+    justify-self: start !important;
+    width: 54px !important;
+    height: 54px !important;
+    border: 3px solid #f5f5f5 !important;
+    border-radius: 999px !important;
+    background: transparent !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+    gap: 6px !important;
+}
+
+.crm-menu-toggle span,
+.global-menu-link span {
+    width: 29px !important;
+    height: 3px !important;
+    border-radius: 999px !important;
+    background: #ffffff !important;
+}
+
+.crm-header .brand-logo-link,
+.global-unified-topbar .brand-logo-link {
+    justify-self: center !important;
+}
+
+.global-unified-topbar > .prospect-top-search,
+.global-unified-topbar > .global-header-search,
+.global-unified-topbar .top-circle,
+.global-unified-topbar .map-link-btn,
+.global-unified-topbar .top-icon {
+    display: none !important;
+}
+
+.crm-brand-logo,
+.global-unified-topbar .brand-logo,
+.global-unified-topbar .emi-brand-logo,
+.global-unified-topbar .crm-brand-logo {
+    width: clamp(150px, 13vw, 270px) !important;
+    max-height: 72px !important;
+    object-fit: contain !important;
+}
+
+.crm-header-actions,
+.global-unified-topbar .top-icons-right,
+.global-unified-topbar .followup-top-actions,
+.global-unified-topbar .map-topbar-actions,
+.global-right-host,
+.global-quick-icons {
+    justify-self: end !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+}
+
+.crm-home-nav,
+.crm-analytics-nav,
+.crm-notify-btn,
+.crm-profile-btn,
+.global-quick-icon,
+.global-quick-icons .theme-toggle-btn,
+.crm-header-actions .theme-toggle-btn {
+    width: 54px !important;
+    height: 54px !important;
+    border: 3px solid #f5f5f5 !important;
+    border-radius: 999px !important;
+    background: transparent !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-decoration: none !important;
+    transition: transform 160ms ease, border-color 160ms ease, color 160ms ease !important;
+}
+
+.crm-home-nav:hover,
+.crm-analytics-nav:hover,
+.crm-notify-btn:hover,
+.crm-profile-btn:hover,
+.global-quick-icon:hover,
+.global-quick-icons .theme-toggle-btn:hover,
+.crm-header-actions .theme-toggle-btn:hover,
+.crm-menu-toggle:hover,
+.global-menu-link:hover {
+    transform: translateY(-1px) !important;
+    border-color: #ffffff !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+}
+
+.crm-home-nav svg,
+.crm-analytics-nav svg,
+.crm-notify-btn svg,
+.crm-profile-btn svg,
+.global-quick-icon svg,
+.global-quick-icons .theme-toggle-btn svg,
+.crm-header-actions .theme-toggle-btn svg {
+    width: 30px !important;
+    height: 30px !important;
+    fill: none !important;
+    stroke: currentColor !important;
+    stroke-width: 2.2 !important;
+}
+
+.crm-profile-btn circle,
+.global-quick-profile circle {
+    fill: currentColor !important;
+    stroke: currentColor !important;
+}
+
+.crm-notifications {
+    order: 4;
+}
+
+.crm-home-nav {
+    order: 1;
+}
+
+.crm-analytics-nav {
+    order: 2;
+}
+
+.crm-profile-menu-wrap {
+    order: 3;
+}
+
+.crm-header-actions .theme-toggle-btn {
+    order: 5;
+}
+
+html.theme-dark .crm-header,
+html.theme-dark .global-unified-topbar {
+    background: #000000 !important;
+    border: 0 !important;
+    color: #ffffff !important;
+}
+
+html.theme-dark .crm-menu-toggle,
+html.theme-dark .global-menu-link,
+html.theme-dark .crm-home-nav,
+html.theme-dark .crm-analytics-nav,
+html.theme-dark .crm-notify-btn,
+html.theme-dark .crm-profile-btn,
+html.theme-dark .global-quick-icon,
+html.theme-dark .global-quick-icons .theme-toggle-btn,
+html.theme-dark .crm-header-actions .theme-toggle-btn {
+    background: transparent !important;
+    border-color: #f5f5f5 !important;
+    color: #ffffff !important;
+}
+
+@media (max-width: 760px) {
+    .crm-header,
+    .global-unified-topbar {
+        min-height: 64px !important;
+        gap: 7px !important;
+        padding: 9px 8px !important;
+    }
+
+    .crm-menu-toggle,
+    .global-menu-link {
+        width: 38px !important;
+        height: 38px !important;
+        border-width: 2px !important;
+        gap: 4px !important;
+    }
+
+    .crm-menu-toggle span,
+    .global-menu-link span {
+        width: 21px !important;
+        height: 2px !important;
+    }
+
+    .crm-brand-logo,
+    .global-unified-topbar .brand-logo,
+    .global-unified-topbar .emi-brand-logo,
+    .global-unified-topbar .crm-brand-logo {
+        width: clamp(104px, 32vw, 150px) !important;
+        max-height: 44px !important;
+    }
+
+    .crm-header-actions,
+    .global-unified-topbar .top-icons-right,
+    .global-unified-topbar .followup-top-actions,
+    .global-unified-topbar .map-topbar-actions,
+    .global-right-host,
+    .global-quick-icons {
+        gap: 5px !important;
+    }
+
+    .crm-home-nav,
+    .crm-analytics-nav,
+    .crm-notify-btn,
+    .crm-profile-btn,
+    .global-quick-icon,
+    .global-quick-icons .theme-toggle-btn,
+    .crm-header-actions .theme-toggle-btn {
+        width: 32px !important;
+        height: 32px !important;
+        border-width: 2px !important;
+    }
+
+    .crm-home-nav svg,
+    .crm-analytics-nav svg,
+    .crm-notify-btn svg,
+    .crm-profile-btn svg,
+    .global-quick-icon svg,
+    .global-quick-icons .theme-toggle-btn svg,
+    .crm-header-actions .theme-toggle-btn svg {
+        width: 19px !important;
+        height: 19px !important;
+    }
+}
