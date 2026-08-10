@@ -46,7 +46,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
     Route::get('/dashboard/district-data', [DashboardController::class, 'getDistrictData']);
     
-    // Enquiries - Add the call, showroom, home endpoints
+    // Enquiries - Now supports all filters: booking, inquiry, delivery, etc.
     Route::get('/enquiries', [EnquiryController::class, 'list']);
     Route::get('/enquiries/call', [EnquiryController::class, 'listCallEpds']);
     Route::get('/enquiries/showroom', [EnquiryController::class, 'listShowroomEpds']);

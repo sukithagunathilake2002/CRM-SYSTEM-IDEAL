@@ -65,17 +65,64 @@ class EnquiryController extends Controller
         }
 
         $registrationFilter = strtolower(trim((string) $request->query('registration', '')));
+        
+        // ============================================================
+        // ADDED: Booking, Inquiry, Delivery, and View filters - MATCHES WEB VERSION
+        // ============================================================
+        $selectedBookingView = strtolower(trim((string) $request->query('booking', '')));
+        if (!in_array($selectedBookingView, ['active', 'inactive'], true)) {
+            $selectedBookingView = null;
+        }
+        
+        $selectedInquiryView = strtolower(trim((string) $request->query('inquiry', '')));
+        if ($selectedInquiryView !== 'active') {
+            $selectedInquiryView = null;
+        }
+        
+        $selectedDeliveryView = strtolower(trim((string) $request->query('delivery', '')));
+        if ($selectedDeliveryView !== 'active') {
+            $selectedDeliveryView = null;
+        }
+        
+        $selectedDeliveryApprovalView = strtolower(trim((string) $request->query('delivery_approval', '')));
+        if (!in_array($selectedDeliveryApprovalView, ['pending', 'approved'], true)) {
+            $selectedDeliveryApprovalView = null;
+        }
+        
+        $showAllLeads = $request->query('view') === 'all';
 
         if ($viewer && $viewer->role !== User::ROLE_SUPER_ADMIN) {
             $accessibleUserIds = $this->resolveAccessibleUserIds($viewer);
             $enquiriesQuery->whereIn('user_id', $accessibleUserIds);
         }
 
-        // Apply registration filter - MATCHES WEB VERSION
-        if ($registrationFilter === 'pending') {
-            $enquiriesQuery->pendingRegistration();
-        } elseif ($registrationFilter === 'registered') {
-            $enquiriesQuery->registeredLead();
+        // ============================================================
+        // ADDED: Apply booking filter - MATCHES WEB VERSION
+        // ============================================================
+        if ($selectedDeliveryApprovalView !== null) {
+            $enquiriesQuery->whereHas('delivery', function ($query) use ($selectedDeliveryApprovalView): void {
+                $query->where('approval_status', $selectedDeliveryApprovalView);
+            });
+        } elseif ($selectedDeliveryView === 'active') {
+            $enquiriesQuery->activeDeliveryStage();
+        } elseif ($selectedBookingView === 'active') {
+            $enquiriesQuery->activeBookingStage();
+        } elseif ($selectedBookingView === 'inactive') {
+            $enquiriesQuery->inactiveBookingStage();
+        } elseif ($selectedInquiryView === 'active') {
+            $enquiriesQuery->activeInquiryStage();
+        } elseif (!$showAllLeads && !in_array($selectedLeadResult, ['lost', 'closed'], true)) {
+            if ($registrationFilter === 'pending') {
+                $enquiriesQuery->pendingRegistration();
+            } else {
+                $enquiriesQuery->registeredLead();
+            }
+
+            if ($selectedLeadResult === 'active') {
+                $enquiriesQuery
+                    ->doesntHave('booking')
+                    ->doesntHave('delivery');
+            }
         }
 
         // Apply lead status filter
