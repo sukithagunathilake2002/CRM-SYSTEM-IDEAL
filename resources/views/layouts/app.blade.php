@@ -26,6 +26,142 @@
 
     @yield('content')
 
+    @auth
+        <aside id="globalLeadSidebar" class="global-lead-sidebar" aria-label="Leads and Bookings menu" aria-hidden="true">
+            <div class="crm-left-group">
+                <p>Leads and Bookings</p>
+                @include('layouts.partials.lead-sidebar-links')
+            </div>
+        </aside>
+        <button type="button" id="globalLeadSidebarOverlay" class="global-lead-sidebar-overlay" aria-label="Close sidebar"></button>
+    @endauth
+
+    <style>
+        .global-unified-topbar {
+            position: relative !important;
+            z-index: 1500 !important;
+            display: grid !important;
+            grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important;
+            align-items: center !important;
+            gap: 12px !important;
+            min-height: 64px !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+            margin: 0 !important;
+            padding: 6px 24px !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            background: #000000 !important;
+            color: #ffffff !important;
+            box-shadow: none !important;
+        }
+
+        .global-unified-topbar::before,
+        .global-unified-topbar::after,
+        .global-unified-topbar .top-icons-right::before,
+        .global-unified-topbar .top-icons-right::after,
+        .global-unified-topbar .followup-top-actions::before,
+        .global-unified-topbar .followup-top-actions::after,
+        .global-unified-topbar .map-topbar-actions::before,
+        .global-unified-topbar .map-topbar-actions::after {
+            content: none !important;
+            display: none !important;
+            box-shadow: none !important;
+        }
+
+        .global-unified-topbar .global-header-menu-link {
+            grid-column: 1 !important;
+            justify-self: start !important;
+            cursor: pointer !important;
+            padding: 0 !important;
+        }
+
+        .global-unified-topbar .brand-logo-link {
+            grid-column: 2 !important;
+            justify-self: center !important;
+        }
+
+        .global-unified-topbar .top-icons-right,
+        .global-unified-topbar .followup-top-actions,
+        .global-unified-topbar .map-topbar-actions,
+        .global-unified-topbar .global-right-host {
+            grid-column: 3 !important;
+            justify-self: end !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: flex-end !important;
+            gap: 12px !important;
+        }
+
+        .global-lead-sidebar {
+            position: fixed;
+            top: 64px;
+            left: 0;
+            bottom: 0;
+            width: 230px;
+            z-index: 1450;
+            box-sizing: border-box;
+            overflow-y: auto;
+            background: #060606;
+            color: #ffffff;
+            border-right: 1px solid #1a1a1a;
+            padding: 14px 12px;
+            transform: translateX(-100%);
+            transition: transform 180ms ease;
+        }
+
+        body.global-sidebar-open .global-lead-sidebar {
+            transform: translateX(0);
+        }
+
+        .global-lead-sidebar-overlay {
+            position: fixed;
+            top: 64px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1440;
+            border: 0;
+            background: rgba(2, 6, 23, 0.42);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 180ms ease;
+        }
+
+        body.global-sidebar-open .global-lead-sidebar-overlay {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .global-lead-sidebar .crm-left-group {
+            display: grid;
+            gap: 6px;
+        }
+
+        .global-lead-sidebar .crm-left-group p {
+            margin: 10px 0 4px;
+            font-size: 11px;
+            color: #9ca3af;
+            text-transform: uppercase;
+        }
+
+        .global-lead-sidebar .crm-left-group a {
+            color: #f3f4f6;
+            text-decoration: none;
+            font-size: 13px;
+            border-radius: 8px;
+            padding: 7px 8px;
+            transition: background 160ms ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .global-lead-sidebar .crm-left-group a:hover {
+            background: #171717;
+        }
+    </style>
+
     <button type="button" id="themeToggle" class="theme-toggle-btn theme-toggle-icon" aria-label="Toggle dark mode" aria-pressed="false"></button>
 
     <script>
@@ -57,11 +193,13 @@
                     return existing;
                 }
 
-                const menu = document.createElement('a');
-                menu.href = dashboardMainUrl;
+                const menu = document.createElement('button');
+                menu.type = 'button';
                 menu.className = 'global-menu-link global-header-menu-link';
                 menu.setAttribute('aria-label', 'Open menu');
                 menu.setAttribute('title', 'Menu');
+                menu.setAttribute('aria-controls', 'globalLeadSidebar');
+                menu.setAttribute('aria-expanded', 'false');
                 menu.innerHTML = '<span></span><span></span><span></span>';
                 return menu;
             };
@@ -201,6 +339,40 @@
                 bindSearchInput(document.getElementById('prospectSearch'));
             };
 
+            const bindGlobalSidebar = () => {
+                const sidebar = document.getElementById('globalLeadSidebar');
+                const overlay = document.getElementById('globalLeadSidebarOverlay');
+                const menu = document.querySelector('.global-header-menu-link');
+
+                if (!sidebar || !overlay || !menu || menu.dataset.sidebarBound === '1') {
+                    return;
+                }
+
+                menu.dataset.sidebarBound = '1';
+
+                const setOpen = (open) => {
+                    document.body.classList.toggle('global-sidebar-open', open);
+                    sidebar.setAttribute('aria-hidden', open ? 'false' : 'true');
+                    menu.setAttribute('aria-expanded', open ? 'true' : 'false');
+                };
+
+                menu.addEventListener('click', () => {
+                    setOpen(!document.body.classList.contains('global-sidebar-open'));
+                });
+
+                overlay.addEventListener('click', () => setOpen(false));
+
+                sidebar.querySelectorAll('a').forEach((link) => {
+                    link.addEventListener('click', () => setOpen(false));
+                });
+
+                document.addEventListener('keydown', (event) => {
+                    if (event.key === 'Escape') {
+                        setOpen(false);
+                    }
+                });
+            };
+
             const updateLabel = () => {
                 const isDark = root.classList.contains('theme-dark');
                 toggle.innerHTML = isDark ? sunIcon : moonIcon;
@@ -212,6 +384,7 @@
             attachToHeader();
             updateLabel();
             bindGlobalSearch();
+            bindGlobalSidebar();
 
             toggle.addEventListener('click', () => {
                 const isDark = root.classList.toggle('theme-dark');
@@ -223,7 +396,10 @@
                 updateLabel();
             });
 
-            window.addEventListener('resize', attachToHeader);
+            window.addEventListener('resize', () => {
+                attachToHeader();
+                bindGlobalSidebar();
+            });
         })();
     </script>
 </body>

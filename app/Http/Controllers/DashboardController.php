@@ -674,8 +674,8 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
         
         $baseQuery = Enquiry::with(['customer', 'vehicle'])
             ->whereIn('user_id', $accessibleUserIds)
-            ->pendingRegistration()
-            ->whereRaw("LOWER(COALESCE(followup_status, '')) <> ?", ['done']);
+            ->nonTerminalLead()
+            ->whereRaw("LOWER(COALESCE(followup_status, 'pending')) NOT IN (?, ?)", ['done', 'not_done']);
 
         $dueFollowupQuery = (clone $baseQuery)
             ->whereDate('follow_date', '<=', $today);
@@ -692,7 +692,11 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
             ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%home%'])
             ->count();
 
-        $totalCount = (clone $baseQuery)->count();
+        $totalCount = Enquiry::query()
+            ->whereIn('user_id', $accessibleUserIds)
+            ->pendingRegistration()
+            ->whereRaw("LOWER(COALESCE(followup_status, 'pending')) NOT IN (?, ?)", ['done', 'not_done'])
+            ->count();
         
         $callEpds = (clone $dueFollowupQuery)
             ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%call%'])

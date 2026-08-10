@@ -204,6 +204,12 @@ class BookingController extends Controller
             $districtOptions[] = $currentDistrict;
         }
 
+        $requestedStep = (int) $request->input('booking_step', 1);
+        $requestedStep = max(1, min(5, $requestedStep));
+        $requestedActionType = $request->input('action_type')
+            ?: $request->input('action_type_fallback')
+            ?: ($requestedStep === 5 ? 'submit' : 'next');
+
         $validated = $request->validate([
             'booking_same_as_customer' => ['nullable', 'in:0,1'],
             'title' => ['nullable', 'string', 'max:20'],
@@ -223,7 +229,12 @@ class BookingController extends Controller
             'interested_model' => ['nullable', 'string', 'max:255'],
             'interested_engine' => ['nullable', 'string', 'max:255'],
             'interested_variant' => ['nullable', 'string', 'max:255'],
-            'interested_vehicle_color' => ['required', 'string', 'max:50'],
+            'interested_vehicle_color' => [
+                'nullable',
+                'string',
+                'max:50',
+                Rule::requiredIf(fn() => $requestedStep >= 2 && $requestedActionType !== 'save_exit'),
+            ],
             'quote_taken' => ['nullable', Rule::in(['yes', 'no'])],
             'quote_date' => ['nullable', 'date'],
             'test_drive_given' => ['nullable', Rule::in(['yes', 'no'])],
@@ -308,6 +319,7 @@ class BookingController extends Controller
             'remove_purchase_order_image' => ['nullable', 'in:0,1'],
             'booking_step' => ['nullable', 'integer', 'between:1,5'],
             'action_type' => ['nullable', Rule::in(['next', 'save_exit', 'save', 'submit'])],
+            'action_type_fallback' => ['nullable', Rule::in(['next', 'save_exit', 'save', 'submit'])],
         ]);
 
         $currentStep = (int) ($validated['booking_step'] ?? 1);
@@ -315,7 +327,9 @@ class BookingController extends Controller
         $sameAsCustomer = ($validated['booking_same_as_customer'] ?? '1') === '1';
         $customer = $enquiry->customer;
         $prospect = $enquiry->prospectSheet;
-        $actionType = $validated['action_type'] ?? 'next';
+        $actionType = $validated['action_type']
+            ?? $validated['action_type_fallback']
+            ?? ($currentStep === 5 ? 'submit' : 'next');
         $removePurchaseOrder = ($validated['remove_purchase_order_image'] ?? '0') === '1';
         $bookingReceipts = $this->normalizeBookingReceipts($validated['booking_receipts'] ?? []);
         $receiptTotal = collect($bookingReceipts)->sum(fn(array $receipt): float => (float) ($receipt['receipt_amount'] ?? 0));
@@ -618,7 +632,7 @@ class BookingController extends Controller
             $payload['booking_completed_at'] = $bookingComplete
                 ? ($booking->booking_completed_at ?? now())
                 : null;
-        } elseif ($actionType === 'save_exit' && !$bookingComplete) {
+        } elseif ($actionType === 'save_exit' && !$bookingComplete && $booking->booking_completed_at === null) {
             $payload['booking_completed_at'] = null;
         }
 
@@ -655,11 +669,8 @@ class BookingController extends Controller
             }
 
             return redirect()
-                ->route('booking.show', ['enquiry' => $enquiry->id, 'step' => 5])
-                ->with('success', 'Booking submitted successfully. Delivery is now enabled.')
-                ->with('booking_submitted_popup', true)
-                ->with('booking_submitted_message', 'Booking submitted successfully. Delivery is now enabled.')
-                ->with('booking_delivery_url', route('delivery.show', ['enquiry' => $enquiry->id, 'step' => 1]));
+                ->route('enquiries.list', ['booking' => 'active'])
+                ->with('success', 'Booking submitted successfully. Delivery is now enabled.');
         }
 
         $nextStep = min(5, $currentStep + 1);

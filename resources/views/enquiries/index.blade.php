@@ -1,7 +1,7 @@
 ﻿@extends('layouts.app')
 
 @section('content')
-<link rel="stylesheet" href="{{ asset('css/enquiries.css') }}">
+<link rel="stylesheet" href="{{ asset('css/enquiries.css') }}?v={{ filemtime(public_path('css/enquiries.css')) }}">
 
 <div class="epr-page">
     <header class="epr-topbar">
@@ -38,15 +38,14 @@
             <div class="epr-filter-layout">
                 <div class="epr-filter-nav">
                     <button type="button" class="epr-filter-pill active" data-filter-tab="inquiry_period">Inquiry Period <span>&rsaquo;</span></button>
-                    @if(auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
-                        <button type="button" class="epr-filter-pill" data-filter-tab="role">Role <span>&rsaquo;</span></button>
-                        <button type="button" class="epr-filter-pill" data-filter-tab="assigned_user">User <span>&rsaquo;</span></button>
-                    @endif
                     <button type="button" class="epr-filter-pill" data-filter-tab="model">Model <span>&rsaquo;</span></button>
                     <button type="button" class="epr-filter-pill" data-filter-tab="lead_source">Lead Source <span>&rsaquo;</span></button>
                     <button type="button" class="epr-filter-pill" data-filter-tab="exchange">Exchange <span>&rsaquo;</span></button>
                     <button type="button" class="epr-filter-pill" data-filter-tab="due_followup">Due Date of Followup <span>&rsaquo;</span></button>
                     <button type="button" class="epr-filter-pill" data-filter-tab="followup_type">Followup Type <span>&rsaquo;</span></button>
+                    @if(auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
+                        <button type="button" class="epr-filter-pill" data-filter-tab="role">Role <span>&rsaquo;</span></button>
+                    @endif
                 </div>
 
                 <div class="epr-filter-options">
@@ -57,36 +56,30 @@
 
                     @if(auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
                         <div class="epr-filter-fields" data-filter-panel="role">
-                            <select id="filterRole">
-                                <option value="">All Roles</option>
-                            </select>
+                            <label class="epr-filter-option-search">
+                                <input type="search" id="filterRoleSearch" placeholder="Search roles">
+                            </label>
+                            <div class="epr-filter-choice-list" id="filterRoleOptions"></div>
                         </div>
 
-                        <div class="epr-filter-fields" data-filter-panel="assigned_user">
-                            <select id="filterAssignedUser">
-                                <option value="">All Users</option>
-                            </select>
-                        </div>
                     @endif
 
                     <div class="epr-filter-fields" data-filter-panel="model">
-                        <select id="filterModel">
-                            <option value="">All Models</option>
-                        </select>
+                        <label class="epr-filter-option-search">
+                            <input type="search" id="filterModelSearch" placeholder="Search model">
+                        </label>
+                        <div class="epr-filter-choice-list" id="filterModelOptions"></div>
                     </div>
 
                     <div class="epr-filter-fields" data-filter-panel="lead_source">
-                        <select id="filterLeadSource">
-                            <option value="">All Lead Sources</option>
-                        </select>
+                        <label class="epr-filter-option-search">
+                            <input type="search" id="filterLeadSourceSearch" placeholder="Search lead source">
+                        </label>
+                        <div class="epr-filter-choice-list" id="filterLeadSourceOptions"></div>
                     </div>
 
                     <div class="epr-filter-fields" data-filter-panel="exchange">
-                        <select id="filterExchange">
-                            <option value="">All</option>
-                            <option value="yes">Yes</option>
-                            <option value="no">No</option>
-                        </select>
+                        <div class="epr-filter-choice-list" id="filterExchangeOptions"></div>
                     </div>
 
                     <div class="epr-filter-fields" data-filter-panel="due_followup">
@@ -95,9 +88,10 @@
                     </div>
 
                     <div class="epr-filter-fields" data-filter-panel="followup_type">
-                        <select id="filterFollowupType">
-                            <option value="">All Followup Types</option>
-                        </select>
+                        <label class="epr-filter-option-search">
+                            <input type="search" id="filterFollowupTypeSearch" placeholder="Search followup type">
+                        </label>
+                        <div class="epr-filter-choice-list" id="filterFollowupTypeOptions"></div>
                     </div>
 
                 </div>
@@ -128,7 +122,15 @@
                 $followLabel = $e->follow_type ? $e->follow_type . ' On' : 'Followup On';
                 $followDate = $e->follow_date ? \Carbon\Carbon::parse($e->follow_date)->format('d F Y') : '--';
                 $followDateIso = $e->follow_date ? \Carbon\Carbon::parse($e->follow_date)->format('Y-m-d') : '';
-                $modelValue = strtolower((string) (optional($vehicle)->model ?? ''));
+                $modelFilterValues = collect($vehicleItems)
+                    ->map(fn(array $item) => trim((string) ($item['model'] ?? '')))
+                    ->filter()
+                    ->whenEmpty(fn($items) => $items->push(trim((string) (optional($vehicle)->model ?? ''))))
+                    ->map(fn($model) => strtolower((string) $model))
+                    ->filter()
+                    ->unique()
+                    ->values();
+                $modelValue = $modelFilterValues->first() ?? strtolower((string) (optional($vehicle)->model ?? ''));
                 $leadSourceValue = strtolower((string) ($e->lead_source ?? ''));
                 $followTypeValue = strtolower((string) ($e->follow_type ?? ''));
                 $exchangeValue = (int) $e->exchange === 1 ? 'yes' : 'no';
@@ -137,12 +139,38 @@
                 $ownerRole = strtolower((string) ($ownerUser?->role ?? 'unassigned'));
                 $ownerRoleLabel = trim((string) ($ownerUser?->role_label ?? 'Unassigned'));
                 $ownerIdValue = $ownerUser?->id ? (string) $ownerUser->id : '';
+                $searchKeywords = collect([
+                    $e->id,
+                    'ENQ-' . $e->id,
+                    $customerName,
+                    $primaryPhone,
+                    preg_replace('/\D+/', '', $primaryPhone),
+                    $vehicleName,
+                    optional($vehicle)->model,
+                    optional($vehicle)->engine_type,
+                    optional($vehicle)->variant,
+                    $e->lead_source,
+                    $e->source_of_information,
+                    $e->follow_type,
+                    $inquiryDate,
+                    $inquiryDateIso,
+                    $followDate,
+                    $followDateIso,
+                    $ownerName,
+                    $ownerRoleLabel,
+                ])
+                    ->merge(collect($vehicleItems)->map(fn(array $item) => $item['label'] ?? ''))
+                    ->map(fn($value) => trim((string) $value))
+                    ->filter()
+                    ->unique()
+                    ->implode(' ');
                 $leadStatus = strtolower(trim((string) ($e->prospectSheet?->lead_status ?? '')));
                 $leadStatusLabel = in_array($leadStatus, ['hot', 'warm', 'cold'], true) ? ucfirst($leadStatus) : '';
                 $terminalLeadResult = $e->terminalLeadResult();
                 $terminalLeadLabel = $terminalLeadResult ? ucfirst($terminalLeadResult) . ' Lead' : '';
                 $bookingAvailable = $e->canOpenBooking();
                 $deliveryAvailable = $e->canOpenDelivery();
+                $bookingSubmitted = $e->hasCompletedBooking();
                 $whatsAppPhone = preg_replace('/\D+/', '', $primaryPhone);
                 if (substr($whatsAppPhone, 0, 1) === '0') {
                     $whatsAppPhone = '94' . substr($whatsAppPhone, 1);
@@ -155,6 +183,7 @@
                 data-phone="{{ strtolower($primaryPhone) }}"
                 data-vehicle="{{ strtolower($vehicleName) }}"
                 data-model="{{ $modelValue }}"
+                data-models="{{ $modelFilterValues->implode('|') }}"
                 data-lead-source="{{ $leadSourceValue }}"
                 data-follow-type="{{ $followTypeValue }}"
                 data-inquiry-date="{{ $inquiryDateIso }}"
@@ -166,6 +195,7 @@
                 data-owner-role="{{ $ownerRole }}"
                 data-owner-role-label="{{ $ownerRoleLabel }}"
                 data-lead-status="{{ $leadStatus }}"
+                data-search="{{ strtolower($searchKeywords) }}"
                 data-date="{{ optional($e->created_at)->timestamp ?? 0 }}"
             >
                 <div class="epr-card-top">
@@ -243,9 +273,9 @@
                                 @else
                                     <a href="{{ route('followup.show', $e->id) }}" class="chip-btn">Followup</a>
                                     <a href="{{ route('prospect.show', $e->id) }}" class="chip-btn">Prospect Sheet</a>
-                                    @if($bookingAvailable)
+                                    @if($bookingAvailable && !$bookingSubmitted)
                                         <a href="{{ route('booking.show', $e->id) }}" class="chip-btn">Booking</a>
-                                    @else
+                                    @elseif(!$bookingSubmitted)
                                         <span class="chip-btn chip-btn-disabled" aria-disabled="true">Booking</span>
                                     @endif
                                     @if($deliveryAvailable)
@@ -308,5 +338,5 @@
     </main>
 </div>
 
-<script src="{{ asset('js/enquiries.js') }}"></script>
+<script src="{{ asset('js/enquiries.js') }}?v={{ filemtime(public_path('js/enquiries.js')) }}"></script>
 @endsection

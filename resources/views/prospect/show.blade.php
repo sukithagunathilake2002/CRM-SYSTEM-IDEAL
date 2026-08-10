@@ -131,6 +131,9 @@
     $shouldOpenStep = fn(int $step): bool => !$isStepCompleted($step)
         || ($errors->any() && (int) old('active_step', $initialStep) === $step);
     $shouldOpenPersonalEdit = $shouldOpenStep(1);
+    $showProspectSubmittedPopup = session('prospect_submitted_popup') || request()->boolean('book_now');
+    $prospectSubmittedMessage = session('prospect_submitted_message', 'Prospect Sheet submitted successfully.');
+    $prospectBookingUrl = session('prospect_booking_url', route('booking.show', $enquiry->id));
 
     $latestFollowupText = 'No followup scheduled yet';
     if (!empty($enquiry->follow_type) || !empty($enquiry->follow_date) || !empty($enquiry->follow_time)) {
@@ -174,16 +177,16 @@
         <div class="top-icons-right"></div>
     </header>
 
-    @if(session('prospect_submitted_popup'))
+    @if($showProspectSubmittedPopup)
         <div class="prospect-submit-popup" id="prospectSubmitPopup" role="dialog" aria-modal="true" aria-labelledby="prospectSubmitTitle">
             <div class="prospect-submit-popup-card">
                 <div class="prospect-submit-icon" aria-hidden="true">✓</div>
                 <h4 id="prospectSubmitTitle">Prospect Sheet Submitted</h4>
-                <p>{{ session('prospect_submitted_message', 'Prospect Sheet submitted successfully.') }}</p>
+                <p>{{ $prospectSubmittedMessage }}</p>
                 <strong>Do you need to book now?</strong>
                 <div class="prospect-submit-popup-actions">
                     <button type="button" class="btn prospect-submit-popup-btn secondary" id="prospectSubmitPopupNo">No</button>
-                    <button type="button" class="btn btn-primary prospect-submit-popup-btn" id="prospectSubmitPopupYes">Yes</button>
+                    <button type="button" class="btn btn-primary prospect-submit-popup-btn" id="prospectSubmitPopupYes">Book Now</button>
                 </div>
             </div>
         </div>
@@ -210,7 +213,7 @@
             4 => 'Offer Details',
             5 => 'Plan Followup'
         ] as $index => $label)
-            <button type="button" class="stepper-item" data-step-button="{{ $index }}">
+            <button type="button" class="stepper-item" data-step-button="{{ $index }}" tabindex="-1" aria-disabled="true">
                 <span class="step-number">{{ str_pad((string)$index, 2, '0', STR_PAD_LEFT) }}</span>
                 <span class="step-label">{{ $label }}</span>
             </button>
@@ -218,16 +221,16 @@
     </div>
 
     <div class="summary-card">
-        <div class="summary-row summary-base-row summary-customer-row"><span>Customer Name</span><strong data-summary-field="name">{{ $customer->title }} {{ $customer->name }}</strong></div>
-        <div class="summary-row summary-base-row summary-interested-row"><span>Interested In</span><strong data-summary-field="interested_in">{{ $vehicle->model }} {{ $vehicle->variant }}</strong></div>
-        <div class="summary-row summary-base-row summary-sc-row"><span>SC Name</span><strong>{{ $enquiry->user?->name ?? 'N/A' }}</strong></div>
+        <div class="summary-row summary-base-row summary-customer-row summary-icon-customer"><span>Customer Name</span><strong data-summary-field="name">{{ $customer->title }} {{ $customer->name }}</strong></div>
+        <div class="summary-row summary-base-row summary-interested-row summary-icon-vehicle"><span>Interested In</span><strong data-summary-field="interested_in">{{ $vehicle->model }} {{ $vehicle->variant }}</strong></div>
+        <div class="summary-row summary-base-row summary-sc-row summary-icon-consultant"><span>SC Name</span><strong>{{ $enquiry->user?->name ?? 'N/A' }}</strong></div>
 
-        <div class="summary-row summary-detail-row" data-summary-step="1"><span>Contact No</span><strong data-summary-field="mobile_numbers">{{ $mobileString ?: 'N/A' }}</strong></div>
-        <div class="summary-row summary-detail-row" data-summary-step="1"><span>Email</span><strong data-summary-field="email">{{ $selectedEmail ?: 'N/A' }}</strong></div>
-        <div class="summary-row summary-detail-row" data-summary-step="1"><span>Date of Birth</span><strong data-summary-field="date_of_birth">{{ old('date_of_birth', $prospect->date_of_birth) ?: 'N/A' }}</strong></div>
-        <div class="summary-row summary-detail-row" data-summary-step="1"><span>Address</span><strong data-summary-field="location">{{ trim(($customer->location ?? '') . (($customer->district ?? '') ? ', ' . $customer->district : '')) ?: 'N/A' }}</strong></div>
-        <div class="summary-row summary-detail-row" data-summary-step="1"><span>Customer Type</span><strong data-summary-field="customer_type">{{ $selectedCustomerType ? ucfirst($selectedCustomerType) : 'N/A' }}</strong></div>
-        <div class="summary-row summary-detail-row" data-summary-step="1"><span>Profession</span><strong data-summary-field="profession">{{ $selectedProfession ? ucwords(str_replace('_', ' ', $selectedProfession)) : 'N/A' }}</strong></div>
+        <div class="summary-row summary-detail-row summary-icon-phone" data-summary-step="1"><span>Contact No</span><strong data-summary-field="mobile_numbers">{{ $mobileString ?: 'N/A' }}</strong></div>
+        <div class="summary-row summary-detail-row summary-icon-email" data-summary-step="1"><span>Email</span><strong data-summary-field="email">{{ $selectedEmail ?: 'N/A' }}</strong></div>
+        <div class="summary-row summary-detail-row summary-icon-birthday" data-summary-step="1"><span>Date of Birth</span><strong data-summary-field="date_of_birth">{{ old('date_of_birth', $prospect->date_of_birth) ?: 'N/A' }}</strong></div>
+        <div class="summary-row summary-detail-row summary-icon-address" data-summary-step="1"><span>Address</span><strong data-summary-field="location">{{ trim(($customer->location ?? '') . (($customer->district ?? '') ? ', ' . $customer->district : '')) ?: 'N/A' }}</strong></div>
+        <div class="summary-row summary-detail-row summary-icon-customer-type" data-summary-step="1"><span>Customer Type</span><strong data-summary-field="customer_type">{{ $selectedCustomerType ? ucfirst($selectedCustomerType) : 'N/A' }}</strong></div>
+        <div class="summary-row summary-detail-row summary-icon-profession" data-summary-step="1"><span>Profession</span><strong data-summary-field="profession">{{ $selectedProfession ? ucwords(str_replace('_', ' ', $selectedProfession)) : 'N/A' }}</strong></div>
 
         <div class="summary-row summary-detail-row" data-summary-step="2"><span>Color</span><strong data-summary-field="interested_vehicle_color">{{ $selectedInterestedColor ?: 'N/A' }}</strong></div>
         <div class="summary-row summary-detail-row" data-summary-step="2"><span>Lead Source</span><strong data-summary-field="lead_source">{{ trim(($selectedLeadSource ?? '') . (($selectedSourceOfInformation ?? '') ? ' - ' . $selectedSourceOfInformation : '')) ?: 'N/A' }}</strong></div>
@@ -578,10 +581,6 @@
             <div class="exchange-detail-wrap" data-conditional="interested_in_exchange" data-value="yes">
                 <div class="exchange-card-head">
                     <h3>Exchange Details</h3>
-                    <label class="exchange-inline-edit">
-                        <input type="checkbox" checked>
-                        <span>Edit</span>
-                    </label>
                 </div>
                 <div class="exchange-selected-row">
                     <input class="exchange-interested-input" type="text" value="{{ strtoupper($exchangeVehicleLabel) }}" readonly>
@@ -860,7 +859,7 @@
         </section>
         <section class="prospect-step offer-step" data-step="4" data-step-completed="{{ $isStepCompleted(4) ? '1' : '0' }}">
             <div class="section-title-line offer-title-line">
-                <label class="switch-label offer-edit-label">
+                <label class="switch-label offer-edit-label" aria-label="Edit Buying Details">
                     <input type="checkbox" id="allowOfferEdit" checked>
                     <span>Edit Buying Details</span>
                 </label>
@@ -903,9 +902,9 @@
 
             <div class="offer-remarks">
                 <label class="offer-remarks-toggle">
-                    <span>Add Remarks</span>
                     <input type="checkbox" id="offerRemarksToggle" @checked($hasOfferRemark)>
                     <i></i>
+                    <span>Add Remarks</span>
                 </label>
                 <textarea id="offerRemarksText" name="offer_remark" placeholder="Type comment here......">{{ $offerRemark }}</textarea>
             </div>
@@ -1102,7 +1101,7 @@
         </div>
 
         <div class="actions">
-            <button type="button" class="btn btn-secondary" id="backBtn">Back</button>
+            <button type="button" class="btn btn-secondary" id="backBtn" @if((int) old('active_step', $initialStep) === 1) hidden @endif>Back</button>
             <button type="button" class="btn btn-secondary" id="saveExitBtn">Save & Exit</button>
             <button type="button" class="btn btn-primary" id="nextBtn">Save &amp; Next</button>
         </div>
@@ -1123,7 +1122,7 @@
 
         const yesBtn = document.getElementById('prospectSubmitPopupYes');
         const noBtn = document.getElementById('prospectSubmitPopupNo');
-        const bookingUrl = @json(session('prospect_booking_url'));
+        const bookingUrl = @json($prospectBookingUrl ?? null);
         const dashboardUrl = @json(route('dashboard.main'));
         const closePopup = () => popup.classList.add('hidden');
 

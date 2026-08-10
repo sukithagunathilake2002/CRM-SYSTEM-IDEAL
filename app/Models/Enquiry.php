@@ -76,16 +76,14 @@ class Enquiry extends Model
     public function scopeRegisteredLead($query)
     {
         return $query->nonTerminalLead()->whereHas('prospectSheet', function ($query): void {
-            $query->where('current_step', '>=', 5)
-                ->whereRaw("LOWER(COALESCE(lead_status, '')) IN ('hot', 'warm', 'cold')");
+            $query->whereRaw("LOWER(COALESCE(lead_status, '')) IN ('hot', 'warm', 'cold')");
         });
     }
 
     public function scopePendingRegistration($query)
     {
         return $query->nonTerminalLead()->whereDoesntHave('prospectSheet', function ($query): void {
-            $query->where('current_step', '>=', 5)
-                ->whereRaw("LOWER(COALESCE(lead_status, '')) IN ('hot', 'warm', 'cold')");
+            $query->whereRaw("LOWER(COALESCE(lead_status, '')) IN ('hot', 'warm', 'cold')");
         });
     }
 
@@ -105,9 +103,7 @@ class Enquiry extends Model
     {
         return $query
             ->registeredLead()
-            ->whereHas('booking', function ($query): void {
-                $query->whereNull('booking_completed_at');
-            })
+            ->has('booking')
             ->doesntHave('delivery');
     }
 
@@ -140,8 +136,7 @@ class Enquiry extends Model
 
         $leadStatus = strtolower(trim((string) $prospect->lead_status));
 
-        return (int) ($prospect->current_step ?? 0) >= 5
-            && in_array($leadStatus, ['hot', 'warm', 'cold'], true);
+        return in_array($leadStatus, ['hot', 'warm', 'cold'], true);
     }
 
     public function canOpenBooking(): bool

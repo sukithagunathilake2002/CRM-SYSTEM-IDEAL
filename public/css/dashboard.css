@@ -765,14 +765,57 @@ html.theme-dark .prospect-page .summary-modal-close {
     background: #171717;
 }
 
-.crm-left-group a::before {
-    content: "";
-    width: 14px;
-    height: 14px;
-    border-radius: 3px;
-    border: 1.4px solid #e5e7eb;
-    box-sizing: border-box;
-    flex: 0 0 14px;
+.lead-sidebar-icon {
+    width: 17px;
+    height: 17px;
+    color: #e5e7eb;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 17px;
+}
+
+.lead-sidebar-icon svg {
+    width: 100%;
+    height: 100%;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.9;
+}
+
+.lead-sidebar-icon-flame {
+    color: #ff4d3d;
+}
+
+.lead-sidebar-icon-sun,
+.lead-sidebar-icon-calendar-check,
+.lead-sidebar-icon-badge-check {
+    color: #facc15;
+}
+
+.lead-sidebar-icon-snowflake {
+    color: #38bdf8;
+}
+
+.lead-sidebar-icon-activity,
+.lead-sidebar-icon-circle-check {
+    color: #22c55e;
+}
+
+.lead-sidebar-icon-circle-x,
+.lead-sidebar-icon-calendar-x {
+    color: #fb7185;
+}
+
+.lead-sidebar-icon-clipboard,
+.lead-sidebar-icon-clock {
+    color: #a78bfa;
+}
+
+.lead-sidebar-icon-truck {
+    color: #2dd4bf;
 }
 
 .crm-left-sep {
@@ -2209,12 +2252,40 @@ html.theme-dark .plan-follow-type-segment input:checked + span {
     min-height: 64px !important;
     width: 100% !important;
     box-sizing: border-box !important;
+    margin: 0 !important;
     padding: 6px 24px !important;
     border: 0 !important;
     border-radius: 0 !important;
     background: #000000 !important;
     color: #ffffff !important;
     box-shadow: none !important;
+}
+
+.crm-dashboard {
+    padding: 0 !important;
+}
+
+.crm-layout-shell {
+    min-height: 100vh !important;
+}
+
+.crm-main {
+    padding: 0 !important;
+}
+
+.crm-shell {
+    margin: 10px 14px 0 !important;
+}
+
+.crm-left-nav {
+    top: 64px !important;
+    bottom: 0 !important;
+    z-index: 1400 !important;
+}
+
+.crm-sidebar-overlay {
+    top: 64px !important;
+    z-index: 1350 !important;
 }
 
 .crm-menu-toggle,

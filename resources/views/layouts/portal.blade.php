@@ -150,21 +150,7 @@
 
                     <div class="portal-sidebar-group-title">Leads and Bookings</div>
                     <nav class="portal-sidebar-nav">
-                        <a href="{{ route('enquiries.list', ['lead_status' => 'hot']) }}">Hot Leads</a>
-                        <a href="{{ route('enquiries.list', ['lead_status' => 'warm']) }}">Warm Leads</a>
-                        <a href="{{ route('enquiries.list', ['lead_status' => 'cold']) }}">Cold Leads</a>
-                        <a href="{{ route('enquiries.list', ['lead_result' => 'active']) }}">Active Lead</a>
-                        <a href="{{ route('enquiries.list', ['lead_result' => 'lost']) }}">Lost Lead</a>
-                        <a href="{{ route('enquiries.list', ['lead_result' => 'closed']) }}">Closed Lead</a>
-                        <a href="{{ route('enquiries.list', ['registration' => 'pending']) }}">EPR</a>
-                        <a href="{{ route('enquiries.list', ['booking' => 'active']) }}">Active Booking</a>
-                        <a href="{{ url('/epr') }}">Cancelled Booking</a>
-                        <a href="{{ route('enquiries.list', ['delivery' => 'active']) }}">Deliveries</a>
-                        @if($portalUser?->role === \App\Models\User::ROLE_SALES_CONSULTANT)
-                            <a href="{{ route('enquiries.list', ['delivery_approval' => 'pending']) }}">Pending Delivery</a>
-                            <a href="{{ route('enquiries.list', ['delivery_approval' => 'approved']) }}">Approved Delivery</a>
-                        @endif
-                        <a href="{{ route('enquiries.list', ['view' => 'all']) }}">All Leads</a>
+                        @include('layouts.partials.lead-sidebar-links', ['leadSidebarUser' => $portalUser])
                     </nav>
 
                     <hr class="portal-sidebar-sep">

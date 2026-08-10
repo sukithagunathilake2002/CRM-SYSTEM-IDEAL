@@ -400,13 +400,8 @@ class ProspectSheetController extends Controller
                 ->all();
         }
 
-        $requiredImageFields = [
-            'blue_book_image' => 'Blue Book image is required.',
-            'lot_no_image' => 'Lot No image is required.',
-            'car_pic_1_image' => 'Car Pic 1 image is required.',
-            'car_pic_2_image' => 'Car Pic 2 image is required.',
-        ];
-        $hasUploadedExchangeImages = collect(array_keys($requiredImageFields))
+        $mainExchangeImageFieldNames = array_keys($mainExchangeImageFields);
+        $hasUploadedExchangeImages = collect($mainExchangeImageFieldNames)
             ->contains(fn($field) => $request->hasFile($field))
             || $request->hasFile('extra_exchange_images');
         $addExchangeImages = $request->input('add_exchange_images') === '1' || $hasUploadedExchangeImages;
@@ -416,29 +411,6 @@ class ProspectSheetController extends Controller
         }
 
         if ($addExchangeImages) {
-            $missingErrors = [];
-            foreach ($requiredImageFields as $field => $message) {
-                if ($request->input("remove_{$field}") === '1') {
-                    continue;
-                }
-
-                $existingValue = match ($field) {
-                    'blue_book_image' => $blueBookImage,
-                    'lot_no_image' => $lotNoImage,
-                    'car_pic_1_image' => $carPic1Image,
-                    'car_pic_2_image' => $carPic2Image,
-                    default => null,
-                };
-
-                if (!$request->hasFile($field) && empty($existingValue)) {
-                    $missingErrors[$field] = $message;
-                }
-            }
-
-            if (!empty($missingErrors)) {
-                return back()->withErrors($missingErrors)->withInput();
-            }
-
             if ($request->hasFile('blue_book_image')) {
                 if (!empty($blueBookImage)) {
                     Storage::disk('public')->delete($blueBookImage);
@@ -549,6 +521,8 @@ class ProspectSheetController extends Controller
             $offerFinalPrice = max(0, $offerTotalCost - $offerTotalDiscount);
         }
 
+        $savedCurrentStep = max((int) ($existingProspect->current_step ?? 0), $currentStep);
+
         ProspectSheet::updateOrCreate(
             ['enquiry_id' => $enquiry->id],
             [
@@ -604,12 +578,12 @@ class ProspectSheetController extends Controller
                 'reschedule_reason' => $rescheduleFollowup ? $pick('reschedule_reason', $existingProspect->reschedule_reason) : null,
                 'lead_status' => $pick('lead_status', $existingProspect->lead_status),
                 'customer_remark' => $pick('customer_remark', $existingProspect->customer_remark),
-                'current_step' => $currentStep,
+                'current_step' => $savedCurrentStep,
             ]
         );
 
         if (($validated['exit_after_save'] ?? '0') === '1') {
-            $routeParameters = $currentStep >= 5 ? [] : ['registration' => 'pending'];
+            $routeParameters = $savedCurrentStep >= 5 ? [] : ['registration' => 'pending'];
 
             return redirect()
                 ->route('enquiries.list', $routeParameters)
@@ -628,7 +602,7 @@ class ProspectSheetController extends Controller
 
         if ($currentStep >= 5) {
             return redirect()
-                ->route('prospect.show', ['enquiry' => $enquiry->id, 'step' => 5])
+                ->route('prospect.show', ['enquiry' => $enquiry->id, 'step' => 5, 'book_now' => 1])
                 ->with('success', 'Prospect sheet submitted successfully.')
                 ->with('prospect_submitted_popup', true)
                 ->with('prospect_submitted_message', 'Prospect Sheet submitted successfully.')
