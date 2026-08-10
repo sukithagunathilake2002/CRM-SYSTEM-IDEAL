@@ -915,12 +915,12 @@
         const row = document.createElement('div');
         row.className = 'extra-image-row';
         row.innerHTML = `
-            <label class="exchange-upload-tile exchange-upload-tile-extra" data-upload-tile>
+            <div class="exchange-upload-tile exchange-upload-tile-extra" data-upload-tile>
                 <span class="exchange-upload-text">Car picture ${nextPictureNo}</span>
                 <img class="exchange-upload-preview" alt="Car picture ${nextPictureNo} preview" hidden>
                 <button type="button" class="extra-image-remove-top" aria-label="Remove image slot">-</button>
                 <input type="file" name="extra_exchange_images[]" accept="image/*">
-            </label>
+            </div>
             <div class="exchange-upload-actions">
                 <button type="button" data-exchange-upload-action="choose">Add</button>
                 <button type="button" data-exchange-upload-action="view" disabled>View</button>
@@ -1193,6 +1193,13 @@
                 event.preventDefault();
                 event.stopPropagation();
                 removeExtraExchangeImageRow(removeButton);
+                return;
+            }
+
+            const extraTile = target.closest('.exchange-upload-tile-extra');
+            if (extraTile && !target.matches('input[type="file"]')) {
+                event.preventDefault();
+                event.stopPropagation();
             }
         });
     }

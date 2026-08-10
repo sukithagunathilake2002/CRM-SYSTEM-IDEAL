@@ -4268,6 +4268,18 @@ body {
     text-transform: none;
 }
 
+.exchange-step .exchange-upload-tile-extra {
+    cursor: default;
+}
+
+.exchange-step .exchange-upload-tile-extra input[type='file'] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
 .exchange-step .exchange-upload-tile::before {
     width: 26px;
     height: 26px;
@@ -4322,6 +4334,31 @@ body {
 
 .exchange-step .exchange-more-row {
     margin: 16px 0 10px;
+}
+
+.exchange-step .exchange-more-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: 1px solid #8f1111;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #8f1111;
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1;
+    padding: 0;
+    cursor: pointer;
+}
+
+.exchange-step .exchange-more-btn:hover,
+.exchange-step .exchange-more-btn:focus-visible {
+    background: #fff1f1;
+    border-color: #d40000;
+    color: #d40000;
+    outline: 0;
 }
 
 @media (max-width: 900px) {
