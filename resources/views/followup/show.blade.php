@@ -96,32 +96,32 @@
             <div class="lead-detail-grid">
                 <div class="lead-detail-main">
                     <div class="lead-detail-row">
-                        <span class="lead-detail-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" focusable="false"><circle cx="12" cy="8" r="3.2"></circle><path d="M5.8 18c1.4-2.8 3.8-4.2 6.2-4.2s4.8 1.4 6.2 4.2"></path></svg>
+                        <span class="lead-detail-icon lead-detail-icon-name" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false"><circle cx="12" cy="7.5" r="3.5"></circle><path d="M5 20c.9-4.2 3.4-6.3 7-6.3s6.1 2.1 7 6.3"></path></svg>
                         </span>
                         <strong>Name</strong>
                         <span>:</span>
                         <p>{{ $customerName }}</p>
                     </div>
                     <div class="lead-detail-row">
-                        <span class="lead-detail-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" focusable="false"><path d="M4 15.2v2.3h1.8"></path><path d="M18.2 17.5H20v-2.3"></path><path d="M6 15.2h12l-1.1-4.2a2.2 2.2 0 0 0-2.1-1.6H9.2a2.2 2.2 0 0 0-2.1 1.6L6 15.2Z"></path><circle cx="8.3" cy="17.6" r="1.4"></circle><circle cx="15.7" cy="17.6" r="1.4"></circle></svg>
+                        <span class="lead-detail-icon lead-detail-icon-vehicle" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false"><path d="m5 13 1.7-4.2A2 2 0 0 1 8.6 7h6.8a2 2 0 0 1 1.9 1.8L19 13"></path><path d="M4 13h16v5H4z"></path><path d="M6 18v2M18 18v2"></path><circle cx="8" cy="15.5" r="1.2"></circle><circle cx="16" cy="15.5" r="1.2"></circle></svg>
                         </span>
                         <strong>Interested In</strong>
                         <span>:</span>
                         <p>{{ strtoupper($interestedIn) }}</p>
                     </div>
                     <div class="lead-detail-row">
-                        <span class="lead-detail-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" focusable="false"><path d="M12 3.5c2.1 2.2 3.2 4.2 3.2 6a3.2 3.2 0 1 1-6.4 0c0-1.8 1.1-3.8 3.2-6Z"></path><path d="M7 14.2h10M8.2 18h7.6"></path></svg>
+                        <span class="lead-detail-icon lead-detail-icon-price" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false"><rect x="3.5" y="6" width="17" height="12" rx="2"></rect><circle cx="12" cy="12" r="2.5"></circle><path d="M7 9h.01M17 15h.01"></path></svg>
                         </span>
                         <strong>Total price</strong>
                         <span>:</span>
                         <p>{{ number_format($totalPrice, 0) }}</p>
                     </div>
                     <div class="lead-detail-row">
-                        <span class="lead-detail-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" focusable="false"><path d="M4 5.5h8v6H4z"></path><path d="M14 8h3.2l2.8 3.2v4.3h-2a2 2 0 0 1-4 0H9a2 2 0 0 1-4 0H4v-4"></path><circle cx="7" cy="15.5" r="1.5"></circle><circle cx="16" cy="15.5" r="1.5"></circle></svg>
+                        <span class="lead-detail-icon lead-detail-icon-dms" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false"><rect x="4" y="5" width="16" height="14" rx="2"></rect><path d="M8 9h3M8 13h8M8 16h5"></path><path d="M15.5 9h.01"></path></svg>
                         </span>
                         <strong>DMS ID</strong>
                         <span>:</span>

@@ -1952,6 +1952,12 @@ select {
     justify-items: end;
 }
 
+.action-row.no-back #backAction,
+.action-row.no-back .back-btn,
+.action-row.no-back .booking-form-nav-btn {
+    display: none !important;
+}
+
 .action-btn {
     border: 0;
     width: auto;

@@ -88,12 +88,14 @@ $viewerId = (int) ($user?->id ?? 0);
     $todayFollowups = \App\Models\Enquiry::query()
         ->with(['customer:id,title,name'])
         ->select(['id', 'customer_id', 'follow_type', 'follow_date', 'follow_time', 'followup_status'])
-->where('user_id', $viewerId)
-->whereDate('follow_date', $todaySriLanka)
-->whereRaw("LOWER(COALESCE(followup_status, '')) <> ?", ['done'])
-    ->orderBy('follow_time')
-    ->limit(8)
-    ->get();
+        ->whereIn('user_id', $visibleUserIds)
+        ->nonTerminalLead()
+        ->whereDate('follow_date', '<=', $todaySriLanka)
+        ->whereRaw("LOWER(COALESCE(followup_status, 'pending')) NOT IN (?, ?)", ['done', 'not_done'])
+        ->orderBy('follow_date')
+        ->orderBy('follow_time')
+        ->limit(8)
+        ->get();
     $todayFollowupCount = $todayFollowups->count();
     $systemReminders = \App\Models\SalesConsultantReminder::query()
         ->with('sender:id,name')
@@ -122,21 +124,7 @@ $viewerId = (int) ($user?->id ?? 0);
                 <aside id="dashboardSidebar" class="crm-left-nav" aria-label="Dashboard navigation">
                     <div class="crm-left-group">
                         <p>Leads and Bookings</p>
-                        <a href="{{ route('enquiries.list', ['lead_status' => 'hot']) }}">Hot Leads</a>
-                        <a href="{{ route('enquiries.list', ['lead_status' => 'warm']) }}">Warm Leads</a>
-                        <a href="{{ route('enquiries.list', ['lead_status' => 'cold']) }}">Cold Leads</a>
-                        <a href="{{ route('enquiries.list', ['lead_result' => 'active']) }}">Active Lead</a>
-                        <a href="{{ route('enquiries.list', ['lead_result' => 'lost']) }}">Lost Lead</a>
-                        <a href="{{ route('enquiries.list', ['lead_result' => 'closed']) }}">Closed Lead</a>
-                        <a href="{{ route('enquiries.list', ['registration' => 'pending']) }}">EPR</a>
-                        <a href="{{ route('enquiries.list', ['booking' => 'active']) }}">Active Booking</a>
-                        <a href="{{ url('/epr') }}">Cancelled Booking</a>
-                        <a href="{{ route('enquiries.list', ['delivery' => 'active']) }}">Deliveries</a>
-                        @if(auth()->user()?->role === \App\Models\User::ROLE_SALES_CONSULTANT)
-                            <a href="{{ route('enquiries.list', ['delivery_approval' => 'pending']) }}">Pending Delivery</a>
-                            <a href="{{ route('enquiries.list', ['delivery_approval' => 'approved']) }}">Approved Delivery</a>
-                        @endif
-                        <a href="{{ route('enquiries.list', ['view' => 'all']) }}">All Leads</a>
+                        @include('layouts.partials.lead-sidebar-links')
                     </div>
 
                     <hr class="crm-left-sep">
@@ -178,7 +166,7 @@ $viewerId = (int) ($user?->id ?? 0);
                             </a>
 
                             <details class="crm-notifications">
-                                <summary class="crm-notify-btn" aria-label="Today's follow-up notifications">
+                                <summary class="crm-notify-btn" aria-label="Due follow-up notifications">
                                     <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
                                         <path d="M15 18H5l1.2-1.6A2 2 0 0 0 6.6 15V11a5.4 5.4 0 0 1 10.8 0v4a2 2 0 0 0 .4 1.4L19 18h-4" stroke-linecap="round" stroke-linejoin="round"></path>
                                         <path d="M10 20a2 2 0 0 0 4 0" stroke-linecap="round"></path>
@@ -207,7 +195,7 @@ $viewerId = (int) ($user?->id ?? 0);
                                     <p class="crm-notify-empty">No system reminders.</p>
                                     @endforelse
 
-                                    <p class="crm-notify-title">Today's Followups</p>
+                                    <p class="crm-notify-title">Due Followups</p>
                                     @forelse($todayFollowups as $followup)
                                     @php
                                     $customerTitle = trim((string) ($followup->customer?->title ?? ''));
@@ -221,7 +209,7 @@ $viewerId = (int) ($user?->id ?? 0);
                                         <small>{{ $followupType }} at {{ $followupTime }}</small>
                                     </a>
                                     @empty
-                                    <p class="crm-notify-empty">No followups due today.</p>
+                                    <p class="crm-notify-empty">No due followups.</p>
                                     @endforelse
                                 </div>
                             </details>

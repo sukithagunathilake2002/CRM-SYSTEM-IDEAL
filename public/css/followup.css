@@ -707,6 +707,22 @@ body {
     stroke-linejoin: round;
 }
 
+.lead-detail-icon-name {
+    color: #1f2937;
+}
+
+.lead-detail-icon-vehicle {
+    color: #2563eb;
+}
+
+.lead-detail-icon-price {
+    color: #16a34a;
+}
+
+.lead-detail-icon-dms {
+    color: #7c3aed;
+}
+
 .lead-detail-row strong,
 .lead-detail-row span,
 .lead-detail-row p,

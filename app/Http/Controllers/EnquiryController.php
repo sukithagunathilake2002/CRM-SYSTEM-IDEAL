@@ -317,7 +317,8 @@ public function list(Request $request)
     }
 
     $enquiries = $enquiriesQuery
-        ->latest()
+        ->orderBy('follow_date')
+        ->orderBy('follow_time')
         ->get();
 
     return view('enquiries.index', compact('enquiries'));
@@ -350,8 +351,9 @@ public function listCallEpds(Request $request)
     $viewer = $request->user();
     $today = now('Asia/Colombo')->toDateString();
     $enquiriesQuery = Enquiry::with(['customer', 'vehicle', 'user', 'prospectSheet', 'booking', 'delivery'])
-        ->pendingRegistration()
+        ->nonTerminalLead()
         ->whereDate('follow_date', '<=', $today)
+        ->whereRaw("LOWER(COALESCE(followup_status, 'pending')) NOT IN (?, ?)", ['done', 'not_done'])
         ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%call%']);
 
     if ($viewer && $viewer->role !== User::ROLE_SUPER_ADMIN) {
@@ -360,7 +362,8 @@ public function listCallEpds(Request $request)
     }
 
     $enquiries = $enquiriesQuery
-        ->latest()
+        ->orderBy('follow_date')
+        ->orderBy('follow_time')
         ->get();
 
     return view('enquiries.index', compact('enquiries'));
@@ -371,8 +374,9 @@ public function listShowroomEpds(Request $request)
     $viewer = $request->user();
     $today = now('Asia/Colombo')->toDateString();
     $enquiriesQuery = Enquiry::with(['customer', 'vehicle', 'user', 'prospectSheet', 'booking', 'delivery'])
-        ->pendingRegistration()
+        ->nonTerminalLead()
         ->whereDate('follow_date', '<=', $today)
+        ->whereRaw("LOWER(COALESCE(followup_status, 'pending')) NOT IN (?, ?)", ['done', 'not_done'])
         ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%showroom%']);
 
     if ($viewer && $viewer->role !== User::ROLE_SUPER_ADMIN) {
@@ -381,7 +385,8 @@ public function listShowroomEpds(Request $request)
     }
 
     $enquiries = $enquiriesQuery
-        ->latest()
+        ->orderBy('follow_date')
+        ->orderBy('follow_time')
         ->get();
 
     return view('enquiries.index', compact('enquiries'));
@@ -392,8 +397,9 @@ public function listHomeEpds(Request $request)
     $viewer = $request->user();
     $today = now('Asia/Colombo')->toDateString();
     $enquiriesQuery = Enquiry::with(['customer', 'vehicle', 'user', 'prospectSheet', 'booking', 'delivery'])
-        ->pendingRegistration()
+        ->nonTerminalLead()
         ->whereDate('follow_date', '<=', $today)
+        ->whereRaw("LOWER(COALESCE(followup_status, 'pending')) NOT IN (?, ?)", ['done', 'not_done'])
         ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%home%']);
 
     if ($viewer && $viewer->role !== User::ROLE_SUPER_ADMIN) {

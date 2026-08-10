@@ -107,6 +107,9 @@
 
         activeStepInput.value = currentStep;
         form.closest('.prospect-page')?.setAttribute('data-current-step', String(currentStep));
+        if (backBtn) {
+            backBtn.hidden = currentStep === 1;
+        }
         nextBtn.textContent = currentStep === 5 ? 'Submit' : 'Save & Next';
         updateProspectSummary();
     }
@@ -166,6 +169,14 @@
                 row.classList.toggle('summary-empty', normalized === '' || normalized === 'N/A');
             }
         });
+    }
+
+    function previousStepForCurrentStep() {
+        if (currentStep === 4 && selectedValue('first_time_buyer') === 'yes') {
+            return 2;
+        }
+
+        return currentStep - 1;
     }
 
     function updateProspectSummary() {
@@ -1096,16 +1107,6 @@
         });
     }
 
-    stepButtons.forEach((btn) => {
-        btn.addEventListener('click', () => {
-            closeOfferSummaryModal();
-            currentStep = parseInt(btn.dataset.stepButton, 10);
-            updateStepper();
-            updateConditionals();
-            updateExchangeImageVisibility();
-        });
-    });
-
     document.querySelectorAll('input[type="radio"]').forEach((radio) => {
         radio.addEventListener('change', () => {
             updateConditionals();
@@ -1200,6 +1201,7 @@
             if (extraTile && !target.matches('input[type="file"]')) {
                 event.preventDefault();
                 event.stopPropagation();
+                extraTile.querySelector('input[type="file"]')?.click();
             }
         });
     }
@@ -1306,15 +1308,14 @@
         backBtn.addEventListener('click', () => {
             closeOfferSummaryModal();
 
-            if (currentStep > 1) {
-                currentStep -= 1;
-                updateStepper();
-                updateConditionals();
-                updateExchangeImageVisibility();
+            if (currentStep <= 1) {
                 return;
             }
 
-            window.location.href = '/epr';
+            currentStep = previousStepForCurrentStep();
+            updateStepper();
+            updateConditionals();
+            updateExchangeImageVisibility();
         });
     }
     nextBtn.addEventListener('click', () => {
@@ -1406,6 +1407,7 @@
         toggle.addEventListener('change', (event) => {
             setStepEditable(event.target, event.target.checked);
             updateConditionals();
+            updateExchangeImageVisibility();
             updateProspectSummary();
         });
 

@@ -42,7 +42,7 @@ class FollowUpController extends Controller
         $interestedIn = trim(($vehicle?->model ?? '') . ' ' . ($vehicle?->variant ?? ''));
         $totalPrice = (float) (($vehicle?->unit_price ?? 0) + ($vehicle?->vat_amount ?? 0));
         $vehicleColor = $enquiry->prospectSheet?->interested_vehicle_color ?: 'N/A';
-        $registrationLabel = ((int) ($enquiry->prospectSheet?->current_step ?? 0)) >= 5 ? 'Registered' : 'Pending';
+        $registrationLabel = $enquiry->hasCompletedProspectSheet() ? 'Registered' : 'Pending';
         $dmsId = 'ENQ-' . $enquiry->id;
         $followDateLabel = $enquiry->follow_date
             ? Carbon::parse($enquiry->follow_date)->format('d-M-Y')

@@ -346,9 +346,10 @@
             @endif
         @endif
 
-        <form method="POST" action="{{ route('booking.store', $enquiry->id) }}" enctype="multipart/form-data" id="bookingForm">
+        <form method="POST" action="{{ route('booking.store', $enquiry->id) }}" enctype="multipart/form-data" id="bookingForm" novalidate>
             @csrf
             <input type="hidden" name="booking_step" value="{{ $currentStep }}">
+            <input type="hidden" name="action_type_fallback" id="bookingActionTypeFallback" value="{{ $currentStep === 5 ? 'submit' : 'next' }}">
 
             <section class="booking-section personal-section {{ $currentStep === 1 ? 'active' : '' }}">
                 <div class="section-head-inline personal-head">
@@ -557,7 +558,7 @@
 
                     <div class="row buying-color-row">
                         <label class="required-field-label" for="bookingVehicleColor">Color *</label>
-                        <select id="bookingVehicleColor" name="interested_vehicle_color" class="vehicle-color-select" required>
+                        <select id="bookingVehicleColor" name="interested_vehicle_color" class="vehicle-color-select">
                             <option value="">Select Color</option>
                             @foreach($vehicleColorOptions as $colorOption)
                                 <option value="{{ $colorOption }}" @selected($selectedVehicleColor === $colorOption)>{{ $colorOption }}</option>
@@ -1186,7 +1187,7 @@
                 </div>
             </section>
 
-            <div id="actionRow" class="action-row {{ $currentStep === 5 ? 'step-five' : '' }}">
+            <div id="actionRow" class="action-row {{ $currentStep === 1 ? 'no-back' : '' }} {{ $currentStep === 5 ? 'step-five' : '' }}">
                 @if($currentStep === 5)
                     <a id="backAction" href="{{ $backUrl }}" class="booking-form-nav-btn">Back</a>
                     <button type="submit" name="action_type" value="submit" class="booking-book-now-btn">Book Now</button>
@@ -1348,6 +1349,7 @@
         const offerRemarksToggle = document.getElementById('offerRemarksToggle');
         const offerRemarksText = document.getElementById('offerRemarksText');
         const bookingStepInput = document.querySelector('input[name="booking_step"]');
+        const bookingActionTypeFallback = document.getElementById('bookingActionTypeFallback');
         const actionRow = document.getElementById('actionRow');
         const backAction = document.getElementById('backAction');
         const saveExitAction = document.getElementById('saveExitAction');
@@ -1402,6 +1404,24 @@
                 .map((input) => input.value.trim())
                 .filter(Boolean);
             bookingMobileNumbersInput.value = numbers.join(', ');
+        }
+
+        function setBookingActionFallback(value) {
+            if (bookingActionTypeFallback && value) {
+                bookingActionTypeFallback.value = value;
+            }
+        }
+
+        function prepareBookingSubmit(event) {
+            const submitter = event?.submitter;
+            if (submitter instanceof HTMLButtonElement && submitter.name === 'action_type') {
+                setBookingActionFallback(submitter.value);
+            }
+
+            syncBookingMobileNumbers();
+            bookingForm?.querySelectorAll('[disabled]').forEach((field) => {
+                field.disabled = false;
+            });
         }
 
         function fieldValue(name) {
@@ -2253,7 +2273,11 @@
         }
 
         if (bookingForm) {
-            bookingForm.addEventListener('submit', syncBookingMobileNumbers);
+            bookingForm.querySelectorAll('button[name="action_type"]').forEach((button) => {
+                button.addEventListener('click', () => setBookingActionFallback(button.value));
+            });
+
+            bookingForm.addEventListener('submit', prepareBookingSubmit);
         }
 
         document.querySelectorAll(

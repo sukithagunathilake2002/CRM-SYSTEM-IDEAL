@@ -2880,6 +2880,8 @@ body {
 
 .stepper-item {
     gap: 5px;
+    cursor: default;
+    pointer-events: none;
 }
 
 .stepper-item:not(:last-child)::after {
@@ -2941,13 +2943,36 @@ body {
     mask: var(--prospect-summary-icon) center / contain no-repeat;
 }
 
-.summary-row:nth-child(2) {
+.summary-icon-vehicle {
     --prospect-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 11l2-5h10l2 5 2 1v6h-3v-2H6v2H3v-6zM8 8l-1 3h10l-1-3z'/%3E%3Ccircle cx='7' cy='14' r='1.7'/%3E%3Ccircle cx='17' cy='14' r='1.7'/%3E%3C/svg%3E");
 }
 
-.summary-row:nth-child(3),
-.summary-row:nth-child(4) {
-    --prospect-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 2h10c1 0 2 .9 2 2v16c0 1.1-1 2-2 2H7c-1 0-2-.9-2-2V4c0-1.1 1-2 2-2zm3 17h4v-1h-4z'/%3E%3C/svg%3E");
+.summary-icon-consultant {
+    --prospect-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='7' r='3.4'/%3E%3Cpath d='M5.5 21c.8-4.4 3-6.6 6.5-6.6S17.7 16.6 18.5 21'/%3E%3Cpath d='M17 9.5h2.5v3H17zM4.5 9.5H7v3H4.5zM19.5 12.5c0 2-1.2 3.2-3.5 3.5'/%3E%3C/svg%3E");
+}
+
+.summary-icon-phone {
+    --prospect-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 3h10c1.1 0 2 .9 2 2v14c0 1.1-.9 2-2 2H7c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2zm3 15h4v-1h-4z'/%3E%3C/svg%3E");
+}
+
+.summary-icon-email {
+    --prospect-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 6h16v12H4z'/%3E%3Cpath d='m4 7 8 6 8-6'/%3E%3C/svg%3E");
+}
+
+.summary-icon-birthday {
+    --prospect-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 11h14v9H5zM4 11h16M8 8v3M16 8v3'/%3E%3Cpath d='M8 6c1-1.5 2-2.3 3-2.3S13 4.5 13 6c0 1.1-.9 2-2 2H8zm8 0c-1-1.5-2-2.3-3-2.3S11 4.5 11 6c0 1.1.9 2 2 2h3z'/%3E%3C/svg%3E");
+}
+
+.summary-icon-address {
+    --prospect-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 22s7-5.7 7-12A7 7 0 0 0 5 10c0 6.3 7 12 7 12z'/%3E%3Ccircle cx='12' cy='10' r='2.4'/%3E%3C/svg%3E");
+}
+
+.summary-icon-customer-type {
+    --prospect-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='9' cy='8' r='3'/%3E%3Cpath d='M3.5 20c.7-3.8 2.5-5.6 5.5-5.6s4.8 1.8 5.5 5.6'/%3E%3Ccircle cx='17' cy='9' r='2.4'/%3E%3Cpath d='M14.5 15.2c2.8.2 4.5 1.8 5 4.8'/%3E%3C/svg%3E");
+}
+
+.summary-icon-profession {
+    --prospect-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M9 6V4h6v2M4 8h16v11H4zM4 12h16M10 12v2h4v-2'/%3E%3C/svg%3E");
 }
 
 .summary-row span {
@@ -3215,6 +3240,17 @@ body {
     box-shadow: none;
 }
 
+.actions:has(#backBtn[hidden]) {
+    grid-template-columns: 170px 170px;
+    justify-content: center;
+    gap: clamp(64px, 20vw, 320px);
+}
+
+.actions:has(#backBtn[hidden]) #saveExitBtn,
+.actions:has(#backBtn[hidden]) #nextBtn {
+    width: 100%;
+}
+
 #backBtn,
 #nextBtn {
     background: #e00000;
@@ -3225,6 +3261,11 @@ body {
 }
 
 @media (max-width: 760px) {
+    .actions:has(#backBtn[hidden]) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
     .prospect-page > form {
         padding: 0 10px;
     }
@@ -3778,7 +3819,6 @@ body {
 }
 
 .exchange-step #exchangeImageFields {
-    display: block !important;
     margin-top: 0;
     border: 0;
     border-radius: 0;
@@ -3908,14 +3948,14 @@ body {
 }
 
 .prospect-page[data-current-step="3"] .summary-row {
-    grid-template-columns: 18px 220px 12px minmax(0, 1fr);
-    min-height: 36px;
+    grid-template-columns: 18px 122px 12px minmax(0, 1fr);
+    min-height: 26px;
 }
 
 .prospect-page[data-current-step="3"] .summary-row span,
 .prospect-page[data-current-step="3"] .summary-row::after,
 .prospect-page[data-current-step="3"] .summary-row strong {
-    font-size: 17px;
+    font-size: 12px;
 }
 
 .prospect-page[data-current-step="3"] .summary-row:nth-child(3),
@@ -4198,7 +4238,11 @@ body {
 }
 
 .exchange-step #exchangeImageFields {
-    display: block !important;
+    margin-top: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    padding: 0;
 }
 
 .exchange-step .exchange-upload-grid {
@@ -4463,7 +4507,7 @@ body {
     box-shadow: none;
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: flex-start;
 }
 
 .offer-step .offer-title-line h3 {
@@ -4482,7 +4526,7 @@ body {
 .offer-step .offer-edit-label {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 0;
     margin: 0;
     padding: 0;
     border: 0;
@@ -4491,6 +4535,7 @@ body {
     color: #111827;
     font-size: 12px;
     font-weight: 700;
+    cursor: pointer;
 }
 
 .offer-step .offer-edit-label input {
@@ -4500,23 +4545,41 @@ body {
 }
 
 .offer-step .offer-edit-label span {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
+    position: relative;
+    display: inline-block;
+    width: 30px;
+    height: 18px;
+    overflow: hidden;
+    color: transparent;
+    font-size: 0;
+    line-height: 0;
 }
 
 .offer-step .offer-edit-label span::after {
     content: "";
-    width: 28px;
-    height: 14px;
+    position: absolute;
+    inset: 0;
     border-radius: 999px;
     background: #111827;
     border: 1px solid #111827;
-    box-shadow: inset 14px 0 0 #ffffff;
+    box-shadow: none;
 }
 
-.offer-step .offer-edit-label input:checked + span::after {
-    box-shadow: inset -14px 0 0 #ffffff;
+.offer-step .offer-edit-label span::before {
+    content: "";
+    position: absolute;
+    z-index: 1;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    background: #ffffff;
+    transition: transform .18s ease;
+}
+
+.offer-step .offer-edit-label input:checked + span::before {
+    transform: translateX(12px);
 }
 
 .offer-step .offer-summary-panel {
@@ -4622,6 +4685,7 @@ body {
     color: #111827;
     font-size: 12px;
     font-weight: 700;
+    cursor: pointer;
 }
 
 .offer-step .offer-remarks-toggle input {
@@ -4631,16 +4695,30 @@ body {
 }
 
 .offer-step .offer-remarks-toggle i {
+    position: relative;
+    flex: 0 0 auto;
     width: 28px;
-    height: 14px;
+    height: 16px;
     border-radius: 999px;
-    background: #111827;
+    background: #ffffff;
     border: 1px solid #111827;
-    box-shadow: inset 14px 0 0 #ffffff;
+    box-shadow: none;
 }
 
-.offer-step .offer-remarks-toggle input:checked + i {
-    box-shadow: inset -14px 0 0 #ffffff;
+.offer-step .offer-remarks-toggle i::before {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: #111827;
+    transition: transform .18s ease;
+}
+
+.offer-step .offer-remarks-toggle input:checked + i::before {
+    transform: translateX(12px);
 }
 
 .offer-step .offer-remarks textarea {
@@ -5391,6 +5469,27 @@ body {
     clip: rect(0, 0, 0, 0);
 }
 
+.exchange-step > .step-edit-line,
+.exchange-step.step-collapsed > .step-edit-line {
+    justify-content: flex-end;
+    margin: 0 16px 12px 0;
+    min-height: 22px;
+}
+
+.exchange-step > .step-edit-line .switch-label {
+    margin: 0;
+    color: #111111;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.exchange-step > .step-edit-line .step-edit-toggle {
+    flex: 0 0 auto;
+    width: 13px;
+    height: 13px;
+    margin: 0;
+}
+
 .personal-step.personal-collapsed {
     min-height: 0;
 }
@@ -5401,4 +5500,191 @@ body {
     color: #111111;
     font-size: 10px;
     font-weight: 800;
+}
+
+/* Final exchange image picker style: tile-click add, overlay view/remove. */
+.exchange-step #exchangeImageFields {
+    width: min(700px, 100%);
+    margin-top: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    padding: 0;
+}
+
+.exchange-step .exchange-upload-grid,
+.exchange-step .exchange-upload-grid-extra {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    gap: 18px 20px;
+}
+
+.exchange-step .exchange-upload-field,
+.exchange-step .extra-image-row {
+    position: relative;
+    min-width: 0;
+    display: block;
+    padding: 4px;
+    border: 1px solid #d7dce5;
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.exchange-step .exchange-upload-tile,
+.exchange-step .exchange-upload-field .exchange-upload-tile {
+    position: relative;
+    width: 100%;
+    min-height: 116px;
+    margin: 0;
+    border: 0;
+    border-radius: 7px;
+    background: #c4c4c4;
+    color: #ffffff;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 8px;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.exchange-step .exchange-upload-tile::before {
+    content: "";
+    position: relative;
+    z-index: 2;
+    width: 32px;
+    height: 32px;
+    background: url("/icons/imageuploadic.png") center / contain no-repeat;
+    filter: brightness(0);
+}
+
+.exchange-step .exchange-upload-text {
+    position: relative;
+    z-index: 2;
+    max-width: calc(100% - 20px);
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.2;
+    text-align: center;
+    text-transform: uppercase;
+    overflow-wrap: anywhere;
+}
+
+.exchange-step .exchange-upload-preview {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 6px;
+    background: #c4c4c4;
+    object-fit: cover;
+}
+
+.exchange-step .exchange-upload-preview[hidden] {
+    display: none !important;
+}
+
+.exchange-step .exchange-upload-tile.has-preview::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: rgba(0, 0, 0, 0.34);
+}
+
+.exchange-step .exchange-upload-tile.has-preview::before {
+    filter: brightness(0) invert(1);
+}
+
+.exchange-step .exchange-upload-text[hidden] {
+    display: none !important;
+}
+
+.exchange-step .exchange-upload-tile input[type='file'],
+.exchange-step .exchange-upload-tile-extra input[type='file'] {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    border: 0;
+    padding: 0;
+}
+
+.exchange-step .exchange-upload-actions {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: 8px;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    pointer-events: none;
+}
+
+.exchange-step .exchange-upload-actions button {
+    display: none;
+    width: auto;
+    min-width: 0;
+    min-height: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #ffffff;
+    padding: 0;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1;
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+.exchange-step .exchange-upload-actions button[data-exchange-upload-action='view']:not(:disabled),
+.exchange-step .exchange-upload-actions button[data-exchange-upload-action='remove']:not(:disabled) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.exchange-step .exchange-upload-actions button[data-exchange-upload-action='remove']:not(:disabled) {
+    min-height: 30px;
+    border-radius: 999px;
+    background: #e00000;
+    padding: 8px 12px;
+}
+
+.exchange-step .exchange-upload-actions button[data-exchange-upload-action='view']:not(:disabled) {
+    min-height: 30px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.62);
+    padding: 8px 12px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
+.exchange-step .exchange-upload-actions button[data-exchange-upload-action='view']:hover {
+    text-decoration: underline;
+}
+
+.exchange-step .extra-image-remove-top {
+    z-index: 5;
+}
+
+@media (max-width: 900px) {
+    .exchange-step #exchangeImageFields,
+    .exchange-step .exchange-upload-grid-extra {
+        width: 100%;
+    }
+
+    .exchange-step .exchange-upload-grid,
+    .exchange-step .exchange-upload-grid-extra {
+        grid-template-columns: 1fr;
+    }
 }

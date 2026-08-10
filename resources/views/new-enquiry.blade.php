@@ -123,10 +123,9 @@
                     @endif
 
                     <div class="created-lead-actions">
-                        <p>Would you like to register or create a booking?</p>
+                        <p>Complete the Prospect Sheet before opening Booking.</p>
                         <div>
                             <a href="{{ route('prospect.show', $createdLead['id']) }}" class="created-lead-btn primary">Register</a>
-                            <a href="{{ route('booking.show', $createdLead['id']) }}" class="created-lead-btn secondary">Booking</a>
                         </div>
                     </div>
                 </section>
