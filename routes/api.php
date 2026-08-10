@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\EnquiryController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\FollowUpController;
 use App\Http\Controllers\Api\ProspectController;
+use App\Http\Controllers\Api\BookingController;
+use App\Http\Controllers\Api\DeliveryController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -61,4 +63,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // Prospect
     Route::get('/prospect/{enquiry}', [ProspectController::class, 'show']);
     Route::post('/prospect/{enquiry}', [ProspectController::class, 'store']);
+    
+    // Booking - FIXED: Added missing booking routes
+    Route::get('/booking/{enquiry}', [BookingController::class, 'show']);
+    Route::post('/booking/{enquiry}', [BookingController::class, 'store']);
+    
+    // Delivery - FIXED: Added missing delivery routes
+    Route::get('/delivery/{enquiry}', [DeliveryController::class, 'show']);
+    Route::post('/delivery/{enquiry}', [DeliveryController::class, 'store']);
 });
