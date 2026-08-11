@@ -79,7 +79,11 @@
         !empty($prospect->car_pic_2_image) ||
         !empty($prospect->exchange_extra_images);
     $isExchangeImageAdd = old('add_exchange_images', $hasExistingExchangeImages ? '1' : '0') === '1';
-    $extraExchangeImages = is_array($prospect->exchange_extra_images) ? $prospect->exchange_extra_images : [];
+    $extraExchangeImages = collect(is_array($prospect->exchange_extra_images) ? $prospect->exchange_extra_images : [])
+        ->map(fn($path) => trim((string) $path))
+        ->filter(fn($path) => $path !== '' && \Illuminate\Support\Facades\Storage::disk('public')->exists($path))
+        ->values()
+        ->all();
     $selectedExchangeBrand = old('exchange_vehicle_brand', $prospect->exchange_vehicle_brand);
     $selectedExchangeModel = old('exchange_vehicle_model', $prospect->exchange_vehicle_model);
     $selectedExchangeOwnership = old('exchange_ownership', $prospect->exchange_ownership);
