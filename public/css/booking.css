@@ -2840,8 +2840,12 @@ select:focus {
 
 .booking-page .purchase-order-upload-tile {
     position: relative;
-    width: 132px;
-    height: 132px;
+    width: min(350px, 100%);
+    height: 142px;
+    padding: 4px;
+    border: 1px solid #d9dde4;
+    border-radius: 6px;
+    background: #ffffff;
 }
 
 .booking-page .purchase-order-upload-pill {
@@ -2852,11 +2856,11 @@ select:focus {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 10px;
+    gap: 8px;
     margin: 0;
-    border: 1px solid #d9dde4;
-    border-radius: 3px;
-    background: #f4f5f7;
+    border: 0;
+    border-radius: 4px;
+    background: #bfbfbf;
     color: #111827;
     padding: 8px;
     cursor: pointer;
@@ -2865,8 +2869,8 @@ select:focus {
 }
 
 .booking-page .purchase-order-upload-pill span {
-    width: 36px;
-    height: 36px;
+    width: 28px;
+    height: 28px;
     display: block;
     background: url("/icons/imageuploadic.png") center / contain no-repeat;
     filter: brightness(0);
@@ -2875,8 +2879,8 @@ select:focus {
 }
 
 .booking-page .purchase-order-upload-pill strong {
-    color: #111827;
-    font-size: 10px;
+    color: #ffffff;
+    font-size: 13px;
     font-weight: 900;
     line-height: 1.2;
     text-align: center;
@@ -2934,11 +2938,31 @@ select:focus {
     z-index: 3;
 }
 
-.booking-page .personal-purchase-order .existing-file {
-    margin: 0;
-    color: #111827;
-    font-size: 10px;
-    font-weight: 700;
+.booking-page .purchase-order-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: min(350px, 100%);
+}
+
+.booking-page .purchase-order-actions button {
+    min-width: 68px;
+    min-height: 30px;
+    border: 0;
+    border-radius: 999px;
+    background: #ed1c24;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.booking-page .purchase-order-actions button:disabled {
+    background: #d1d5db;
+    color: #6b7280;
+    cursor: not-allowed;
 }
 
 .booking-page .booking-personal-summary {

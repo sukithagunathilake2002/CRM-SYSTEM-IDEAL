@@ -465,7 +465,11 @@
                 <div class="purchase-order-box personal-purchase-order">
                     <label for="purchase_order_image">Purchase Order</label>
                     <input type="hidden" id="remove_purchase_order_image" name="remove_purchase_order_image" value="0">
-                    <div class="purchase-order-upload-tile {{ !empty($booking->purchase_order_image) ? 'has-preview' : '' }}" id="purchaseOrderTile">
+                    <div
+                        class="purchase-order-upload-tile {{ !empty($booking->purchase_order_image) ? 'has-preview' : '' }}"
+                        id="purchaseOrderTile"
+                        data-existing-src="{{ !empty($booking->purchase_order_image) ? asset('storage/' . $booking->purchase_order_image) : '' }}"
+                    >
                         <label class="purchase-order-upload-pill" for="purchase_order_image">
                             <span aria-hidden="true"></span>
                             <strong>Purchase Order</strong>
@@ -481,14 +485,11 @@
                         <input id="purchase_order_image" type="file" name="purchase_order_image" accept=".jpg,.jpeg,.png,.webp">
                     </div>
 
-                    @if(!empty($booking->purchase_order_image))
-                        <p class="existing-file" id="purchaseOrderExistingFile">
-                            Uploaded:
-                            <a href="{{ asset('storage/' . $booking->purchase_order_image) }}" target="_blank" rel="noopener">
-                                View Current File
-                            </a>
-                        </p>
-                    @endif
+                    <div class="purchase-order-actions">
+                        <button type="button" id="purchaseOrderAdd">Add</button>
+                        <button type="button" id="purchaseOrderView" @disabled(empty($booking->purchase_order_image))>View</button>
+                        <button type="button" id="purchaseOrderClear" @disabled(empty($booking->purchase_order_image))>Clear</button>
+                    </div>
                 </div>
             </section>
 
@@ -1320,7 +1321,9 @@
         const purchaseOrderPreview = document.getElementById('purchaseOrderPreview');
         const purchaseOrderRemove = document.getElementById('purchaseOrderRemove');
         const purchaseOrderRemoveInput = document.getElementById('remove_purchase_order_image');
-        const purchaseOrderExistingFile = document.getElementById('purchaseOrderExistingFile');
+        const purchaseOrderAdd = document.getElementById('purchaseOrderAdd');
+        const purchaseOrderView = document.getElementById('purchaseOrderView');
+        const purchaseOrderClear = document.getElementById('purchaseOrderClear');
         let purchaseOrderObjectUrl = null;
         const toggleOfferEdit = document.getElementById('toggleOfferEdit');
         const offerEditGroup = document.getElementById('offerEditGroup');
@@ -2093,12 +2096,16 @@
                 purchaseOrderTile.classList.remove('has-preview');
                 purchaseOrderPreview.hidden = true;
                 purchaseOrderPreview.removeAttribute('src');
+                if (purchaseOrderView) purchaseOrderView.disabled = true;
+                if (purchaseOrderClear) purchaseOrderClear.disabled = true;
                 return;
             }
 
             purchaseOrderPreview.src = sourceUrl;
             purchaseOrderPreview.hidden = false;
             purchaseOrderTile.classList.add('has-preview');
+            if (purchaseOrderView) purchaseOrderView.disabled = false;
+            if (purchaseOrderClear) purchaseOrderClear.disabled = false;
         }
 
         function clearPurchaseOrderPreview() {
@@ -2109,10 +2116,18 @@
             if (purchaseOrderRemoveInput) {
                 purchaseOrderRemoveInput.value = '1';
             }
-            if (purchaseOrderExistingFile) {
-                purchaseOrderExistingFile.hidden = true;
+            if (purchaseOrderTile) {
+                purchaseOrderTile.dataset.existingSrc = '';
             }
             setPurchaseOrderPreview('');
+        }
+
+        function currentPurchaseOrderPreviewUrl() {
+            if (purchaseOrderPreview && !purchaseOrderPreview.hidden && purchaseOrderPreview.getAttribute('src')) {
+                return purchaseOrderPreview.getAttribute('src');
+            }
+
+            return purchaseOrderTile?.dataset.existingSrc || '';
         }
 
         function syncBookingImageBody() {
@@ -2448,10 +2463,31 @@
                 if (purchaseOrderRemoveInput) {
                     purchaseOrderRemoveInput.value = '0';
                 }
-                if (purchaseOrderExistingFile) {
-                    purchaseOrderExistingFile.hidden = true;
+                if (purchaseOrderTile) {
+                    purchaseOrderTile.dataset.existingSrc = '';
                 }
                 setPurchaseOrderPreview(purchaseOrderObjectUrl);
+            });
+        }
+
+        if (purchaseOrderAdd) {
+            purchaseOrderAdd.addEventListener('click', () => {
+                purchaseOrderInput?.click();
+            });
+        }
+
+        if (purchaseOrderView) {
+            purchaseOrderView.addEventListener('click', () => {
+                const previewUrl = currentPurchaseOrderPreviewUrl();
+                if (!previewUrl) return;
+                window.open(previewUrl, '_blank', 'noopener');
+            });
+        }
+
+        if (purchaseOrderClear) {
+            purchaseOrderClear.addEventListener('click', (event) => {
+                event.preventDefault();
+                clearPurchaseOrderPreview();
             });
         }
 
