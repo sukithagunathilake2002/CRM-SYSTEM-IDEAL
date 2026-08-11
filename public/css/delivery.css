@@ -2198,3 +2198,36 @@ html.theme-dark .delivery-summary strong {
         grid-column: 2;
     }
 }
+
+/* Delivery form type scale */
+.delivery-page form label,
+.delivery-page form input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]),
+.delivery-page form input[type="file"]::file-selector-button,
+.delivery-page form select,
+.delivery-page form textarea,
+.delivery-page form .delivery-pill span,
+.delivery-page form .delivery-segment span,
+.delivery-page form .delivery-question p,
+.delivery-page form .delivery-more p,
+.delivery-page form .delivery-exchange-edit-inline,
+.delivery-page form .delivery-exchange-interested span,
+.delivery-page form .delivery-offer-card-head,
+.delivery-page form .delivery-offer-card-label,
+.delivery-page form .delivery-payment-grid label,
+.delivery-page form .delivery-final-reference,
+.delivery-page form .delivery-final-reasons label,
+.delivery-page form .delivery-receipt-row input,
+.delivery-page form .delivery-receipt-row select,
+.delivery-page form .delivery-receipt-row label {
+    font-size: 16px !important;
+}
+
+.delivery-page form h2,
+.delivery-page form h3,
+.delivery-page form h4,
+.delivery-page .delivery-offer-page-summary h3,
+.delivery-page .delivery-receipt-head h4,
+.delivery-page .delivery-offer-popup-card h3,
+.delivery-page .delivery-submit-popup-card h4 {
+    font-size: 18px !important;
+}

@@ -4997,7 +4997,7 @@ select:focus {
     display: block !important;
     margin: 0 0 12px !important;
     color: #111111 !important;
-    font-size: 20px !important;
+    font-size: 16px !important;
     line-height: 1.2 !important;
     font-weight: 800 !important;
 }
@@ -5592,4 +5592,35 @@ select:focus {
 
 .booking-page.booking-step-3 .exchange-summary-row {
     grid-template-columns: 18px 210px 10px minmax(0, 1fr) !important;
+}
+
+/* Booking form type scale */
+.booking-page form label,
+.booking-page form input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]),
+.booking-page form input[type="file"]::file-selector-button,
+.booking-page form select,
+.booking-page form textarea,
+.booking-page form .segment-row span,
+.booking-page form .vehicle-pill-display,
+.booking-page form .booking-toggle-label,
+.booking-page form .booking-card-edit-mark,
+.booking-page form .offer-panel-head span,
+.booking-page form .offer-discount-label,
+.booking-page form .exchange-upload-title,
+.booking-page form .exchange-upload-actions button,
+.booking-page form .booking-receipt-row input,
+.booking-page form .booking-receipt-row select,
+.booking-page form .booking-receipt-row label {
+    font-size: 16px !important;
+}
+
+.booking-page form h2,
+.booking-page form h3,
+.booking-page form h4,
+.booking-page form .section-heading,
+.booking-page form .section-heading::before,
+.booking-page form .personal-head .section-heading,
+.booking-page form .booking-receipt-head h4,
+.booking-page .booking-submit-popup-card h4 {
+    font-size: 18px !important;
 }

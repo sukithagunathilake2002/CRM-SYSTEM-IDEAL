@@ -1775,27 +1775,73 @@ body {
 }
 
 .exchange-existing-preview-item {
+    position: relative;
     border-radius: 10px;
     overflow: hidden;
     border: 1px solid #b3b5bc;
     background: #f2f3f6;
-    min-height: 88px;
-    display: grid;
-    gap: 6px;
-    padding: 6px;
+    min-height: 130px;
+    display: block;
+    padding: 0;
 }
 
 .exchange-existing-preview-item img {
     width: 100%;
-    min-height: 88px;
+    height: 130px;
+    min-height: 130px;
     max-height: 130px;
     object-fit: cover;
     display: block;
-    border-radius: 7px;
+    border-radius: 0;
 }
 
 .exchange-existing-preview-item .exchange-upload-actions {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: 8px;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    pointer-events: none;
+}
+
+.exchange-existing-preview-item::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: rgba(0, 0, 0, 0.28);
+    pointer-events: none;
+}
+
+.exchange-existing-preview-item .exchange-upload-actions button[data-existing-extra-action] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    min-height: 0;
+    border: 0;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1;
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+.exchange-existing-preview-item .exchange-upload-actions button[data-existing-extra-action='view'] {
+    background: transparent;
+    padding: 0;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
+}
+
+.exchange-existing-preview-item .exchange-upload-actions button[data-existing-extra-action='remove'] {
+    min-height: 30px;
+    border-radius: 999px;
+    background: #e00000;
+    padding: 8px 12px;
 }
 
 .exchange-existing-preview-removed {
@@ -4541,7 +4587,8 @@ body {
 }
 
 .offer-step .offer-page-summary {
-    order: 1;
+    display: none;
+    order: 2;
     width: min(470px, 100%);
     margin: 14px auto 18px;
     text-align: center;
@@ -4579,11 +4626,11 @@ body {
 }
 
 .offer-step .offer-title-line {
-    order: 2;
-    width: min(1060px, 100%);
+    order: 1;
+    width: min(1120px, 100%);
     max-width: none;
-    min-height: 24px;
-    margin: 0 auto 18px;
+    min-height: 28px;
+    margin: 0 auto 12px;
     padding: 0;
     border: 0;
     border-radius: 0;
@@ -4610,7 +4657,7 @@ body {
 .offer-step .offer-edit-label {
     display: inline-flex;
     align-items: center;
-    gap: 0;
+    gap: 8px;
     margin: 0;
     padding: 0;
     border: 0;
@@ -4620,6 +4667,13 @@ body {
     font-size: 12px;
     font-weight: 700;
     cursor: pointer;
+}
+
+.offer-step .offer-edit-heading {
+    color: #111827;
+    font-size: 16px;
+    font-weight: 800;
+    line-height: 1;
 }
 
 .offer-step .offer-edit-label input {
@@ -4632,7 +4686,7 @@ body {
     position: relative;
     display: inline-block;
     width: 30px;
-    height: 18px;
+    height: 17px;
     overflow: hidden;
     color: transparent;
     font-size: 0;
@@ -4655,19 +4709,19 @@ body {
     z-index: 1;
     top: 2px;
     left: 2px;
-    width: 14px;
-    height: 14px;
+    width: 13px;
+    height: 13px;
     border-radius: 999px;
     background: #ffffff;
     transition: transform .18s ease;
 }
 
 .offer-step .offer-edit-label input:checked + span::before {
-    transform: translateX(12px);
+    transform: translateX(13px);
 }
 
 .offer-step .offer-summary-panel {
-    order: 3;
+    order: 2;
     display: grid;
     gap: 22px;
     width: 100%;
@@ -4819,7 +4873,7 @@ body {
 }
 
 .offer-step .offer-edit-group {
-    order: 3;
+    order: 2;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 18px;
@@ -4830,7 +4884,7 @@ body {
     max-width: none;
     margin: 0;
     border: 1px solid #111827;
-    border-radius: 9px;
+    border-radius: 8px;
     background: #ffffff;
     box-shadow: none;
     padding: 20px 24px 28px;
@@ -4842,7 +4896,7 @@ body {
 
 .offer-step .offer-panel-head span {
     color: #111827;
-    font-size: 13px;
+    font-size: 16px;
     font-weight: 900;
 }
 
@@ -4858,8 +4912,8 @@ body {
 .offer-step .offer-price-value-row::before {
     content: "Cost";
     color: #111827;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 13px;
+    font-weight: 800;
 }
 
 .offer-step .offer-price-value-row input,
@@ -4872,8 +4926,8 @@ body {
     background: #f5f5f5;
     color: #111827;
     text-align: center;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 16px;
+    font-weight: 800;
     padding: 0 12px;
 }
 
@@ -4885,8 +4939,8 @@ body {
 .offer-step .offer-discount-label {
     min-width: 0;
     color: #111827;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 16px;
+    font-weight: 800;
 }
 
 .offer-step .offer-free-check {
@@ -4960,12 +5014,32 @@ body {
 
 .offer-step .offer-total-strip-values strong {
     color: #e00000;
-    font-size: 14px;
-    font-weight: 700;
+    font-size: 16px;
+    font-weight: 800;
 }
 
 .offer-step .offer-total-strip-values span {
     color: transparent;
+}
+
+.offer-step .offer-edit-save-row {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: center;
+    margin-top: 18px;
+}
+
+.offer-step .offer-edit-save-btn {
+    min-width: 130px;
+    min-height: 40px;
+    border: 0;
+    border-radius: 999px;
+    background: #e00000;
+    color: #ffffff;
+    padding: 0 28px;
+    font-size: 16px;
+    font-weight: 900;
+    cursor: pointer;
 }
 
 @media (max-width: 900px) {
@@ -5771,4 +5845,40 @@ body {
     .exchange-step .exchange-upload-grid-extra {
         grid-template-columns: 1fr;
     }
+}
+
+/* Prospect form type scale */
+.prospect-page form label,
+.prospect-page form input:not([type='hidden']):not([type='checkbox']):not([type='radio']),
+.prospect-page form input[type='file']::file-selector-button,
+.prospect-page form select,
+.prospect-page form textarea,
+.prospect-page form .field-pill input,
+.prospect-page form .field-pill select,
+.prospect-page form .segmented span,
+.prospect-page form .vehicle-pill,
+.prospect-page form .vehicle-pill-display,
+.prospect-page form .plan-latest-pill strong,
+.prospect-page form .plan-previous-comment-row,
+.prospect-page form .plan-status-item em,
+.prospect-page form .offer-panel-head span,
+.prospect-page form .offer-discount-label,
+.prospect-page form .exchange-upload-text,
+.prospect-page form .exchange-upload-actions button {
+    font-size: 16px !important;
+}
+
+.prospect-page form h2,
+.prospect-page form h4,
+.prospect-page form .section-heading,
+.prospect-page form .sub-title,
+.prospect-page form .personal-step h3::before,
+.prospect-page form .buying-step h3::before,
+.prospect-page form .exchange-step h3::before,
+.prospect-page form .plan-step h3::before,
+.prospect-page form .exchange-card-head h3,
+.prospect-page form .offer-page-summary h3,
+.prospect-page form .summary-modal-card h3,
+.prospect-page .prospect-submit-popup-card h4 {
+    font-size: 18px !important;
 }

@@ -79,6 +79,12 @@
         !empty($prospect->car_pic_2_image) ||
         !empty($prospect->exchange_extra_images);
     $isExchangeImageAdd = old('add_exchange_images', $hasExistingExchangeImages ? '1' : '0') === '1';
+    $prospectStorageImageUrl = function ($path): string {
+        $path = trim((string) $path);
+        return $path !== '' && \Illuminate\Support\Facades\Storage::disk('public')->exists($path)
+            ? asset('storage/' . $path)
+            : '';
+    };
     $extraExchangeImages = collect(is_array($prospect->exchange_extra_images) ? $prospect->exchange_extra_images : [])
         ->map(fn($path) => trim((string) $path))
         ->filter(fn($path) => $path !== '' && \Illuminate\Support\Facades\Storage::disk('public')->exists($path))
@@ -700,7 +706,7 @@
                                     type="file"
                                     name="blue_book_image"
                                     accept="image/*"
-                                    data-existing-src="{{ !empty($prospect->blue_book_image) ? asset('storage/' . $prospect->blue_book_image) : '' }}"
+                                    data-existing-src="{{ $prospectStorageImageUrl($prospect->blue_book_image) }}"
                                 >
                             </label>
                             <input type="hidden" name="remove_blue_book_image" value="0" data-exchange-remove-input>
@@ -721,7 +727,7 @@
                                     type="file"
                                     name="lot_no_image"
                                     accept="image/*"
-                                    data-existing-src="{{ !empty($prospect->lot_no_image) ? asset('storage/' . $prospect->lot_no_image) : '' }}"
+                                    data-existing-src="{{ $prospectStorageImageUrl($prospect->lot_no_image) }}"
                                 >
                             </label>
                             <input type="hidden" name="remove_lot_no_image" value="0" data-exchange-remove-input>
@@ -742,7 +748,7 @@
                                     type="file"
                                     name="car_pic_1_image"
                                     accept="image/*"
-                                    data-existing-src="{{ !empty($prospect->car_pic_1_image) ? asset('storage/' . $prospect->car_pic_1_image) : '' }}"
+                                    data-existing-src="{{ $prospectStorageImageUrl($prospect->car_pic_1_image) }}"
                                 >
                             </label>
                             <input type="hidden" name="remove_car_pic_1_image" value="0" data-exchange-remove-input>
@@ -763,7 +769,7 @@
                                     type="file"
                                     name="car_pic_2_image"
                                     accept="image/*"
-                                    data-existing-src="{{ !empty($prospect->car_pic_2_image) ? asset('storage/' . $prospect->car_pic_2_image) : '' }}"
+                                    data-existing-src="{{ $prospectStorageImageUrl($prospect->car_pic_2_image) }}"
                                 >
                             </label>
                             <input type="hidden" name="remove_car_pic_2_image" value="0" data-exchange-remove-input>
@@ -847,7 +853,7 @@
                             @foreach($extraExchangeImages as $index => $extraImagePath)
                                 @if(!empty($extraImagePath))
                                     <div class="exchange-existing-preview-item" data-existing-extra-image>
-                                        <img src="{{ asset('storage/' . $extraImagePath) }}" alt="Existing extra exchange image {{ $index + 1 }}">
+                                        <img src="{{ asset('storage/' . $extraImagePath) }}" alt="Existing extra exchange image {{ $index + 1 }}" onerror="this.closest('[data-existing-extra-image]').remove()">
                                         <input type="checkbox" name="remove_extra_exchange_images[]" value="{{ $extraImagePath }}" hidden>
                                         <div class="exchange-upload-actions">
                                             <button type="button" data-existing-extra-action="view" data-image-src="{{ asset('storage/' . $extraImagePath) }}">View</button>
@@ -863,9 +869,10 @@
         </section>
         <section class="prospect-step offer-step" data-step="4" data-step-completed="{{ $isStepCompleted(4) ? '1' : '0' }}">
             <div class="section-title-line offer-title-line">
-                <label class="switch-label offer-edit-label" aria-label="Edit Buying Details">
-                    <input type="checkbox" id="allowOfferEdit" checked>
-                    <span>Edit Buying Details</span>
+                <label class="switch-label offer-edit-label" aria-label="Edit Offer Details">
+                    <strong class="offer-edit-heading">Edit</strong>
+                    <input type="checkbox" id="allowOfferEdit">
+                    <span>Edit Offer Details</span>
                 </label>
             </div>
 
@@ -968,19 +975,19 @@
                         <strong id="offerFinalPriceDisplay">{{ number_format((float) $offerFinalPrice, 2, '.', '') }}</strong>
                     </div>
                 </div>
+
+                <div class="offer-edit-save-row">
+                    <button type="button" class="offer-edit-save-btn" id="offerEditSaveBtn">Save</button>
+                </div>
             </div>
 
             <input type="hidden" name="offer_total_cost" id="offer_total_cost" value="{{ $offerTotalCost }}">
             <input type="hidden" name="offer_total_discount" id="offer_total_discount" value="{{ $offerTotalDiscount }}">
             <input type="hidden" name="offer_final_price" id="offer_final_price" value="{{ $offerFinalPrice }}">
         </section>
-        <section class="prospect-step plan-step step-collapsible {{ $shouldOpenStep(5) ? '' : 'step-collapsed' }}" data-step="5" data-step-completed="{{ $isStepCompleted(5) ? '1' : '0' }}">
+        <section class="prospect-step plan-step" data-step="5" data-step-completed="{{ $isStepCompleted(5) ? '1' : '0' }}">
             <div class="section-title-line step-edit-line">
                 <h3>Plan Followup</h3>
-                <label class="switch-label">
-                    <input type="checkbox" class="step-edit-toggle" data-step-edit-toggle @checked($shouldOpenStep(5))>
-                    <span>Edit</span>
-                </label>
             </div>
 
             <div class="plan-top-row">

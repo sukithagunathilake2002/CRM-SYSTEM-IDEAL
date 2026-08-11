@@ -47,7 +47,7 @@
         right: 12px !important;
         z-index: 2 !important;
         color: #ffffff !important;
-        font-size: 13px !important;
+        font-size: 16px !important;
         font-weight: 900 !important;
         line-height: 1.2 !important;
         text-align: left !important;
@@ -143,7 +143,7 @@
         min-height: 24px !important;
         border: 0 !important;
         color: #ffffff !important;
-        font-size: 14px !important;
+        font-size: 16px !important;
         font-weight: 900 !important;
         line-height: 1 !important;
         cursor: pointer !important;
