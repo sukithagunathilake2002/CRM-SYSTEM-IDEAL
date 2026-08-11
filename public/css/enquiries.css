@@ -1246,3 +1246,20 @@ body.filter-open {
         padding-top: 12px;
     }
 }
+
+/* Final filter action size override */
+.epr-filter-actions {
+    gap: 10px !important;
+}
+
+.epr-filter-actions .epr-filter-action {
+    min-width: 92px !important;
+    width: auto !important;
+    height: 32px !important;
+    padding: 0 18px !important;
+    border-radius: 999px !important;
+    font-size: 12px !important;
+    line-height: 1 !important;
+    font-weight: 700 !important;
+    letter-spacing: 0 !important;
+}
