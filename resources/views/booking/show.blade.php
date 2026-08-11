@@ -2,6 +2,171 @@
 
 @section('content')
 <link rel="stylesheet" href="{{ asset('css/booking.css') }}?v={{ filemtime(public_path('css/booking.css')) }}">
+<style>
+    .booking-page.booking-step-3 .exchange-section .exchange-upload-grid-primary,
+    .booking-page.booking-step-3 .exchange-section .exchange-upload-grid-extra {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 10px !important;
+        width: min(740px, 100%) !important;
+    }
+
+    .booking-page.booking-step-3 .exchange-section .exchange-upload-tile {
+        position: relative !important;
+        display: block !important;
+        box-sizing: border-box !important;
+        min-width: 0 !important;
+        height: 176px !important;
+        min-height: 176px !important;
+        padding: 8px !important;
+        border: 1px solid #d9dde4 !important;
+        border-radius: 6px !important;
+        background: #bfbfbf !important;
+        overflow: hidden !important;
+        cursor: pointer !important;
+        isolation: isolate !important;
+    }
+
+    .booking-page.booking-step-3 .exchange-section .exchange-upload-tile::before {
+        content: "" !important;
+        position: absolute !important;
+        top: 18px !important;
+        left: 18px !important;
+        width: 30px !important;
+        height: 30px !important;
+        margin: 0 !important;
+        background: url("{{ asset('icons/imageuploadic.png') }}") center / contain no-repeat !important;
+        filter: brightness(0) !important;
+        z-index: 2 !important;
+    }
+
+    .booking-page.booking-step-3 .exchange-section .exchange-upload-title {
+        position: absolute !important;
+        top: 50px !important;
+        left: 14px !important;
+        right: 12px !important;
+        z-index: 2 !important;
+        color: #ffffff !important;
+        font-size: 13px !important;
+        font-weight: 900 !important;
+        line-height: 1.2 !important;
+        text-align: left !important;
+        text-transform: uppercase !important;
+    }
+
+    .booking-page.booking-step-3 .exchange-section .exchange-file-input {
+        position: absolute !important;
+        inset: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        opacity: 0 !important;
+        cursor: pointer !important;
+        z-index: 10 !important;
+    }
+
+    .booking-page.booking-step-3 .exchange-section .exchange-upload-preview[hidden] {
+        display: none !important;
+    }
+
+    .booking-page.booking-step-3 .exchange-section .exchange-upload-preview {
+        position: absolute !important;
+        inset: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        max-width: 100% !important;
+        max-height: 100% !important;
+        border-radius: 6px !important;
+        object-fit: cover !important;
+        display: block !important;
+        z-index: 4 !important;
+        pointer-events: none !important;
+    }
+
+    .booking-page.booking-step-3 .exchange-section .exchange-upload-tile.has-preview .exchange-file-input {
+        pointer-events: none !important;
+    }
+
+    .booking-page.booking-step-3 .exchange-section .exchange-upload-tile.has-preview::before {
+        display: none !important;
+    }
+
+    .booking-page.booking-step-3 .exchange-section .exchange-upload-tile.has-preview::after {
+        content: "" !important;
+        position: absolute !important;
+        inset: 0 !important;
+        background: rgba(0, 0, 0, 0.2) !important;
+        z-index: 5 !important;
+    }
+
+    .booking-page.booking-step-3 .exchange-section .exchange-upload-tile.has-preview .exchange-upload-title {
+        top: 50% !important;
+        text-align: center !important;
+        color: #f3d04f !important;
+        text-shadow: 0 1px 5px rgba(0, 0, 0, 0.7) !important;
+        transform: translateY(-50%) !important;
+        z-index: 6 !important;
+    }
+
+    .booking-page.booking-step-3 .exchange-section .exchange-upload-actions {
+        position: absolute !important;
+        left: 8px !important;
+        right: 8px !important;
+        bottom: 8px !important;
+        z-index: 8 !important;
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: flex-end !important;
+        gap: 8px !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+    }
+
+    .booking-page.booking-step-3 .exchange-section .exchange-upload-tile.has-preview .exchange-upload-actions {
+        opacity: 1 !important;
+        pointer-events: auto !important;
+    }
+
+    .booking-page.booking-step-3 .exchange-section .exchange-upload-tile:not(.has-preview) .exchange-upload-actions {
+        display: none !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+    }
+
+    .booking-page.booking-step-3 .exchange-section .exchange-preview-view,
+    .booking-page.booking-step-3 .exchange-section .exchange-preview-clear {
+        position: static !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: auto !important;
+        height: auto !important;
+        min-height: 24px !important;
+        border: 0 !important;
+        color: #ffffff !important;
+        font-size: 14px !important;
+        font-weight: 900 !important;
+        line-height: 1 !important;
+        cursor: pointer !important;
+    }
+
+    .booking-page.booking-step-3 .exchange-section .exchange-preview-view {
+        background: transparent !important;
+        padding: 0 !important;
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85) !important;
+    }
+
+    .booking-page.booking-step-3 .exchange-section .exchange-preview-clear {
+        background: #ed1c24 !important;
+        border-radius: 999px !important;
+        padding: 0 12px !important;
+    }
+
+    .booking-page.booking-step-3 .exchange-section .exchange-preview-view:disabled,
+    .booking-page.booking-step-3 .exchange-section .exchange-preview-clear:disabled {
+        opacity: 0.55 !important;
+        cursor: default !important;
+    }
+</style>
 
 @php
     $summaryName = trim(($customer?->title ? $customer->title . ' ' : '') . ($customer?->name ?? 'N/A'));
@@ -128,6 +293,21 @@
     $selectedExchangeExpectedPrice = old('exchange_expected_price', $defaultValues['exchange_expected_price']);
     $selectedExchangeQuotedPrice = old('exchange_quoted_price', $defaultValues['exchange_quoted_price']);
     $selectedExchangeDifference = old('exchange_price_difference', $defaultValues['exchange_price_difference']);
+    $exchangeImageUrl = function ($path): string {
+        $path = trim((string) $path);
+        return $path !== '' ? asset('storage/' . $path) : '';
+    };
+    $exchangeImageFields = [
+        ['name' => 'blue_book_image', 'remove' => 'remove_blue_book_image', 'label' => 'Blue Book', 'path' => $defaultValues['blue_book_image'] ?? ''],
+        ['name' => 'lot_no_image', 'remove' => 'remove_lot_no_image', 'label' => 'Lot No', 'path' => $defaultValues['lot_no_image'] ?? ''],
+        ['name' => 'car_pic_1_image', 'remove' => 'remove_car_pic_1_image', 'label' => 'Car picture 1', 'path' => $defaultValues['car_pic_1_image'] ?? ''],
+        ['name' => 'car_pic_2_image', 'remove' => 'remove_car_pic_2_image', 'label' => 'Car picture 2', 'path' => $defaultValues['car_pic_2_image'] ?? ''],
+    ];
+    $existingExtraExchangeImages = collect($defaultValues['exchange_extra_images'] ?? [])
+        ->map(fn($path) => trim((string) $path))
+        ->filter()
+        ->values();
+    $extraImageTileCount = max(3, $existingExtraExchangeImages->count());
     $exchangeNeedsVehicleInput = $selectedInterestedExchange === 'yes'
         && (trim((string) $selectedExchangeBrand) === '' || trim((string) $selectedExchangeModel) === '');
     $isExchangeEdit = old('edit_exchange_details') === '1' || $exchangeNeedsVehicleInput;
@@ -863,30 +1043,32 @@
 
                             <div id="bookingImageBody">
                                 <div class="exchange-upload-grid exchange-upload-grid-primary">
-                                    <div class="exchange-upload-tile">
-                                        <span class="exchange-upload-title">Blue Book</span>
-                                        <img class="exchange-upload-preview" alt="Blue Book preview" hidden>
-                                        <button type="button" class="exchange-preview-clear" aria-label="Remove selected image">&times;</button>
-                                        <input class="exchange-file-input" type="file" name="blue_book_image" accept=".jpg,.jpeg,.png,.webp">
-                                    </div>
-                                    <div class="exchange-upload-tile">
-                                        <span class="exchange-upload-title">Lot No</span>
-                                        <img class="exchange-upload-preview" alt="Lot No preview" hidden>
-                                        <button type="button" class="exchange-preview-clear" aria-label="Remove selected image">&times;</button>
-                                        <input class="exchange-file-input" type="file" name="lot_no_image" accept=".jpg,.jpeg,.png,.webp">
-                                    </div>
-                                    <div class="exchange-upload-tile">
-                                        <span class="exchange-upload-title">Car picture 1</span>
-                                        <img class="exchange-upload-preview" alt="Car picture 1 preview" hidden>
-                                        <button type="button" class="exchange-preview-clear" aria-label="Remove selected image">&times;</button>
-                                        <input class="exchange-file-input" type="file" name="car_pic_1_image" accept=".jpg,.jpeg,.png,.webp">
-                                    </div>
-                                    <div class="exchange-upload-tile">
-                                        <span class="exchange-upload-title">Car picture 2</span>
-                                        <img class="exchange-upload-preview" alt="Car picture 2 preview" hidden>
-                                        <button type="button" class="exchange-preview-clear" aria-label="Remove selected image">&times;</button>
-                                        <input class="exchange-file-input" type="file" name="car_pic_2_image" accept=".jpg,.jpeg,.png,.webp">
-                                    </div>
+                                    @foreach($exchangeImageFields as $imageField)
+                                        @php
+                                            $existingImagePath = trim((string) ($imageField['path'] ?? ''));
+                                            $existingImageUrl = $exchangeImageUrl($existingImagePath);
+                                            $existingImageName = $existingImagePath !== '' ? basename($existingImagePath) : $imageField['label'];
+                                        @endphp
+                                        <div
+                                            class="exchange-upload-tile {{ $existingImageUrl !== '' ? 'has-preview' : '' }}"
+                                            data-existing-src="{{ $existingImageUrl }}"
+                                            data-existing-name="{{ $existingImageName }}"
+                                            data-default-title="{{ $imageField['label'] }}"
+                                        >
+                                            <input type="hidden" class="exchange-remove-input" name="{{ $imageField['remove'] }}" value="0">
+                                            <span class="exchange-upload-title">{{ $existingImageUrl !== '' ? $existingImageName : $imageField['label'] }}</span>
+                                            <img
+                                                class="exchange-upload-preview"
+                                                alt="{{ $imageField['label'] }} preview"
+                                                @if($existingImageUrl !== '') src="{{ $existingImageUrl }}" @else hidden @endif
+                                            >
+                                            <div class="exchange-upload-actions">
+                                                <button type="button" class="exchange-preview-view" @disabled($existingImageUrl === '')>View</button>
+                                                <button type="button" class="exchange-preview-clear" @disabled($existingImageUrl === '')>Remove</button>
+                                            </div>
+                                            <input class="exchange-file-input" type="file" name="{{ $imageField['name'] }}" accept=".jpg,.jpeg,.png,.webp">
+                                        </div>
+                                    @endforeach
                                 </div>
 
                                 <div class="exchange-more-head">
@@ -898,27 +1080,36 @@
                                 </div>
 
                                 <div id="bookingExtraImageGrid" class="exchange-upload-grid exchange-upload-grid-extra">
-                                    <div class="exchange-upload-tile exchange-upload-tile-extra">
-                                        <button type="button" class="exchange-remove-btn" aria-label="Remove extra image slot">-</button>
-                                        <span class="exchange-upload-title">Car picture 3</span>
-                                        <img class="exchange-upload-preview" alt="Car picture 3 preview" hidden>
-                                        <button type="button" class="exchange-preview-clear" aria-label="Remove selected image">&times;</button>
-                                        <input class="exchange-file-input" type="file" name="extra_exchange_images[]" accept=".jpg,.jpeg,.png,.webp">
-                                    </div>
-                                    <div class="exchange-upload-tile exchange-upload-tile-extra">
-                                        <button type="button" class="exchange-remove-btn" aria-label="Remove extra image slot">-</button>
-                                        <span class="exchange-upload-title">Car picture 4</span>
-                                        <img class="exchange-upload-preview" alt="Car picture 4 preview" hidden>
-                                        <button type="button" class="exchange-preview-clear" aria-label="Remove selected image">&times;</button>
-                                        <input class="exchange-file-input" type="file" name="extra_exchange_images[]" accept=".jpg,.jpeg,.png,.webp">
-                                    </div>
-                                    <div class="exchange-upload-tile exchange-upload-tile-extra">
-                                        <button type="button" class="exchange-remove-btn" aria-label="Remove extra image slot">-</button>
-                                        <span class="exchange-upload-title">Car picture 5</span>
-                                        <img class="exchange-upload-preview" alt="Car picture 5 preview" hidden>
-                                        <button type="button" class="exchange-preview-clear" aria-label="Remove selected image">&times;</button>
-                                        <input class="exchange-file-input" type="file" name="extra_exchange_images[]" accept=".jpg,.jpeg,.png,.webp">
-                                    </div>
+                                    @for($extraIndex = 0; $extraIndex < $extraImageTileCount; $extraIndex++)
+                                        @php
+                                            $extraLabel = 'Car picture ' . ($extraIndex + 3);
+                                            $existingExtraPath = trim((string) ($existingExtraExchangeImages[$extraIndex] ?? ''));
+                                            $existingExtraUrl = $exchangeImageUrl($existingExtraPath);
+                                            $existingExtraName = $existingExtraPath !== '' ? basename($existingExtraPath) : $extraLabel;
+                                        @endphp
+                                        <div
+                                            class="exchange-upload-tile exchange-upload-tile-extra {{ $existingExtraUrl !== '' ? 'has-preview' : '' }}"
+                                            data-existing-src="{{ $existingExtraUrl }}"
+                                            data-existing-name="{{ $existingExtraName }}"
+                                            data-default-title="{{ $extraLabel }}"
+                                        >
+                                            <button type="button" class="exchange-remove-btn" aria-label="Remove extra image slot">-</button>
+                                            @if($existingExtraPath !== '')
+                                                <input type="hidden" class="exchange-remove-existing" name="remove_exchange_extra_images[]" value="{{ $existingExtraPath }}" disabled>
+                                            @endif
+                                            <span class="exchange-upload-title">{{ $existingExtraUrl !== '' ? $existingExtraName : $extraLabel }}</span>
+                                            <img
+                                                class="exchange-upload-preview"
+                                                alt="{{ $extraLabel }} preview"
+                                                @if($existingExtraUrl !== '') src="{{ $existingExtraUrl }}" @else hidden @endif
+                                            >
+                                            <div class="exchange-upload-actions">
+                                                <button type="button" class="exchange-preview-view" @disabled($existingExtraUrl === '')>View</button>
+                                                <button type="button" class="exchange-preview-clear" @disabled($existingExtraUrl === '')>Remove</button>
+                                            </div>
+                                            <input class="exchange-file-input" type="file" name="extra_exchange_images[]" accept=".jpg,.jpeg,.png,.webp">
+                                        </div>
+                                    @endfor
                                 </div>
                             </div>
                         </div>
@@ -1996,9 +2187,11 @@
             if (!bookingExtraImageGrid) return;
             const tiles = bookingExtraImageGrid.querySelectorAll('.exchange-upload-tile-extra');
             tiles.forEach((tile, index) => {
+                const defaultTitle = `Car picture ${index + 3}`;
+                tile.dataset.defaultTitle = defaultTitle;
                 const title = tile.querySelector('.exchange-upload-title');
-                if (title) {
-                    title.textContent = `Car picture ${index + 3}`;
+                if (title && !tile.classList.contains('has-preview')) {
+                    title.textContent = defaultTitle;
                 }
             });
         }
@@ -2008,15 +2201,22 @@
 
             const tile = document.createElement('div');
             tile.className = 'exchange-upload-tile exchange-upload-tile-extra';
+            tile.dataset.defaultTitle = '';
+            tile.dataset.existingSrc = '';
+            tile.dataset.existingName = '';
             tile.innerHTML = `
                 <button type="button" class="exchange-remove-btn" aria-label="Remove extra image slot">-</button>
                 <span class="exchange-upload-title"></span>
                 <img class="exchange-upload-preview" alt="Extra exchange preview" hidden>
-                <button type="button" class="exchange-preview-clear" aria-label="Remove selected image">&times;</button>
+                <div class="exchange-upload-actions">
+                    <button type="button" class="exchange-preview-view" disabled>View</button>
+                    <button type="button" class="exchange-preview-clear" disabled>Remove</button>
+                </div>
                 <input class="exchange-file-input" type="file" name="extra_exchange_images[]" accept=".jpg,.jpeg,.png,.webp">
             `;
 
             bookingExtraImageGrid.appendChild(tile);
+            bindExchangePreviewImageError(tile.querySelector('.exchange-upload-preview'));
             const fileInput = tile.querySelector('.exchange-file-input');
             if (fileInput) {
                 bindExchangeUploadPreview(fileInput);
@@ -2024,34 +2224,91 @@
             renumberExtraImageTiles();
         }
 
-        function applyExchangePreviewToTile(inputEl, sourceUrl) {
+        function applyExchangePreviewToTile(inputEl, sourceUrl, fileName = '') {
             const tile = inputEl.closest('.exchange-upload-tile');
             if (!tile) return;
             const previewEl = tile.querySelector('.exchange-upload-preview');
+            const titleEl = tile.querySelector('.exchange-upload-title');
+            const viewBtn = tile.querySelector('.exchange-preview-view');
+            const clearBtn = tile.querySelector('.exchange-preview-clear');
+            const defaultTitle = tile.dataset.defaultTitle || (titleEl ? titleEl.textContent : '');
 
             if (!previewEl || !sourceUrl) {
                 tile.classList.remove('has-preview');
+                tile.dataset.previewSrc = '';
                 if (previewEl) {
                     previewEl.hidden = true;
                     previewEl.removeAttribute('src');
                 }
+                if (titleEl) {
+                    titleEl.textContent = defaultTitle;
+                }
+                if (viewBtn) viewBtn.disabled = true;
+                if (clearBtn) clearBtn.disabled = true;
                 return;
             }
 
             previewEl.src = sourceUrl;
             previewEl.hidden = false;
+            tile.dataset.previewSrc = sourceUrl;
+            if (titleEl) {
+                titleEl.textContent = fileName || tile.dataset.existingName || defaultTitle;
+            }
+            if (viewBtn) viewBtn.disabled = false;
+            if (clearBtn) clearBtn.disabled = false;
             tile.classList.add('has-preview');
+        }
+
+        function resetExchangeTileAfterPreviewError(previewEl) {
+            if (!previewEl) return;
+            const tile = previewEl.closest('.exchange-upload-tile');
+            const inputEl = tile ? tile.querySelector('.exchange-file-input') : null;
+            if (!tile || !inputEl) return;
+
+            tile.dataset.existingSrc = '';
+            tile.dataset.existingName = '';
+            applyExchangePreviewToTile(inputEl, '');
+        }
+
+        function bindExchangePreviewImageError(previewEl) {
+            if (!previewEl) return;
+            previewEl.addEventListener('error', () => {
+                resetExchangeTileAfterPreviewError(previewEl);
+            });
         }
 
         function clearExchangeUploadPreview(inputEl) {
             if (!inputEl) return;
+            const tile = inputEl.closest('.exchange-upload-tile');
             const previousObjectUrl = exchangePreviewObjectUrls.get(inputEl);
             if (previousObjectUrl) {
                 URL.revokeObjectURL(previousObjectUrl);
                 exchangePreviewObjectUrls.delete(inputEl);
             }
             inputEl.value = '';
+            if (tile) {
+                const removeInput = tile.querySelector('.exchange-remove-input');
+                const removeExistingInput = tile.querySelector('.exchange-remove-existing');
+                if (removeInput) {
+                    removeInput.value = '1';
+                }
+                if (removeExistingInput) {
+                    removeExistingInput.disabled = false;
+                }
+                tile.dataset.existingSrc = '';
+                tile.dataset.existingName = '';
+            }
             applyExchangePreviewToTile(inputEl, '');
+        }
+
+        function currentExchangePreviewUrl(tile) {
+            if (!tile) return '';
+            const previewEl = tile.querySelector('.exchange-upload-preview');
+            if (previewEl && !previewEl.hidden && previewEl.getAttribute('src')) {
+                return previewEl.getAttribute('src');
+            }
+
+            return tile.dataset.previewSrc || tile.dataset.existingSrc || '';
         }
 
         function bindExchangeUploadPreview(inputEl) {
@@ -2066,19 +2323,35 @@
 
                 if (!String(file.type || '').startsWith('image/')) {
                     alert('Please choose a valid image file.');
-                    clearExchangeUploadPreview(inputEl);
+                    inputEl.value = '';
+                    const tile = inputEl.closest('.exchange-upload-tile');
+                    if (tile && tile.dataset.existingSrc) {
+                        applyExchangePreviewToTile(inputEl, tile.dataset.existingSrc, tile.dataset.existingName || '');
+                    } else {
+                        clearExchangeUploadPreview(inputEl);
+                    }
                     return;
                 }
 
-                const previousObjectUrl = exchangePreviewObjectUrls.get(inputEl);
-                if (previousObjectUrl) {
-                    URL.revokeObjectURL(previousObjectUrl);
-                    exchangePreviewObjectUrls.delete(inputEl);
+                const tile = inputEl.closest('.exchange-upload-tile');
+                if (tile) {
+                    const removeInput = tile.querySelector('.exchange-remove-input');
+                    const removeExistingInput = tile.querySelector('.exchange-remove-existing');
+                    if (removeInput) {
+                        removeInput.value = '0';
+                    }
+                    if (removeExistingInput) {
+                        removeExistingInput.disabled = false;
+                    }
+                    tile.dataset.existingSrc = '';
+                    tile.dataset.existingName = '';
                 }
 
-                const objectUrl = URL.createObjectURL(file);
-                exchangePreviewObjectUrls.set(inputEl, objectUrl);
-                applyExchangePreviewToTile(inputEl, objectUrl);
+                const reader = new FileReader();
+                reader.onload = () => {
+                    applyExchangePreviewToTile(inputEl, String(reader.result || ''), file.name);
+                };
+                reader.readAsDataURL(file);
             });
         }
 
@@ -2504,6 +2777,18 @@
                 const target = event.target;
                 if (!(target instanceof Element)) return;
 
+                const viewBtn = target.closest('.exchange-preview-view');
+                if (viewBtn) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const tile = viewBtn.closest('.exchange-upload-tile');
+                    const previewUrl = currentExchangePreviewUrl(tile);
+                    if (previewUrl) {
+                        window.open(previewUrl, '_blank', 'noopener');
+                    }
+                    return;
+                }
+
                 const clearBtn = target.closest('.exchange-preview-clear');
                 if (clearBtn) {
                     event.preventDefault();
@@ -2525,8 +2810,16 @@
                 const tile = removeBtn.closest('.exchange-upload-tile-extra');
                 if (!tile) return;
                 const fileInput = tile.querySelector('.exchange-file-input');
+                const removeExistingInput = tile.querySelector('.exchange-remove-existing');
                 if (fileInput) {
                     clearExchangeUploadPreview(fileInput);
+                }
+                if (removeExistingInput && bookingImageBody) {
+                    const persistedRemoveInput = document.createElement('input');
+                    persistedRemoveInput.type = 'hidden';
+                    persistedRemoveInput.name = removeExistingInput.name;
+                    persistedRemoveInput.value = removeExistingInput.value;
+                    bookingImageBody.appendChild(persistedRemoveInput);
                 }
                 tile.remove();
                 renumberExtraImageTiles();
@@ -2538,6 +2831,18 @@
                 const target = event.target;
                 if (!(target instanceof Element)) return;
                 if (target.closest('#bookingExtraImageGrid')) return;
+
+                const viewBtn = target.closest('.exchange-preview-view');
+                if (viewBtn) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const tile = viewBtn.closest('.exchange-upload-tile');
+                    const previewUrl = currentExchangePreviewUrl(tile);
+                    if (previewUrl) {
+                        window.open(previewUrl, '_blank', 'noopener');
+                    }
+                    return;
+                }
 
                 const clearBtn = target.closest('.exchange-preview-clear');
                 if (!clearBtn) return;
@@ -2634,7 +2939,7 @@
             syncOfferRemarksState();
         }
 
-        form.addEventListener('submit', () => {
+        bookingForm?.addEventListener('submit', () => {
             exchangeBrandSelect?.removeAttribute('disabled');
             exchangeModelSelect?.removeAttribute('disabled');
             if (exchangeModelBackupInput && exchangeModelSelect) {
@@ -2654,6 +2959,9 @@
         renumberExtraImageTiles();
         syncBookingImageBody();
         syncReceiptTotal();
+        document.querySelectorAll('.exchange-upload-preview').forEach((previewEl) => {
+            bindExchangePreviewImageError(previewEl);
+        });
         document.querySelectorAll('.exchange-file-input').forEach((inputEl) => {
             bindExchangeUploadPreview(inputEl);
         });

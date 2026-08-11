@@ -151,6 +151,13 @@ class BookingController extends Controller
                 'exchange_expected_price' => $booking->exchange_expected_price ?? $prospect?->exchange_expected_price,
                 'exchange_quoted_price' => $booking->exchange_quoted_price ?? $prospect?->exchange_quoted_price,
                 'exchange_price_difference' => $booking->exchange_price_difference ?? $prospect?->exchange_price_difference,
+                'blue_book_image' => $booking->exists ? $booking->blue_book_image : $prospect?->blue_book_image,
+                'lot_no_image' => $booking->exists ? $booking->lot_no_image : $prospect?->lot_no_image,
+                'car_pic_1_image' => $booking->exists ? $booking->car_pic_1_image : $prospect?->car_pic_1_image,
+                'car_pic_2_image' => $booking->exists ? $booking->car_pic_2_image : $prospect?->car_pic_2_image,
+                'exchange_extra_images' => $booking->exists && is_array($booking->exchange_extra_images)
+                    ? $booking->exchange_extra_images
+                    : (is_array($prospect?->exchange_extra_images) ? $prospect->exchange_extra_images : []),
                 'offer_unit_price' => $offerUnitPriceDefault,
                 'offer_unit_price_discount' => $offerUnitDiscountDefault,
                 'offer_unit_price_free' => (bool) (($booking->offer_unit_price_free ?? null) ?? $prospect?->offer_unit_price_free),
@@ -293,8 +300,14 @@ class BookingController extends Controller
             'lot_no_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'car_pic_1_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'car_pic_2_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'remove_blue_book_image' => ['nullable', 'in:0,1'],
+            'remove_lot_no_image' => ['nullable', 'in:0,1'],
+            'remove_car_pic_1_image' => ['nullable', 'in:0,1'],
+            'remove_car_pic_2_image' => ['nullable', 'in:0,1'],
             'extra_exchange_images' => ['nullable', 'array'],
             'extra_exchange_images.*' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'remove_exchange_extra_images' => ['nullable', 'array'],
+            'remove_exchange_extra_images.*' => ['nullable', 'string', 'max:255'],
             'offer_unit_price' => ['nullable', 'numeric', 'min:0'],
             'offer_unit_price_discount' => ['nullable', 'numeric', 'min:0'],
             'offer_unit_price_free' => ['nullable', 'in:0,1'],
@@ -401,11 +414,11 @@ class BookingController extends Controller
             'exchange_expected_price' => null,
             'exchange_quoted_price' => null,
             'exchange_price_difference' => null,
-            'blue_book_image' => $booking->blue_book_image ?: $prospect?->blue_book_image,
-            'lot_no_image' => $booking->lot_no_image ?: $prospect?->lot_no_image,
-            'car_pic_1_image' => $booking->car_pic_1_image ?: $prospect?->car_pic_1_image,
-            'car_pic_2_image' => $booking->car_pic_2_image ?: $prospect?->car_pic_2_image,
-            'exchange_extra_images' => is_array($booking->exchange_extra_images)
+            'blue_book_image' => $booking->exists ? $booking->blue_book_image : $prospect?->blue_book_image,
+            'lot_no_image' => $booking->exists ? $booking->lot_no_image : $prospect?->lot_no_image,
+            'car_pic_1_image' => $booking->exists ? $booking->car_pic_1_image : $prospect?->car_pic_1_image,
+            'car_pic_2_image' => $booking->exists ? $booking->car_pic_2_image : $prospect?->car_pic_2_image,
+            'exchange_extra_images' => $booking->exists && is_array($booking->exchange_extra_images)
                 ? $booking->exchange_extra_images
                 : (is_array($prospect?->exchange_extra_images) ? $prospect->exchange_extra_images : []),
             'offer_unit_price' => null,
@@ -605,18 +618,53 @@ class BookingController extends Controller
             $payload['purchase_order_image'] = $request->file('purchase_order_image')->store('booking/purchase-order', 'public');
         }
 
-        if ($request->hasFile('blue_book_image')) {
-            $payload['blue_book_image'] = $request->file('blue_book_image')->store('booking/exchange', 'public');
+        $exchangeImageFields = [
+            'blue_book_image' => 'remove_blue_book_image',
+            'lot_no_image' => 'remove_lot_no_image',
+            'car_pic_1_image' => 'remove_car_pic_1_image',
+            'car_pic_2_image' => 'remove_car_pic_2_image',
+        ];
+
+        foreach ($exchangeImageFields as $imageField => $removeField) {
+            if (($validated[$removeField] ?? '0') === '1') {
+                if ($booking->exists && !empty($booking->{$imageField})) {
+                    Storage::disk('public')->delete($booking->{$imageField});
+                }
+                $payload[$imageField] = null;
+            }
+
+            if ($request->hasFile($imageField)) {
+                if ($booking->exists && !empty($booking->{$imageField}) && ($payload[$imageField] ?? null) === $booking->{$imageField}) {
+                    Storage::disk('public')->delete($booking->{$imageField});
+                }
+                $payload[$imageField] = $request->file($imageField)->store('booking/exchange', 'public');
+            }
         }
-        if ($request->hasFile('lot_no_image')) {
-            $payload['lot_no_image'] = $request->file('lot_no_image')->store('booking/exchange', 'public');
+
+        $removedExtraImages = collect($validated['remove_exchange_extra_images'] ?? [])
+            ->map(fn($path) => trim((string) $path))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        if (!empty($removedExtraImages)) {
+            $bookingExtraImages = $booking->exists && is_array($booking->exchange_extra_images)
+                ? $booking->exchange_extra_images
+                : [];
+
+            foreach ($removedExtraImages as $removedExtraImage) {
+                if (in_array($removedExtraImage, $bookingExtraImages, true)) {
+                    Storage::disk('public')->delete($removedExtraImage);
+                }
+            }
+
+            $payload['exchange_extra_images'] = array_values(array_filter(
+                is_array($payload['exchange_extra_images']) ? $payload['exchange_extra_images'] : [],
+                fn($path) => !in_array($path, $removedExtraImages, true)
+            ));
         }
-        if ($request->hasFile('car_pic_1_image')) {
-            $payload['car_pic_1_image'] = $request->file('car_pic_1_image')->store('booking/exchange', 'public');
-        }
-        if ($request->hasFile('car_pic_2_image')) {
-            $payload['car_pic_2_image'] = $request->file('car_pic_2_image')->store('booking/exchange', 'public');
-        }
+
         if ($request->hasFile('extra_exchange_images')) {
             $extraImages = is_array($payload['exchange_extra_images']) ? $payload['exchange_extra_images'] : [];
             foreach ($request->file('extra_exchange_images') as $extraImageFile) {

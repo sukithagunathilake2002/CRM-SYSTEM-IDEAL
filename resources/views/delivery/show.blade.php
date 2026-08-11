@@ -303,35 +303,35 @@
         @elseif($currentStep === 6)
         @elseif($currentStep === 2)
             <section class="delivery-summary">
-                <div><span>Interested In</span><strong>{{ $summaryVehicle ?: 'N/A' }}</strong></div>
-                <div><span>Colour</span><strong>{{ $selectedInterestedColor ?: 'N/A' }}</strong></div>
-                <div><span>Test Driven Given</span><strong>{{ $selectedTestDrive ? ucfirst($selectedTestDrive) : 'N/A' }}</strong></div>
-                <div><span>With Test Driven</span><strong>{{ $selectedTestDriveModel ?: 'Vehicle not available' }}</strong></div>
-                <div><span>Interested In Competition</span><strong>{{ $selectedCompetition ? ucwords(str_replace('_', ' ', $selectedCompetition)) : 'N/A' }}</strong></div>
-                <div><span>First Time Buyer</span><strong>{{ $selectedFirstTimeBuyer ? ucfirst($selectedFirstTimeBuyer) : 'N/A' }}</strong></div>
-                <div><span>Mode of Purchase</span><strong>{{ $selectedPurchaseMode ? ucfirst($selectedPurchaseMode) : 'N/A' }}</strong></div>
-                <div><span>Finance Form</span><strong>{{ $selectedFinanceForm ? ucwords(str_replace('_', ' ', $selectedFinanceForm)) : 'N/A' }}</strong></div>
+                <div class="summary-icon-vehicle"><span>Interested In</span><strong>{{ $summaryVehicle ?: 'N/A' }}</strong></div>
+                <div class="summary-icon-color"><span>Colour</span><strong>{{ $selectedInterestedColor ?: 'N/A' }}</strong></div>
+                <div class="summary-icon-test-drive"><span>Test Driven Given</span><strong>{{ $selectedTestDrive ? ucfirst($selectedTestDrive) : 'N/A' }}</strong></div>
+                <div class="summary-icon-test-drive"><span>With Test Driven</span><strong>{{ $selectedTestDriveModel ?: 'Vehicle not available' }}</strong></div>
+                <div class="summary-icon-competition"><span>Interested In Competition</span><strong>{{ $selectedCompetition ? ucwords(str_replace('_', ' ', $selectedCompetition)) : 'N/A' }}</strong></div>
+                <div class="summary-icon-first-buyer"><span>First Time Buyer</span><strong>{{ $selectedFirstTimeBuyer ? ucfirst($selectedFirstTimeBuyer) : 'N/A' }}</strong></div>
+                <div class="summary-icon-payment"><span>Mode of Purchase</span><strong>{{ $selectedPurchaseMode ? ucfirst($selectedPurchaseMode) : 'N/A' }}</strong></div>
+                <div class="summary-icon-finance"><span>Finance Form</span><strong>{{ $selectedFinanceForm ? ucwords(str_replace('_', ' ', $selectedFinanceForm)) : 'N/A' }}</strong></div>
             </section>
         @elseif($currentStep === 3)
             <section class="delivery-summary">
-                <div><span>Interested in Exchange?</span><strong>{{ $selectedInterestedExchange ? ucfirst($selectedInterestedExchange) : 'N/A' }}</strong></div>
-                <div><span>Exchange Type</span><strong>{{ $selectedExchangeType ? ucwords(str_replace('_', ' ', $selectedExchangeType)) : 'N/A' }}</strong></div>
-                <div><span>Vehicle</span><strong>{{ trim(($selectedExchangeBrand ?: '') . ' ' . ($selectedExchangeModel ?: '')) ?: 'N/A' }}</strong></div>
-                <div><span>Manufacture Year</span><strong>{{ $selectedExchangeYear ?: 'N/A' }}</strong></div>
-                <div><span>Registration No</span><strong>{{ $selectedExchangeRegistration ?: 'N/A' }}</strong></div>
-                <div><span>Expected Price</span><strong>{{ $selectedExchangeExpectedPrice !== null && $selectedExchangeExpectedPrice !== '' ? number_format((float) $selectedExchangeExpectedPrice, 2) : 'N/A' }}</strong></div>
-                <div><span>Quoted Price</span><strong>{{ $selectedExchangeQuotedPrice !== null && $selectedExchangeQuotedPrice !== '' ? number_format((float) $selectedExchangeQuotedPrice, 2) : 'N/A' }}</strong></div>
-                <div><span>Difference</span><strong>{{ $selectedExchangeDifference !== null && $selectedExchangeDifference !== '' ? number_format((float) $selectedExchangeDifference, 2) : 'N/A' }}</strong></div>
+                <div class="summary-icon-exchange"><span>Interested in Exchange?</span><strong>{{ $selectedInterestedExchange ? ucfirst($selectedInterestedExchange) : 'N/A' }}</strong></div>
+                <div class="summary-icon-exchange"><span>Exchange Type</span><strong>{{ $selectedExchangeType ? ucwords(str_replace('_', ' ', $selectedExchangeType)) : 'N/A' }}</strong></div>
+                <div class="summary-icon-vehicle"><span>Vehicle</span><strong>{{ trim(($selectedExchangeBrand ?: '') . ' ' . ($selectedExchangeModel ?: '')) ?: 'N/A' }}</strong></div>
+                <div class="summary-icon-calendar"><span>Manufacture Year</span><strong>{{ $selectedExchangeYear ?: 'N/A' }}</strong></div>
+                <div class="summary-icon-registration"><span>Registration No</span><strong>{{ $selectedExchangeRegistration ?: 'N/A' }}</strong></div>
+                <div class="summary-icon-money"><span>Expected Price</span><strong>{{ $selectedExchangeExpectedPrice !== null && $selectedExchangeExpectedPrice !== '' ? number_format((float) $selectedExchangeExpectedPrice, 2) : 'N/A' }}</strong></div>
+                <div class="summary-icon-money"><span>Quoted Price</span><strong>{{ $selectedExchangeQuotedPrice !== null && $selectedExchangeQuotedPrice !== '' ? number_format((float) $selectedExchangeQuotedPrice, 2) : 'N/A' }}</strong></div>
+                <div class="summary-icon-balance"><span>Difference</span><strong>{{ $selectedExchangeDifference !== null && $selectedExchangeDifference !== '' ? number_format((float) $selectedExchangeDifference, 2) : 'N/A' }}</strong></div>
             </section>
         @else
             <section class="delivery-summary">
-                <div><span>Name</span><strong>{{ $summaryName }}</strong></div>
-                <div><span>Interested In</span><strong>{{ $summaryVehicle ?: 'N/A' }}</strong></div>
-                <div><span>Mobile No.</span><strong>{{ $summaryMobile }}</strong></div>
-                <div><span>Email</span><strong>{{ $selectedEmail ?: 'N/A' }}</strong></div>
-                <div><span>Address</span><strong>{{ $summaryAddress ?: 'N/A' }}</strong></div>
-                <div><span>Type of Customer</span><strong>{{ ucfirst((string) ($selectedCustomerType ?: 'N/A')) }}</strong></div>
-                <div><span>Profession</span><strong>{{ ucwords(str_replace('_', ' ', (string) ($selectedProfession ?: 'N/A'))) }}</strong></div>
+                <div class="summary-icon-customer"><span>Name</span><strong>{{ $summaryName }}</strong></div>
+                <div class="summary-icon-vehicle"><span>Interested In</span><strong>{{ $summaryVehicle ?: 'N/A' }}</strong></div>
+                <div class="summary-icon-phone"><span>Mobile No.</span><strong>{{ $summaryMobile }}</strong></div>
+                <div class="summary-icon-email"><span>Email</span><strong>{{ $selectedEmail ?: 'N/A' }}</strong></div>
+                <div class="summary-icon-address"><span>Address</span><strong>{{ $summaryAddress ?: 'N/A' }}</strong></div>
+                <div class="summary-icon-customer-type"><span>Type of Customer</span><strong>{{ ucfirst((string) ($selectedCustomerType ?: 'N/A')) }}</strong></div>
+                <div class="summary-icon-profession"><span>Profession</span><strong>{{ ucwords(str_replace('_', ' ', (string) ($selectedProfession ?: 'N/A'))) }}</strong></div>
             </section>
         @endif
 
