@@ -1159,14 +1159,16 @@
     gap: 12px;
 }
 
-.delivery-payment-grid label {
+.delivery-payment-grid label,
+.delivery-payment-grid .delivery-payment-row {
     display: grid;
     grid-template-columns: 240px minmax(0, 1fr);
     align-items: center;
     gap: 14px;
 }
 
-.delivery-payment-grid label > span:first-child {
+.delivery-payment-grid label > span:first-child,
+.delivery-payment-grid .delivery-payment-row > span:first-child {
     color: #111827;
     font-size: 12px;
     font-weight: 700;
@@ -1213,16 +1215,18 @@
     cursor: pointer;
 }
 
-.delivery-payment-finance-wrap input {
+.delivery-payment-finance-wrap > input[type="text"] {
     padding-right: 42px;
 }
 
-.delivery-payment-finance-wrap input[readonly] {
+.delivery-payment-finance-wrap > input[type="text"][readonly] {
     background: #f8fafc;
     cursor: default;
 }
 
-.delivery-payment-finance-wrap.is-editing input {
+.delivery-payment-finance-wrap.is-editing > input[type="text"] {
+    background: #ffffff;
+    cursor: default;
     border-color: #3f8d2f;
     box-shadow: 0 0 0 2px rgba(63, 141, 47, 0.14);
 }
@@ -1230,7 +1234,7 @@
 .delivery-payment-finance-wrap button {
     position: absolute;
     right: 14px;
-    top: 50%;
+    top: 19px;
     width: 15px;
     height: 15px;
     border: 0;
@@ -1240,6 +1244,81 @@
     -webkit-mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 17.5V21h3.5L18.1 10.4l-3.5-3.5L4 17.5zm16.7-9.8c.4-.4.4-1 0-1.4l-3-3c-.4-.4-1-.4-1.4 0l-1.8 1.8L18 8.6l2.7-2.7z'/%3E%3C/svg%3E") center / contain no-repeat;
     mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 17.5V21h3.5L18.1 10.4l-3.5-3.5L4 17.5zm16.7-9.8c.4-.4.4-1 0-1.4l-3-3c-.4-.4-1-.4-1.4 0l-1.8 1.8L18 8.6l2.7-2.7z'/%3E%3C/svg%3E") center / contain no-repeat;
     cursor: pointer;
+}
+
+.delivery-payment-finance-editor {
+    width: min(336px, 100%);
+    margin-top: 10px;
+    display: grid;
+    gap: 9px;
+}
+
+.delivery-payment-finance-editor.hidden,
+.delivery-payment-finance-self.hidden,
+.delivery-payment-finance-other.hidden {
+    display: none !important;
+}
+
+.delivery-payment-finance-segment {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+    border: 1px solid #cfd2d8;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.delivery-payment-finance-segment label {
+    display: block;
+    min-height: 28px;
+}
+
+.delivery-payment-finance-segment input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.delivery-payment-finance-segment span {
+    min-height: 28px;
+    display: grid;
+    place-items: center;
+    border-right: 1px solid #cfd2d8;
+    background: #ffffff;
+    color: #111111;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.delivery-payment-finance-segment label:last-child span {
+    border-right: 0;
+}
+
+.delivery-payment-finance-segment input:checked + span {
+    background: #e00000;
+    color: #ffffff;
+}
+
+.delivery-payment-finance-self,
+.delivery-payment-finance-other {
+    display: grid;
+    gap: 8px;
+}
+
+.delivery-payment-finance-self label,
+.delivery-payment-finance-other label {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 5px;
+}
+
+.delivery-payment-finance-self label > span,
+.delivery-payment-finance-other label > span {
+    color: #111827;
+    font-size: 12px;
+    font-weight: 700;
 }
 
 .delivery-pending-badge {
@@ -2073,6 +2152,7 @@ html.theme-dark .delivery-summary strong {
     }
 
     .delivery-payment-grid label,
+    .delivery-payment-grid .delivery-payment-row,
     .delivery-offer-popup-head,
     .delivery-offer-popup-row,
     .delivery-offer-popup-total,
@@ -2214,6 +2294,7 @@ html.theme-dark .delivery-summary strong {
 .delivery-page form .delivery-offer-card-head,
 .delivery-page form .delivery-offer-card-label,
 .delivery-page form .delivery-payment-grid label,
+.delivery-page form .delivery-payment-grid .delivery-payment-row,
 .delivery-page form .delivery-final-reference,
 .delivery-page form .delivery-final-reasons label,
 .delivery-page form .delivery-receipt-row input,

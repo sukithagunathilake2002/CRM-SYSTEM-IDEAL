@@ -1316,7 +1316,12 @@
                 const totalValue = view?.total ?? analytics.total ?? 0;
 
                 if (title) {
-                    title.textContent = view?.title || fallbackTitle;
+                    const nextTitle = view?.title || fallbackTitle;
+                    title.textContent = nextTitle;
+                    title.classList.toggle(
+                        'no-heading-icon',
+                        /sales consultant|area manager/i.test(nextTitle)
+                    );
                 }
                 if (total) {
                     total.textContent = new Intl.NumberFormat('en-US').format(Number(totalValue || 0));

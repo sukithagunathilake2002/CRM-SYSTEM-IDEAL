@@ -102,6 +102,7 @@
     $selectedPaymentPreDelivery = old('payment_pre_delivery_amount', $defaultValues['payment_pre_delivery_amount']);
     $selectedPaymentDelivery = old('payment_delivery_amount', $defaultValues['payment_delivery_amount']);
     $deliveryReceiptPaymentModes = $deliveryReceiptPaymentModes ?? ['Cash', 'Cheque', 'Bank Transfer', 'Credit/Debit Card'];
+    $bankOptions = $bankOptions ?? [];
     $selectedDeliveryReceipts = old('delivery_receipts', $defaultValues['delivery_receipts'] ?? []);
     $selectedDeliveryReceipts = is_array($selectedDeliveryReceipts) ? array_values($selectedDeliveryReceipts) : [];
     if (empty($selectedDeliveryReceipts)) {
@@ -114,6 +115,13 @@
         ]];
     }
     $selectedPaymentFinanceProvider = old('payment_finance_provider', $defaultValues['payment_finance_provider']);
+    $financeProviderKey = strtolower(str_replace(['_', ' '], '-', trim((string) $selectedPaymentFinanceProvider)));
+    $selectedPaymentFinanceProvider = in_array($financeProviderKey, ['in-house', 'inhouse'], true)
+        ? 'In-House'
+        : ($financeProviderKey === 'other' ? 'Other' : 'Self');
+    $selectedPaymentFinanceBank = old('payment_finance_bank', $defaultValues['payment_finance_bank'] ?? '');
+    $selectedPaymentFinanceDisbursalAmount = old('payment_finance_disbursal_amount', $defaultValues['payment_finance_disbursal_amount'] ?? '');
+    $selectedPaymentFinanceOtherReason = old('payment_finance_other_reason', $defaultValues['payment_finance_other_reason'] ?? '');
     $selectedPaymentPendingReason = old('payment_pending_reason', $defaultValues['payment_pending_reason']);
     $selectedPaymentPendingAmount = old('payment_pending_amount', $defaultValues['payment_pending_amount']);
     $selectedPaymentAgentName = old('payment_agent_name', $defaultValues['payment_agent_name']);
@@ -988,13 +996,48 @@
                                 <button type="button" id="deliveryReceiptOpen">Add Receipts</button>
                             </span>
                         </label>
-                        <label>
+                        <div class="delivery-payment-row delivery-payment-finance-row">
                             <span>Finance</span>
                             <span class="delivery-payment-finance-wrap">
-                                <input type="text" name="payment_finance_provider" id="paymentFinanceProvider" value="{{ $selectedPaymentFinanceProvider }}" readonly>
+                                <input type="hidden" name="payment_finance_provider" id="paymentFinanceProvider" value="{{ $selectedPaymentFinanceProvider }}">
+                                <input type="text" id="paymentFinanceProviderDisplay" value="{{ $selectedPaymentFinanceProvider }}" readonly>
                                 <button type="button" id="paymentFinanceEdit" aria-label="Edit finance"></button>
+                                <span class="delivery-payment-finance-editor hidden" id="paymentFinanceEditor">
+                                    <span class="delivery-payment-finance-segment">
+                                        @foreach(['In-House', 'Self', 'Other'] as $financeOption)
+                                            <label>
+                                                <input type="radio" name="payment_finance_provider_choice" value="{{ $financeOption }}" @checked($selectedPaymentFinanceProvider === $financeOption)>
+                                                <span>{{ $financeOption }}</span>
+                                            </label>
+                                        @endforeach
+                                    </span>
+                                    <span class="delivery-payment-finance-self" id="paymentFinanceSelfFields">
+                                        <label>
+                                            <span>Select Bank</span>
+                                            <select name="payment_finance_bank" id="paymentFinanceBank">
+                                                <option value="">Select Bank</option>
+                                                @foreach($bankOptions as $bankOption)
+                                                    <option value="{{ $bankOption }}" @selected($selectedPaymentFinanceBank === $bankOption)>{{ $bankOption }}</option>
+                                                @endforeach
+                                                @if(!empty($selectedPaymentFinanceBank) && !in_array($selectedPaymentFinanceBank, $bankOptions, true))
+                                                    <option value="{{ $selectedPaymentFinanceBank }}" selected>{{ $selectedPaymentFinanceBank }}</option>
+                                                @endif
+                                            </select>
+                                        </label>
+                                        <label>
+                                            <span>Disbursal Amount</span>
+                                            <input type="number" step="0.01" min="0" name="payment_finance_disbursal_amount" id="paymentFinanceDisbursalAmount" value="{{ $selectedPaymentFinanceDisbursalAmount }}" placeholder="Disbursal Amount">
+                                        </label>
+                                    </span>
+                                    <span class="delivery-payment-finance-other hidden" id="paymentFinanceOtherFields">
+                                        <label>
+                                            <span>Reason</span>
+                                            <input type="text" name="payment_finance_other_reason" id="paymentFinanceOtherReason" value="{{ $selectedPaymentFinanceOtherReason }}" placeholder="Reason">
+                                        </label>
+                                    </span>
+                                </span>
                             </span>
-                        </label>
+                        </div>
                     </div>
 
                     <div class="delivery-pending-badge">
@@ -1420,7 +1463,15 @@
     const paymentSummaryBookingAmount = document.getElementById('paymentSummaryBookingAmount');
     const paymentSummaryPendingAmount = document.getElementById('paymentSummaryPendingAmount');
     const paymentFinanceProvider = document.getElementById('paymentFinanceProvider');
+    const paymentFinanceProviderDisplay = document.getElementById('paymentFinanceProviderDisplay');
     const paymentFinanceEdit = document.getElementById('paymentFinanceEdit');
+    const paymentFinanceEditor = document.getElementById('paymentFinanceEditor');
+    const paymentFinanceSelfFields = document.getElementById('paymentFinanceSelfFields');
+    const paymentFinanceOtherFields = document.getElementById('paymentFinanceOtherFields');
+    const paymentFinanceChoices = Array.from(document.querySelectorAll('input[name="payment_finance_provider_choice"]'));
+    const paymentFinanceBank = document.getElementById('paymentFinanceBank');
+    const paymentFinanceDisbursalAmount = document.getElementById('paymentFinanceDisbursalAmount');
+    const paymentFinanceOtherReason = document.getElementById('paymentFinanceOtherReason');
     const deliveryReceiptOpen = document.getElementById('deliveryReceiptOpen');
     const deliveryReceiptModal = document.getElementById('deliveryReceiptModal');
     const deliveryReceiptRows = document.getElementById('deliveryReceiptRows');
@@ -1600,19 +1651,47 @@
             cancelDeliveryReceiptChanges();
         }
     });
-    const enablePaymentFinanceEdit = () => {
+    const syncPaymentFinanceFields = () => {
+        const selectedFinance = paymentFinanceChoices.find((choice) => choice.checked)?.value || paymentFinanceProvider?.value || 'Self';
+        if (paymentFinanceProvider) {
+            paymentFinanceProvider.value = selectedFinance;
+        }
+        if (paymentFinanceProviderDisplay) {
+            paymentFinanceProviderDisplay.value = selectedFinance;
+        }
+        const showSelf = selectedFinance === 'Self';
+        const showOther = selectedFinance === 'Other';
+        paymentFinanceSelfFields?.classList.toggle('hidden', !showSelf);
+        paymentFinanceOtherFields?.classList.toggle('hidden', !showOther);
+        [paymentFinanceBank, paymentFinanceDisbursalAmount].forEach((field) => {
+            if (field) {
+                field.disabled = !showSelf;
+            }
+        });
+        if (paymentFinanceOtherReason) {
+            paymentFinanceOtherReason.disabled = !showOther;
+        }
+    };
+
+    const enablePaymentFinanceEdit = (event) => {
+        event?.preventDefault();
+        event?.stopPropagation();
         if (!paymentFinanceProvider) {
             return;
         }
 
-        paymentFinanceProvider.readOnly = false;
+        paymentFinanceEditor?.classList.remove('hidden');
         paymentFinanceProvider.closest('.delivery-payment-finance-wrap')?.classList.add('is-editing');
-        paymentFinanceProvider.focus();
-        paymentFinanceProvider.select();
+        syncPaymentFinanceFields();
+        paymentFinanceChoices.find((choice) => choice.checked)?.focus();
     };
 
     paymentFinanceEdit?.addEventListener('click', enablePaymentFinanceEdit);
-    paymentFinanceProvider?.addEventListener('dblclick', enablePaymentFinanceEdit);
+    paymentFinanceProviderDisplay?.addEventListener('dblclick', enablePaymentFinanceEdit);
+    paymentFinanceChoices.forEach((choice) => {
+        choice.addEventListener('change', syncPaymentFinanceFields);
+    });
+    syncPaymentFinanceFields();
     syncDeliveryReceiptTotal();
     syncPaymentPendingAmount();
 
