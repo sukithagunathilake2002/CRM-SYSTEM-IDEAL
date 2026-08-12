@@ -142,6 +142,17 @@
         + (float) ($selectedPaymentDelivery ?? 0);
     $selectedPaymentPendingAmount = $selectedPaymentPendingAmount ?? max(0, (float) ($selectedOfferFinalPrice ?? 0) - $paymentReceivedTotal);
     $selectedPaymentFinalBalance = max(0, (float) ($selectedOfferFinalPrice ?? 0) - $paymentReceivedTotal);
+    $selectedBookingReceipts = old('booking_receipts', is_array($booking?->booking_receipts) ? $booking->booking_receipts : []);
+    $selectedBookingReceipts = is_array($selectedBookingReceipts) ? array_values($selectedBookingReceipts) : [];
+    if (empty($selectedBookingReceipts) && (float) ($selectedPaymentReceiptBooking ?? 0) > 0) {
+        $selectedBookingReceipts = [[
+            'receipt_name_no' => '',
+            'receipt_date' => '',
+            'receipt_amount' => $selectedPaymentReceiptBooking,
+            'payment_mode' => '',
+            'receipt_type' => 'Booking',
+        ]];
+    }
 
     $vehicleColorOptions = ['White', 'Black', 'Silver', 'Grey', 'Red', 'Blue', 'Green', 'Brown', 'Orange', 'Other'];
     $testDriveNoReasons = [
@@ -1153,11 +1164,30 @@
                     <div class="delivery-final-payment-rows">
                         <div><span>Total Deal Closure Amount</span><strong>{{ number_format((float) ($selectedOfferFinalPrice ?? 0), 0) }}</strong></div>
                         <div><span>Total Payable Amount</span><strong>{{ number_format((float) ($selectedOfferFinalPrice ?? 0), 0) }}</strong></div>
-                        <div><span>Receipt Amount (Booking)</span><strong>{{ number_format((float) ($selectedPaymentReceiptBooking ?? 0), 0) }}</strong><i aria-hidden="true"></i></div>
-                        <div><span>Receipt Amount (Delivery)</span><strong>{{ number_format((float) ($selectedPaymentDelivery ?? 0), 0) }}</strong><i aria-hidden="true"></i></div>
+                        <button type="button" class="delivery-final-receipt-trigger" data-final-receipt-type="booking">
+                            <span>Receipt Amount (Booking)</span>
+                            <strong>{{ number_format((float) ($selectedPaymentReceiptBooking ?? 0), 0) }}</strong>
+                            <i aria-hidden="true"></i>
+                        </button>
+                        <button type="button" class="delivery-final-receipt-trigger" data-final-receipt-type="delivery">
+                            <span>Receipt Amount (Delivery)</span>
+                            <strong>{{ number_format((float) ($selectedPaymentDelivery ?? 0), 0) }}</strong>
+                            <i aria-hidden="true"></i>
+                        </button>
                         <div><span>Final Balance</span><strong>{{ number_format((float) ($selectedPaymentFinalBalance ?? 0), 0) }}</strong></div>
                     </div>
                 </section>
+
+                <div class="delivery-final-receipt-popup hidden" id="deliveryFinalReceiptPopup" role="dialog" aria-modal="true" aria-labelledby="deliveryFinalReceiptTitle" aria-hidden="true">
+                    <div class="delivery-final-receipt-card">
+                        <div class="delivery-final-receipt-head">
+                            <h4 id="deliveryFinalReceiptTitle">Receipts</h4>
+                            <button type="button" id="deliveryFinalReceiptClose" aria-label="Close receipt popup">&times;</button>
+                        </div>
+                        <div class="delivery-final-receipt-list" id="deliveryFinalReceiptBody"></div>
+                        <button type="button" class="delivery-final-receipt-done" id="deliveryFinalReceiptDone">Done</button>
+                    </div>
+                </div>
 
                 <div class="delivery-final-reference">
                     <span>Reference Taken</span>
@@ -1472,6 +1502,16 @@
     const paymentFinanceBank = document.getElementById('paymentFinanceBank');
     const paymentFinanceDisbursalAmount = document.getElementById('paymentFinanceDisbursalAmount');
     const paymentFinanceOtherReason = document.getElementById('paymentFinanceOtherReason');
+    const finalReceiptPopup = document.getElementById('deliveryFinalReceiptPopup');
+    const finalReceiptTitle = document.getElementById('deliveryFinalReceiptTitle');
+    const finalReceiptBody = document.getElementById('deliveryFinalReceiptBody');
+    const finalReceiptClose = document.getElementById('deliveryFinalReceiptClose');
+    const finalReceiptDone = document.getElementById('deliveryFinalReceiptDone');
+    const finalReceiptTriggers = Array.from(document.querySelectorAll('[data-final-receipt-type]'));
+    const finalReceiptData = {
+        booking: @json($selectedBookingReceipts),
+        delivery: @json($selectedDeliveryReceipts),
+    };
     const deliveryReceiptOpen = document.getElementById('deliveryReceiptOpen');
     const deliveryReceiptModal = document.getElementById('deliveryReceiptModal');
     const deliveryReceiptRows = document.getElementById('deliveryReceiptRows');
@@ -1692,6 +1732,94 @@
         choice.addEventListener('change', syncPaymentFinanceFields);
     });
     syncPaymentFinanceFields();
+
+    const formatFinalReceiptAmount = (value) => {
+        const numeric = Number.parseFloat(value || '0');
+        return Number.isFinite(numeric)
+            ? numeric.toLocaleString('en-US', { maximumFractionDigits: 0 })
+            : '';
+    };
+
+    const formatFinalReceiptDate = (value) => {
+        if (!value) {
+            return '';
+        }
+
+        const date = new Date(`${value}T00:00:00`);
+        return Number.isNaN(date.getTime())
+            ? value
+            : date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    };
+
+    const openFinalReceiptPopup = (type) => {
+        if (!finalReceiptPopup || !finalReceiptBody || !finalReceiptTitle) {
+            return;
+        }
+
+        const rows = Array.isArray(finalReceiptData[type]) ? finalReceiptData[type] : [];
+        const receiptTypeLabel = type === 'booking' ? 'Booking' : 'Delivery';
+        finalReceiptTitle.textContent = rows.length > 1 ? `${receiptTypeLabel} Receipts` : `${receiptTypeLabel} Receipt`;
+        finalReceiptBody.innerHTML = '';
+
+        if (!rows.length) {
+            const empty = document.createElement('p');
+            empty.className = 'delivery-final-receipt-empty';
+            empty.textContent = 'No receipts available.';
+            finalReceiptBody.appendChild(empty);
+        } else {
+            rows.forEach((receipt) => {
+                const card = document.createElement('div');
+                card.className = 'delivery-final-receipt-detail-card';
+                [
+                    ['name', 'Receipt Name/No', receipt?.receipt_name_no || '-'],
+                    ['date', 'Receipt Date', formatFinalReceiptDate(receipt?.receipt_date) || '-'],
+                    ['amount', 'Receipt Amount', formatFinalReceiptAmount(receipt?.receipt_amount) || '-'],
+                    ['payment', 'Mode of Payment', receipt?.payment_mode || '-'],
+                    ['type', 'Receipt Type', receipt?.receipt_type || receiptTypeLabel],
+                ].forEach(([icon, label, value]) => {
+                    const item = document.createElement('div');
+                    item.className = 'delivery-final-receipt-detail-row';
+
+                    const iconEl = document.createElement('span');
+                    iconEl.className = `delivery-final-receipt-icon receipt-icon-${icon}`;
+                    iconEl.setAttribute('aria-hidden', 'true');
+
+                    const labelEl = document.createElement('strong');
+                    labelEl.textContent = label;
+
+                    const colonEl = document.createElement('i');
+                    colonEl.textContent = ':';
+
+                    const valueEl = document.createElement('span');
+                    valueEl.textContent = value || '-';
+
+                    item.append(iconEl, labelEl, colonEl, valueEl);
+                    card.appendChild(item);
+                });
+                finalReceiptBody.appendChild(card);
+            });
+        }
+
+        finalReceiptPopup.classList.remove('hidden');
+        finalReceiptPopup.setAttribute('aria-hidden', 'false');
+        finalReceiptClose?.focus();
+    };
+
+    const closeFinalReceiptPopup = () => {
+        finalReceiptPopup?.classList.add('hidden');
+        finalReceiptPopup?.setAttribute('aria-hidden', 'true');
+    };
+
+    finalReceiptTriggers.forEach((trigger) => {
+        trigger.addEventListener('click', () => openFinalReceiptPopup(trigger.dataset.finalReceiptType || 'delivery'));
+    });
+    finalReceiptClose?.addEventListener('click', closeFinalReceiptPopup);
+    finalReceiptDone?.addEventListener('click', closeFinalReceiptPopup);
+    finalReceiptPopup?.addEventListener('click', (event) => {
+        if (event.target === finalReceiptPopup) {
+            closeFinalReceiptPopup();
+        }
+    });
     syncDeliveryReceiptTotal();
     syncPaymentPendingAmount();
 
