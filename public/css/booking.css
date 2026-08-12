@@ -1994,10 +1994,18 @@ select {
     display: none !important;
 }
 
+.booking-page.booking-step-1 .action-row.no-back {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 96px;
+}
+
 .action-btn {
     border: 0;
-    width: auto;
-    min-width: 0;
+    width: 140px;
+    min-width: 140px;
+    max-width: 140px;
     min-height: 44px;
     height: 44px;
     display: inline-flex;
@@ -2006,29 +2014,27 @@ select {
     gap: 6px;
     text-decoration: none;
     color: #fff;
-    font-size: 9px;
+    font-size: 14px;
     font-weight: 700;
     cursor: pointer;
-    padding: 0 13px;
+    padding: 0 14px;
     border-radius: 999px;
     transition: transform .15s ease, filter .15s ease, box-shadow .15s ease;
     box-shadow: none;
     line-height: 1;
+    box-sizing: border-box;
 }
 
 .action-btn.back-btn {
     justify-self: start;
-    width: 64px;
 }
 
 .action-btn.save-exit-btn {
     justify-self: center;
-    width: 88px;
 }
 
 .action-btn.next-action-btn {
     justify-self: end;
-    width: 118px;
 }
 
 .action-btn.back-btn::before {
@@ -2255,11 +2261,21 @@ select:focus {
     .action-row.next-only {
         width: 100%;
         grid-template-columns: 1fr;
+        justify-items: center;
+    }
+
+    .booking-page.booking-step-1 .action-row.no-back {
+        flex-direction: column;
+        align-items: center;
     }
 
     .action-btn {
-        min-height: 50px;
-        font-size: 16px;
+        width: 140px;
+        min-width: 140px;
+        max-width: 140px;
+        height: 44px;
+        min-height: 44px;
+        font-size: 14px;
     }
 
     .upload-tile {
@@ -2514,7 +2530,7 @@ select:focus {
 }
 
 .offer-remarks-toggle {
-    justify-self: end;
+    justify-self: start;
     color: #111827;
     font-size: 12px;
     font-weight: 700;
@@ -4918,20 +4934,26 @@ select:focus {
 
 .booking-page.booking-step-5 .booking-form-nav-btn,
 .booking-page.booking-step-5 .booking-book-now-btn {
-    min-width: 156px;
-    min-height: 42px;
+    width: 140px;
+    min-width: 140px;
+    max-width: 140px;
+    height: 44px;
+    min-height: 44px;
     border: 0;
-    border-radius: 8px;
+    border-radius: 999px;
     background: #e50000;
     color: #ffffff;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     text-decoration: none;
-    font-size: 15px;
-    font-weight: 800;
+    padding: 0 14px;
+    font-size: 14px;
+    font-weight: 700;
     cursor: pointer;
     box-shadow: none;
+    line-height: 1;
+    box-sizing: border-box;
 }
 
 @media (max-width: 760px) {
@@ -5623,4 +5645,308 @@ select:focus {
 .booking-page form .booking-receipt-head h4,
 .booking-page .booking-submit-popup-card h4 {
     font-size: 18px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-insurance-row,
+.booking-page.booking-step-3 .exchange-section .exchange-registration-row {
+    display: block !important;
+    width: 100% !important;
+    margin-bottom: 16px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-insurance-field,
+.booking-page.booking-step-3 .exchange-section .exchange-registration-field {
+    display: block !important;
+    width: 100% !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-insurance-heading,
+.booking-page.booking-step-3 .exchange-section .exchange-visible-field-heading {
+    display: block !important;
+    margin: 0 0 6px !important;
+    color: #111;
+    font-size: 16px !important;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-insurance-field input[type="date"] {
+    display: block !important;
+    width: 100% !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-registration-field input[type="text"] {
+    display: block !important;
+    width: 100% !important;
+}
+
+/* Normalize Booking segmented controls so selected options fill their full cell. */
+.booking-page .segment-row {
+    gap: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    align-items: stretch !important;
+}
+
+.booking-page .segment-row.two {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
+.booking-page .segment-row.three {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+
+.booking-page .segment-row.four {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+}
+
+.booking-page .segment-row label {
+    display: flex !important;
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    align-items: stretch !important;
+}
+
+.booking-page .segment-row span {
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+    border-radius: 0 !important;
+}
+
+.booking-page .segment-row input:checked + span {
+    border-radius: 0 !important;
+}
+
+/* Booking offer edit/preview interface */
+.booking-page.booking-step-4 .offer-section .section-head-inline {
+    display: flex !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    margin: 0 0 14px !important;
+}
+
+.booking-page.booking-step-4 .offer-section .offer-edit-toggle {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin: 0 !important;
+    color: #111827 !important;
+    font-size: 14px !important;
+    font-weight: 800 !important;
+}
+
+.booking-page.booking-step-4 .offer-section .offer-edit-toggle strong {
+    font-size: 14px !important;
+    font-weight: 800 !important;
+}
+
+.booking-page.booking-step-4 .offer-section .offer-edit-toggle span {
+    width: 30px !important;
+    height: 16px !important;
+    display: inline-block !important;
+    position: relative !important;
+    border: 1px solid #111827 !important;
+    border-radius: 999px !important;
+    background: #111827 !important;
+    box-shadow: none !important;
+}
+
+.booking-page.booking-step-4 .offer-section .offer-edit-toggle span::after {
+    display: none !important;
+}
+
+.booking-page.booking-step-4 .offer-section .offer-edit-toggle span::before {
+    content: "" !important;
+    position: absolute !important;
+    top: 2px !important;
+    left: 2px !important;
+    width: 12px !important;
+    height: 12px !important;
+    border-radius: 50% !important;
+    background: #ffffff !important;
+    transition: transform .18s ease !important;
+}
+
+.booking-page.booking-step-4 .offer-section .offer-edit-toggle input[type="checkbox"]:checked + span::before {
+    transform: translateX(14px) !important;
+}
+
+.booking-page.booking-step-4 .offer-section .offer-edit-group {
+    margin-top: 0 !important;
+}
+
+.booking-page.booking-step-4 .offer-section .offer-edit-save-row {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 12px;
+}
+
+.booking-page.booking-step-4 .offer-section .offer-edit-save-btn {
+    width: 140px;
+    height: 44px;
+    border: 0;
+    border-radius: 999px;
+    background: #df0000;
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 14px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+@media (max-width: 760px) {
+    .booking-page.booking-step-4 .offer-section .offer-edit-save-row {
+        justify-content: center;
+    }
+}
+
+/* Booking Exchange Details live summary card */
+.booking-page.booking-step-3 .exchange-summary {
+    width: min(1120px, 100%) !important;
+    max-width: none !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px 22px !important;
+    margin: 0 auto 18px !important;
+    padding: 16px 22px !important;
+    border: 1px solid #d5d5d5 !important;
+    border-left: 5px solid #e50000 !important;
+    border-radius: 0 12px 12px 0 !important;
+    background: #ffffff !important;
+    box-shadow: 2px 3px 6px rgba(15, 23, 42, 0.18) !important;
+}
+
+.booking-page.booking-step-3 .exchange-summary-row {
+    display: grid !important;
+    grid-template-columns: minmax(170px, .82fr) minmax(0, 1fr) !important;
+    align-items: center !important;
+    gap: 12px !important;
+    min-height: 30px !important;
+    margin: 0 !important;
+}
+
+.booking-page.booking-step-3 .exchange-summary-row::before,
+.booking-page.booking-step-3 .exchange-summary-row::after {
+    content: none !important;
+    display: none !important;
+}
+
+.booking-page.booking-step-3 .exchange-summary-row span,
+.booking-page.booking-step-3 .exchange-summary-row strong {
+    grid-column: auto !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    color: #111827 !important;
+    font-size: 13px !important;
+    line-height: 1.25 !important;
+}
+
+.booking-page.booking-step-3 .exchange-summary-row span {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 9px !important;
+    font-weight: 800 !important;
+}
+
+.booking-page.booking-step-3 .exchange-summary-row span::before {
+    content: "" !important;
+    flex: 0 0 15px !important;
+    width: 15px !important;
+    height: 15px !important;
+    background: #ef2a22 !important;
+    -webkit-mask: var(--exchange-summary-icon, url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3Cpath d='M5 22c.8-5 3.2-8 7-8s6.2 3 7 8z'/%3E%3C/svg%3E")) center / contain no-repeat !important;
+    mask: var(--exchange-summary-icon, url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3Cpath d='M5 22c.8-5 3.2-8 7-8s6.2 3 7 8z'/%3E%3C/svg%3E")) center / contain no-repeat !important;
+}
+
+.booking-page.booking-step-3 .exchange-summary-row strong {
+    overflow-wrap: anywhere !important;
+    font-weight: 600 !important;
+}
+
+.booking-page.booking-step-3 .exchange-summary-vehicle,
+.booking-page.booking-step-3 .exchange-summary-insurance,
+.booking-page.booking-step-3 .exchange-summary-registration {
+    grid-column: span 2 !important;
+}
+
+.booking-page.booking-step-3 .exchange-summary-vehicle {
+    --exchange-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 11l2-5h10l2 5 2 1v6h-3v-2H6v2H3v-6zM8 8l-1 3h10l-1-3z'/%3E%3Ccircle cx='7' cy='14' r='1.7'/%3E%3Ccircle cx='17' cy='14' r='1.7'/%3E%3C/svg%3E");
+}
+
+.booking-page.booking-step-3 .exchange-summary-mobile {
+    --exchange-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 3l3 4-2 2c1.3 2.5 3.5 4.7 6 6l2-2 4 3v4c0 .6-.4 1-1 1C10.2 21 3 13.8 3 5c0-.6.4-1 1-1h3z'/%3E%3C/svg%3E");
+}
+
+.booking-page.booking-step-3 .exchange-summary-exchange,
+.booking-page.booking-step-3 .exchange-summary-type {
+    --exchange-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 7h10l-2.5-2.5L16 3l5 5-5 5-1.5-1.5L17 9H7zm10 10H7l2.5 2.5L8 21l-5-5 5-5 1.5 1.5L7 15h10z'/%3E%3C/svg%3E");
+}
+
+@media (max-width: 760px) {
+    .booking-page.booking-step-3 .exchange-summary {
+        grid-template-columns: 1fr !important;
+        padding: 14px 16px !important;
+    }
+
+    .booking-page.booking-step-3 .exchange-summary-row,
+    .booking-page.booking-step-3 .exchange-summary-vehicle,
+    .booking-page.booking-step-3 .exchange-summary-insurance,
+    .booking-page.booking-step-3 .exchange-summary-registration {
+        grid-column: 1 !important;
+    }
+}
+
+@media (max-width: 520px) {
+    .booking-page.booking-step-3 .exchange-summary-row {
+        grid-template-columns: 1fr !important;
+        gap: 3px !important;
+    }
+}
+
+/* Standard single-list layout for Booking Exchange Details summary */
+.booking-page.booking-step-3 .exchange-summary {
+    grid-template-columns: 1fr !important;
+    gap: 0 !important;
+    width: min(980px, 100%) !important;
+    padding: 14px 20px !important;
+}
+
+.booking-page.booking-step-3 .exchange-summary-row,
+.booking-page.booking-step-3 .exchange-summary-vehicle,
+.booking-page.booking-step-3 .exchange-summary-insurance,
+.booking-page.booking-step-3 .exchange-summary-registration {
+    grid-column: 1 !important;
+}
+
+.booking-page.booking-step-3 .exchange-summary-row {
+    grid-template-columns: minmax(220px, 34%) minmax(0, 1fr) !important;
+    gap: 18px !important;
+    min-height: 34px !important;
+    padding: 4px 0 !important;
+}
+
+.booking-page.booking-step-3 .exchange-summary-row span {
+    justify-content: flex-start !important;
+}
+
+.booking-page.booking-step-3 .exchange-summary-row strong {
+    justify-self: start !important;
+    text-align: left !important;
+}
+
+@media (max-width: 640px) {
+    .booking-page.booking-step-3 .exchange-summary-row {
+        grid-template-columns: 1fr !important;
+        gap: 4px !important;
+        padding: 7px 0 !important;
+    }
 }

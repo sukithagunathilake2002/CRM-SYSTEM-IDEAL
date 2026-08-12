@@ -17,6 +17,8 @@
     $selectedName = old('name', $defaultValues['name']);
     $selectedContactType = old('contact_type', $defaultValues['contact_type']);
     $selectedEmail = old('email', $defaultValues['email']);
+    $selectedDob = old('date_of_birth', $delivery?->date_of_birth ?? $booking?->date_of_birth ?? $prospect?->date_of_birth ?? '');
+    $selectedDob = $selectedDob ? \Carbon\Carbon::parse($selectedDob)->format('Y-m-d') : '';
     $selectedMobile = old('mobile_numbers', $defaultValues['mobile_numbers']);
     $selectedDistrict = old('district', $defaultValues['district']);
     $selectedLocation = old('location', $defaultValues['location']);
@@ -60,9 +62,18 @@
     $selectedExistingYear = old('existing_vehicle_year', $defaultValues['existing_vehicle_year']);
     $selectedInterestedExchange = old('interested_in_exchange', $defaultValues['interested_in_exchange']);
     $selectedExchangeType = old('exchange_type', $defaultValues['exchange_type']);
+    $selectedExchangePurchaseValue = old('exchange_purchase_value', $booking?->exchange_purchase_value ?? null);
     $selectedExchangeBrand = old('exchange_vehicle_brand', $defaultValues['exchange_vehicle_brand']);
     $selectedExchangeModel = old('exchange_vehicle_model', $defaultValues['exchange_vehicle_model']);
     $selectedExchangeYear = old('exchange_manufacture_year', $defaultValues['exchange_manufacture_year']);
+    $selectedExchangeOwnership = old('exchange_ownership', $booking?->exchange_ownership ?? $prospect?->exchange_ownership ?? '');
+    $selectedExchangeInsuranceRaw = old('exchange_insurance_validity', $booking?->exchange_insurance_validity ?? $prospect?->exchange_insurance_validity ?? null);
+    $selectedExchangeInsuranceValidity = $selectedExchangeInsuranceRaw ? \Carbon\Carbon::parse($selectedExchangeInsuranceRaw)->format('Y-m-d') : '';
+    $selectedExchangeTyreReplacements = old('exchange_tyre_replacements', $booking?->exchange_tyre_replacements ?? []);
+    if (is_string($selectedExchangeTyreReplacements)) {
+        $selectedExchangeTyreReplacements = json_decode($selectedExchangeTyreReplacements, true) ?: [];
+    }
+    $selectedExchangeTyreReplacements = is_array($selectedExchangeTyreReplacements) ? $selectedExchangeTyreReplacements : [];
     $selectedExchangeColor = old('exchange_color', $defaultValues['exchange_color']);
     $selectedExchangeMileage = old('exchange_mileage_km', $defaultValues['exchange_mileage_km']);
     $selectedExchangeRegistration = old('exchange_registration_no', $defaultValues['exchange_registration_no']);
@@ -358,41 +369,45 @@
                     </select>
                 </label>
 
-                <label class="delivery-pill">
-                    <span>Name</span>
+                <label class="delivery-pill delivery-name-field">
+                    <span>Customer Name</span>
                     <input type="text" name="name" value="{{ $selectedName }}" data-lockable>
                 </label>
 
-                <label class="delivery-pill">
+                <label class="delivery-pill delivery-email-field">
                     <span>Email</span>
                     <input type="email" name="email" value="{{ $selectedEmail }}" data-lockable>
                 </label>
 
-                <label class="delivery-pill">
-                    <span>Contact</span>
-                    <select name="contact_type" data-lockable>
-                        @foreach(['Mobile', 'Home', 'Office'] as $contactType)
-                            <option value="{{ $contactType }}" @selected($selectedContactType === $contactType)>{{ $contactType }}</option>
-                        @endforeach
-                    </select>
+                <label class="delivery-pill delivery-dob-field">
+                    <span>DOB</span>
+                    <input type="date" value="{{ $selectedDob }}" data-lockable>
                 </label>
 
-                <label class="delivery-pill">
-                    <span>Phone</span>
+                <label class="delivery-pill delivery-contact-no-field">
+                    <span>Contact No</span>
+                    <input type="hidden" name="contact_type" value="{{ $selectedContactType }}">
                     <input type="text" name="mobile_numbers" value="{{ $selectedMobile }}" data-lockable>
                 </label>
 
-                <label class="delivery-pill">
+                <button type="button" class="delivery-contact-add-btn" aria-label="Add contact number">+</button>
+
+                <label class="delivery-pill delivery-district-field">
                     <span>District</span>
                     <input type="text" name="district" value="{{ $selectedDistrict }}" data-lockable>
                 </label>
 
-                <label class="delivery-pill">
+                <label class="delivery-pill delivery-location-field">
                     <span>Location</span>
                     <input type="text" name="location" value="{{ $selectedLocation }}" data-lockable>
                 </label>
 
-                <label class="delivery-pill delivery-wide">
+                <label class="delivery-pill delivery-state-field">
+                    <span>State</span>
+                    <input type="text" name="state" value="{{ $selectedState }}" data-lockable>
+                </label>
+
+                <label class="delivery-pill delivery-address1-field">
                     <span>Address Line 1</span>
                     <input type="text" name="address1" value="{{ $selectedAddress1 }}" data-lockable>
                 </label>
@@ -402,10 +417,6 @@
                     <input type="text" name="address2" value="{{ $selectedAddress2 }}" data-lockable>
                 </label>
 
-                <label class="delivery-pill delivery-wide">
-                    <span>State</span>
-                    <input type="text" name="state" value="{{ $selectedState }}" data-lockable>
-                </label>
             </div>
 
             <div class="delivery-question">
@@ -679,94 +690,111 @@
                 </label>
             </div>
 
-            <div class="delivery-question">
-                <p>Interested in Exchange?</p>
-                <div class="delivery-segment">
-                    <label><input type="radio" name="interested_in_exchange" value="yes" @checked($selectedInterestedExchange === 'yes')><span>Yes</span></label>
-                    <label><input type="radio" name="interested_in_exchange" value="no" @checked($selectedInterestedExchange === 'no')><span>No</span></label>
-                </div>
+            <label class="delivery-exchange-top-label">Exchange Type</label>
+            <div class="delivery-segment delivery-exchange-type-segment">
+                <label><input type="radio" name="exchange_type" value="in_house" @checked($selectedExchangeType !== 'outhouse')><span>In - House</span></label>
+                <label><input type="radio" name="exchange_type" value="outhouse" @checked($selectedExchangeType === 'outhouse')><span>Out- House</span></label>
+            </div>
+
+            <label class="delivery-pill delivery-exchange-purchase-row" id="deliveryExchangePurchaseRow">
+                <span>Purchase Value</span>
+                <input type="number" step="0.01" min="0" name="exchange_purchase_value" value="{{ $selectedExchangePurchaseValue }}" data-exchange-lockable>
+            </label>
+
+            <label class="delivery-exchange-question-label">Interested in Exchange?</label>
+            <div class="delivery-segment delivery-exchange-interest-segment">
+                <label><input type="radio" name="interested_in_exchange" value="yes" @checked($selectedInterestedExchange === 'yes')><span>Yes</span></label>
+                <label><input type="radio" name="interested_in_exchange" value="no" @checked($selectedInterestedExchange === 'no')><span>No</span></label>
             </div>
 
             <div id="deliveryExchangeDetailsWrap" class="delivery-exchange-wrap">
-                <div class="delivery-exchange-interested">
-                    <span>Interested In</span>
-                    <select name="interested_model" data-exchange-lockable>
-                        <option value="">Select Model</option>
-                        @foreach($vehicleModels as $modelOption)
-                            <option value="{{ $modelOption }}" @selected($selectedInterestedModel === $modelOption)>{{ $modelOption }}</option>
-                        @endforeach
-                        @if(!empty($selectedInterestedModel) && !$vehicleModels->contains($selectedInterestedModel))
-                            <option value="{{ $selectedInterestedModel }}" selected>{{ $selectedInterestedModel }}</option>
-                        @endif
-                    </select>
-                </div>
+                <div class="delivery-exchange-detail-fields">
+                    <div class="delivery-exchange-vehicle-pill">
+                        <span>{{ strtoupper(collect([$selectedExchangeBrand, $selectedExchangeModel])->filter()->implode(' ') ?: 'Not selected') }}</span>
+                        <label class="delivery-exchange-edit-inline">
+                            <input type="checkbox" id="deliveryExchangeInlineEdit">
+                            <span>Edit</span>
+                        </label>
+                    </div>
 
-                <div class="delivery-buying-grid">
-                    <label class="delivery-pill delivery-wide">
-                        <span>Vehicle</span>
-                        <select name="exchange_vehicle_brand" id="deliveryExchangeBrand" data-exchange-lockable>
-                            <option value="">Select Brand</option>
-                            @foreach($competitionBrands as $brandOption)
-                                <option value="{{ $brandOption }}" @selected($selectedExchangeBrand === $brandOption)>{{ $brandOption }}</option>
-                            @endforeach
-                            @if(!empty($selectedExchangeBrand) && !in_array($selectedExchangeBrand, $competitionBrands, true))
-                                <option value="{{ $selectedExchangeBrand }}" selected>{{ $selectedExchangeBrand }}</option>
-                            @endif
-                        </select>
+                    <div class="delivery-exchange-brand-model-row hidden" id="deliveryExchangeBrandModelRow">
+                        <label class="delivery-pill">
+                            <span>Select Brand</span>
+                            <select name="exchange_vehicle_brand" id="deliveryExchangeBrand" data-exchange-lockable>
+                                <option value="">Select Brand</option>
+                                @foreach($competitionBrands as $brandOption)
+                                    <option value="{{ $brandOption }}" @selected($selectedExchangeBrand === $brandOption)>{{ $brandOption }}</option>
+                                @endforeach
+                                @if(!empty($selectedExchangeBrand) && !in_array($selectedExchangeBrand, $competitionBrands, true))
+                                    <option value="{{ $selectedExchangeBrand }}" selected>{{ $selectedExchangeBrand }}</option>
+                                @endif
+                            </select>
+                        </label>
+                        <label class="delivery-pill">
+                            <span>Select Model</span>
+                            <select name="exchange_vehicle_model" id="deliveryExchangeModel" data-selected-model="{{ $selectedExchangeModel }}" data-exchange-lockable>
+                                <option value="">Select Model</option>
+                            </select>
+                        </label>
+                    </div>
+
+                    <div class="delivery-exchange-two-col">
+                        <label class="delivery-pill">
+                            <span>Model Year</span>
+                            <input type="number" name="exchange_manufacture_year" min="1950" max="2100" value="{{ $selectedExchangeYear }}" placeholder="Year" data-exchange-lockable>
+                        </label>
+                        <label class="delivery-pill">
+                            <span>Select Ownership</span>
+                            <select name="exchange_ownership" data-exchange-lockable>
+                                <option value="">Select</option>
+                                <option value="1st Owner" @selected($selectedExchangeOwnership === '1st Owner')>1st Owner</option>
+                                <option value="2nd Owner" @selected($selectedExchangeOwnership === '2nd Owner')>2nd Owner</option>
+                                <option value="3rd Owner" @selected($selectedExchangeOwnership === '3rd Owner')>3rd Owner</option>
+                            </select>
+                        </label>
+                    </div>
+
+                    <label class="delivery-pill delivery-exchange-wide">
+                        <span>Insurance Validity</span>
+                        <input type="date" name="exchange_insurance_validity" value="{{ $selectedExchangeInsuranceValidity }}" data-exchange-lockable>
                     </label>
-                    <label class="delivery-exchange-edit-inline">
-                        <input type="checkbox" id="deliveryExchangeInlineEdit">
-                        <span>Edit</span>
+
+                    <div class="delivery-exchange-tyre-row">
+                        <span>Tyre Replacement</span>
+                        <label class="delivery-exchange-image-switch">
+                            <input type="checkbox" checked>
+                            <span></span>
+                        </label>
+                    </div>
+
+                    <div class="delivery-segment delivery-exchange-tyre-segment">
+                        <label><input type="checkbox" name="exchange_tyre_replacements[]" value="front_lhs" @checked(in_array('front_lhs', $selectedExchangeTyreReplacements, true))><span>Front LHS</span></label>
+                        <label><input type="checkbox" name="exchange_tyre_replacements[]" value="front_rhs" @checked(in_array('front_rhs', $selectedExchangeTyreReplacements, true))><span>Front RHS</span></label>
+                        <label><input type="checkbox" name="exchange_tyre_replacements[]" value="rear_lhs" @checked(in_array('rear_lhs', $selectedExchangeTyreReplacements, true))><span>Rear LHS</span></label>
+                        <label><input type="checkbox" name="exchange_tyre_replacements[]" value="rear_rhs" @checked(in_array('rear_rhs', $selectedExchangeTyreReplacements, true))><span>Rear RHS</span></label>
+                    </div>
+
+                    <div class="delivery-exchange-two-col">
+                        <label class="delivery-pill">
+                            <span>Color</span>
+                            <input type="text" name="exchange_color" value="{{ $selectedExchangeColor }}" data-exchange-lockable>
+                        </label>
+                        <label class="delivery-pill">
+                            <span>Total KM</span>
+                            <input type="number" name="exchange_mileage_km" min="0" value="{{ $selectedExchangeMileage }}" placeholder="Mileage KM" data-exchange-lockable>
+                        </label>
+                    </div>
+
+                    <label class="delivery-pill delivery-exchange-wide">
+                        <span>Registration No</span>
+                        <input type="text" name="exchange_registration_no" value="{{ $selectedExchangeRegistration }}" placeholder="Registration No" data-exchange-lockable>
                     </label>
-                    <label class="delivery-pill">
-                        <span>Type</span>
-                        <select name="exchange_type" data-exchange-lockable>
-                            <option value="in_house" @selected($selectedExchangeType === 'in_house')>In House</option>
-                            <option value="outhouse" @selected($selectedExchangeType === 'outhouse')>Outhouse</option>
-                        </select>
-                    </label>
-                    <label class="delivery-pill">
-                        <span>Model</span>
-                        <select name="exchange_vehicle_model" id="deliveryExchangeModel" data-selected-model="{{ $selectedExchangeModel }}" data-exchange-lockable>
-                            <option value="">Select Model</option>
-                        </select>
-                    </label>
-                    <label class="delivery-pill">
-                        <span>Year</span>
-                        <input type="number" name="exchange_manufacture_year" min="1950" max="2100" value="{{ $selectedExchangeYear }}" placeholder="Year" data-exchange-lockable>
-                    </label>
-                    <label class="delivery-pill">
-                        <span>Color</span>
-                        <select name="interested_vehicle_color" data-exchange-lockable>
-                            <option value="">Color</option>
-                            @foreach($vehicleColorOptions as $colorOption)
-                                <option value="{{ $colorOption }}" @selected($selectedInterestedColor === $colorOption)>{{ $colorOption }}</option>
-                            @endforeach
-                            @if(!empty($selectedInterestedColor) && !in_array($selectedInterestedColor, $vehicleColorOptions, true))
-                                <option value="{{ $selectedInterestedColor }}" selected>{{ $selectedInterestedColor }}</option>
-                            @endif
-                        </select>
-                    </label>
-                    <label class="delivery-pill">
-                        <span>Mileage Km</span>
-                        <input type="number" name="exchange_mileage_km" min="0" value="{{ $selectedExchangeMileage }}" placeholder="Mileage KM" data-exchange-lockable>
-                    </label>
-                    <label class="delivery-pill">
-                        <span>Registration No.</span>
-                        <input type="text" name="exchange_registration_no" value="{{ $selectedExchangeRegistration }}" placeholder="Registration No." data-exchange-lockable>
-                    </label>
-                    <label class="delivery-pill">
-                        <span>Expected Price</span>
+
+                    <div class="delivery-exchange-price-row">
                         <input type="number" step="0.01" min="0" name="exchange_expected_price" id="deliveryExchangeExpectedPrice" value="{{ $selectedExchangeExpectedPrice }}" placeholder="Expected Price" data-exchange-lockable>
-                    </label>
-                    <label class="delivery-pill">
-                        <span>Quoted Price</span>
                         <input type="number" step="0.01" min="0" name="exchange_quoted_price" id="deliveryExchangeQuotedPrice" value="{{ $selectedExchangeQuotedPrice }}" placeholder="Quoted Price" data-exchange-lockable>
-                    </label>
-                    <label class="delivery-pill">
-                        <span>Difference</span>
                         <input type="number" step="0.01" name="exchange_price_difference" id="deliveryExchangeDifference" value="{{ $selectedExchangeDifference }}" placeholder="Difference" readonly>
-                    </label>
+                    </div>
                 </div>
 
                 <div class="delivery-more">
@@ -1744,30 +1772,48 @@
 
     const exchangeWrap = document.getElementById('deliveryExchangeDetailsWrap');
     const exchangeTypeInputs = Array.from(document.querySelectorAll('input[name="interested_in_exchange"]'));
+    const exchangeHouseTypeInputs = Array.from(document.querySelectorAll('input[name="exchange_type"]'));
     const exchangeEditToggle = document.getElementById('deliveryExchangeEditToggle');
     const exchangeInlineEdit = document.getElementById('deliveryExchangeInlineEdit');
+    const exchangePurchaseRow = document.getElementById('deliveryExchangePurchaseRow');
+    const exchangeBrandModelRow = document.getElementById('deliveryExchangeBrandModelRow');
     const exchangeLockableFields = Array.from(document.querySelectorAll('[data-exchange-lockable]'));
 
     const syncExchangeLockable = () => {
         const isEditable = Boolean(exchangeEditToggle?.checked || exchangeInlineEdit?.checked);
+        if (exchangeBrandModelRow) {
+            exchangeBrandModelRow.classList.toggle('hidden', !isEditable);
+        }
         exchangeLockableFields.forEach((field) => {
             field.classList.toggle('delivery-locked', !isEditable);
             if (field.tagName.toLowerCase() === 'input') {
                 field.readOnly = !isEditable || field.id === 'deliveryExchangeDifference';
+            } else if (field.tagName.toLowerCase() === 'select') {
+                field.toggleAttribute('data-locked', !isEditable);
             }
         });
     };
 
     const syncExchangeDetails = () => {
         const isExchange = picked('interested_in_exchange') === 'yes';
+        const isInHouse = picked('exchange_type') !== 'outhouse';
         if (exchangeWrap) {
             exchangeWrap.classList.toggle('hidden', !isExchange);
+        }
+        if (exchangePurchaseRow) {
+            exchangePurchaseRow.classList.toggle('hidden', !isInHouse);
         }
         syncExchangeLockable();
     };
 
     exchangeTypeInputs.forEach((input) => input.addEventListener('change', syncExchangeDetails));
-    exchangeEditToggle?.addEventListener('change', syncExchangeLockable);
+    exchangeHouseTypeInputs.forEach((input) => input.addEventListener('change', syncExchangeDetails));
+    exchangeEditToggle?.addEventListener('change', () => {
+        if (exchangeInlineEdit) {
+            exchangeInlineEdit.checked = exchangeEditToggle.checked;
+        }
+        syncExchangeLockable();
+    });
     exchangeInlineEdit?.addEventListener('change', () => {
         if (exchangeEditToggle) {
             exchangeEditToggle.checked = exchangeInlineEdit.checked;

@@ -2231,3 +2231,370 @@ html.theme-dark .delivery-summary strong {
 .delivery-page .delivery-submit-popup-card h4 {
     font-size: 18px !important;
 }
+
+/* Delivery personal details requested row layout */
+.delivery-page .delivery-grid {
+    grid-template-columns:
+        64px
+        minmax(190px, 1.35fr)
+        minmax(210px, 1.55fr)
+        minmax(150px, 1fr)
+        minmax(190px, 1.3fr)
+        24px !important;
+    align-items: end;
+    gap: 14px 10px;
+}
+
+.delivery-page .delivery-grid .delivery-title {
+    grid-column: 1;
+}
+
+.delivery-page .delivery-grid .delivery-name-field {
+    grid-column: 2;
+}
+
+.delivery-page .delivery-grid .delivery-email-field {
+    grid-column: 3;
+}
+
+.delivery-page .delivery-grid .delivery-dob-field {
+    grid-column: 4;
+}
+
+.delivery-page .delivery-grid .delivery-contact-no-field {
+    grid-column: 5;
+}
+
+.delivery-page .delivery-grid .delivery-contact-add-btn {
+    grid-column: 6;
+    width: 18px;
+    height: 18px;
+    align-self: end;
+    margin-bottom: 8px;
+    border: 0;
+    border-radius: 50%;
+    background: #050505;
+    color: #ffffff;
+    display: inline-grid;
+    place-items: center;
+    padding: 0;
+    font-size: 14px;
+    line-height: 1;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.delivery-page .delivery-grid .delivery-district-field,
+.delivery-page .delivery-grid .delivery-state-field {
+    grid-column: 1 / span 2;
+}
+
+.delivery-page .delivery-grid .delivery-location-field,
+.delivery-page .delivery-grid .delivery-address1-field {
+    grid-column: 3 / -1;
+}
+
+.delivery-page .delivery-grid .delivery-wide {
+    grid-column: 1 / -1;
+}
+
+.delivery-page .delivery-grid .delivery-contact-no-field input[name="mobile_numbers"] {
+    min-width: 0;
+    width: 100%;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: nowrap;
+}
+
+@media (max-width: 1120px) {
+    .delivery-page .delivery-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    .delivery-page .delivery-grid .delivery-title,
+    .delivery-page .delivery-grid .delivery-name-field,
+    .delivery-page .delivery-grid .delivery-email-field,
+    .delivery-page .delivery-grid .delivery-dob-field,
+    .delivery-page .delivery-grid .delivery-contact-no-field,
+    .delivery-page .delivery-grid .delivery-district-field,
+    .delivery-page .delivery-grid .delivery-location-field,
+    .delivery-page .delivery-grid .delivery-state-field,
+    .delivery-page .delivery-grid .delivery-address1-field {
+        grid-column: auto;
+    }
+
+    .delivery-page .delivery-grid .delivery-contact-no-field,
+    .delivery-page .delivery-grid .delivery-location-field,
+    .delivery-page .delivery-grid .delivery-address1-field,
+    .delivery-page .delivery-grid .delivery-wide {
+        grid-column: 1 / -1;
+    }
+
+    .delivery-page .delivery-grid .delivery-contact-add-btn {
+        grid-column: auto;
+        justify-self: start;
+    }
+}
+
+@media (max-width: 620px) {
+    .delivery-page .delivery-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .delivery-page .delivery-grid .delivery-title,
+    .delivery-page .delivery-grid .delivery-name-field,
+    .delivery-page .delivery-grid .delivery-email-field,
+    .delivery-page .delivery-grid .delivery-dob-field,
+    .delivery-page .delivery-grid .delivery-contact-no-field,
+    .delivery-page .delivery-grid .delivery-district-field,
+    .delivery-page .delivery-grid .delivery-location-field,
+    .delivery-page .delivery-grid .delivery-state-field,
+    .delivery-page .delivery-grid .delivery-address1-field,
+    .delivery-page .delivery-grid .delivery-wide,
+    .delivery-page .delivery-grid .delivery-contact-add-btn {
+        grid-column: 1 / -1;
+    }
+}
+
+/* Delivery exchange details booking-style layout */
+.delivery-page .delivery-exchange-top-label,
+.delivery-page .delivery-exchange-question-label,
+.delivery-page .delivery-exchange-detail-fields .delivery-pill > span,
+.delivery-page .delivery-exchange-tyre-row > span {
+    display: block;
+    position: static !important;
+    width: auto !important;
+    height: auto !important;
+    margin: 0 0 7px !important;
+    overflow: visible !important;
+    clip: auto !important;
+    color: #111111;
+    font-size: 16px !important;
+    font-weight: 800;
+    line-height: 1.2;
+    white-space: normal;
+}
+
+.delivery-page .delivery-exchange-type-segment,
+.delivery-page .delivery-exchange-interest-segment {
+    width: min(392px, 100%);
+    max-width: none;
+    margin: 0 0 14px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0;
+    border: 1px solid #cfd2d8;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.delivery-page .delivery-exchange-type-segment label,
+.delivery-page .delivery-exchange-interest-segment label,
+.delivery-page .delivery-exchange-tyre-segment label {
+    min-height: 30px;
+}
+
+.delivery-page .delivery-exchange-type-segment span,
+.delivery-page .delivery-exchange-interest-segment span {
+    width: 100%;
+    min-height: 30px;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.delivery-page .delivery-exchange-type-segment input:checked + span,
+.delivery-page .delivery-exchange-interest-segment input:checked + span,
+.delivery-page .delivery-exchange-tyre-segment input:checked + span {
+    background: #e00000;
+    border-color: #e00000;
+    color: #ffffff;
+}
+
+.delivery-page .delivery-exchange-purchase-row {
+    width: min(392px, 100%);
+    margin: 0 0 14px;
+    display: grid;
+    gap: 7px;
+}
+
+.delivery-page .delivery-exchange-purchase-row.hidden,
+.delivery-page .delivery-exchange-brand-model-row.hidden {
+    display: none !important;
+}
+
+.delivery-page .delivery-exchange-wrap {
+    margin-top: 10px;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
+}
+
+.delivery-page .delivery-exchange-detail-fields {
+    display: grid;
+    gap: 10px;
+}
+
+.delivery-page .delivery-exchange-vehicle-pill {
+    min-height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    padding: 0 10px;
+    border: 1px solid #cfd2d8;
+    border-radius: 7px;
+    background: #ffffff;
+    color: #111111;
+    font-size: 16px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.delivery-page .delivery-exchange-edit-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin: 0;
+    color: #e00000;
+    font-size: 16px !important;
+    font-weight: 800;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.delivery-page .delivery-exchange-edit-inline input {
+    width: 14px;
+    height: 14px;
+    margin: 0;
+    accent-color: #e00000;
+}
+
+.delivery-page .delivery-exchange-brand-model-row,
+.delivery-page .delivery-exchange-two-col {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 12px;
+}
+
+.delivery-page .delivery-exchange-wide {
+    display: grid;
+    gap: 7px;
+}
+
+.delivery-page .delivery-exchange-detail-fields .delivery-pill input,
+.delivery-page .delivery-exchange-detail-fields .delivery-pill select,
+.delivery-page .delivery-exchange-price-row input,
+.delivery-page .delivery-exchange-purchase-row input {
+    width: 100%;
+    min-width: 0;
+    height: 34px;
+    border: 1px solid #cfd2d8;
+    border-radius: 7px;
+    background: #ffffff;
+    color: #111111;
+    box-shadow: none;
+    padding: 0 12px;
+    font-size: 16px !important;
+    font-weight: 600;
+}
+
+.delivery-page .delivery-exchange-detail-fields [data-locked],
+.delivery-page .delivery-exchange-detail-fields .delivery-locked {
+    pointer-events: none;
+}
+
+.delivery-page .delivery-exchange-tyre-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 4px 0 0;
+}
+
+.delivery-page .delivery-exchange-image-switch {
+    display: inline-flex;
+    align-items: center;
+}
+
+.delivery-page .delivery-exchange-image-switch input {
+    position: absolute;
+    opacity: 0;
+}
+
+.delivery-page .delivery-exchange-image-switch span {
+    width: 30px;
+    height: 16px;
+    border-radius: 999px;
+    background: #ffffff;
+    border: 1px solid #cfd2d8;
+    position: relative;
+}
+
+.delivery-page .delivery-exchange-image-switch span::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #c62d3a;
+    transition: transform 0.2s ease;
+}
+
+.delivery-page .delivery-exchange-image-switch input:checked + span::after {
+    transform: translateX(14px);
+}
+
+.delivery-page .delivery-exchange-tyre-segment {
+    width: min(572px, 100%);
+    max-width: none;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0;
+    border: 1px solid #cfd2d8;
+    border-radius: 7px;
+    overflow: hidden;
+}
+
+.delivery-page .delivery-exchange-tyre-segment span {
+    width: 100%;
+    min-height: 28px;
+    border: 0;
+    border-right: 1px solid #cfd2d8;
+    border-radius: 0;
+    box-shadow: none;
+    font-size: 14px !important;
+    font-weight: 800;
+}
+
+.delivery-page .delivery-exchange-tyre-segment label:last-child span {
+    border-right: 0;
+}
+
+.delivery-page .delivery-exchange-price-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+@media (max-width: 760px) {
+    .delivery-page .delivery-exchange-brand-model-row,
+    .delivery-page .delivery-exchange-two-col,
+    .delivery-page .delivery-exchange-price-row,
+    .delivery-page .delivery-exchange-tyre-segment {
+        grid-template-columns: 1fr;
+    }
+
+    .delivery-page .delivery-exchange-tyre-segment span {
+        border-right: 0;
+        border-bottom: 1px solid #cfd2d8;
+    }
+
+    .delivery-page .delivery-exchange-tyre-segment label:last-child span {
+        border-bottom: 0;
+    }
+}
