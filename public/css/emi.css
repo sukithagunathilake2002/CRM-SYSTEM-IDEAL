@@ -1,29 +1,13 @@
 .emi-page {
-    min-height: 100vh;
-    padding: 14px;
+    min-height: calc(100vh - 64px);
+    padding: 0 14px 14px;
     background: #e7e9ee;
     box-sizing: border-box;
 }
 
-.emi-topbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    min-height: 58px;
-    padding: 8px 14px;
-    border: 1px solid #cdd3df;
-    border-radius: 14px;
-    background: #f0f2f7;
-}
-
-.emi-brand-logo {
-    width: 130px;
-    height: auto;
-}
-
 .emi-shell {
     max-width: 980px;
-    margin: 14px auto 0;
+    margin: 0 auto;
     border: 1px solid #cfd4df;
     border-radius: 18px;
     background: #f3f4f8;
@@ -261,7 +245,8 @@
 
 @media (max-width: 760px) {
     .emi-page {
-        padding: 10px;
+        min-height: calc(100vh - 54px);
+        padding: 0 10px 10px;
     }
 
     .emi-shell {
