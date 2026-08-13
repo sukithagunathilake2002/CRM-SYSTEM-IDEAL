@@ -1775,27 +1775,73 @@ body {
 }
 
 .exchange-existing-preview-item {
+    position: relative;
     border-radius: 10px;
     overflow: hidden;
     border: 1px solid #b3b5bc;
     background: #f2f3f6;
-    min-height: 88px;
-    display: grid;
-    gap: 6px;
-    padding: 6px;
+    min-height: 130px;
+    display: block;
+    padding: 0;
 }
 
 .exchange-existing-preview-item img {
     width: 100%;
-    min-height: 88px;
+    height: 130px;
+    min-height: 130px;
     max-height: 130px;
     object-fit: cover;
     display: block;
-    border-radius: 7px;
+    border-radius: 0;
 }
 
 .exchange-existing-preview-item .exchange-upload-actions {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: 8px;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    pointer-events: none;
+}
+
+.exchange-existing-preview-item::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: rgba(0, 0, 0, 0.28);
+    pointer-events: none;
+}
+
+.exchange-existing-preview-item .exchange-upload-actions button[data-existing-extra-action] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    min-height: 0;
+    border: 0;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1;
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+.exchange-existing-preview-item .exchange-upload-actions button[data-existing-extra-action='view'] {
+    background: transparent;
+    padding: 0;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
+}
+
+.exchange-existing-preview-item .exchange-upload-actions button[data-existing-extra-action='remove'] {
+    min-height: 30px;
+    border-radius: 999px;
+    background: #e00000;
+    padding: 8px 12px;
 }
 
 .exchange-existing-preview-removed {
@@ -2973,6 +3019,90 @@ body {
 
 .summary-icon-profession {
     --prospect-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M9 6V4h6v2M4 8h16v11H4zM4 12h16M10 12v2h4v-2'/%3E%3C/svg%3E");
+}
+
+.summary-icon-color {
+    --prospect-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 3c4.5 3.7 7 7 7 10.2A7 7 0 0 1 5 13.2C5 10 7.5 6.7 12 3z'/%3E%3C/svg%3E");
+}
+
+.summary-icon-source {
+    --prospect-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 9h4l8-5v16l-8-5H4zm14 1.2c1.2.7 2 1.8 2 3.3s-.8 2.6-2 3.3z'/%3E%3C/svg%3E");
+}
+
+.summary-icon-quote {
+    --prospect-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 3h11l3 3v15H5zM15 4.5V8h3.5M8 11h8v2H8zm0 4h6v2H8z'/%3E%3C/svg%3E");
+}
+
+.summary-icon-test-drive {
+    --prospect-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 17h2a2 2 0 0 0 4 0h2a2 2 0 0 0 4 0h2v-4l-2-3h-3l-2-3H7l-2 5zM8 9h3l1 2H7z'/%3E%3Cpath d='M4 19h16v2H4z'/%3E%3C/svg%3E");
+}
+
+.summary-icon-payment {
+    --prospect-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 6h18v12H3zm2 3v2h14V9zm0 5v2h6v-2z'/%3E%3C/svg%3E");
+}
+
+.summary-icon-competition {
+    --prospect-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 4h10v3h3v3c0 3.5-2.2 6.2-6 6.8V19h3v2H7v-2h3v-2.2c-3.8-.6-6-3.3-6-6.8V7h3zm2 2v4c0 3.2 1.1 5 3 5s3-1.8 3-5V6z'/%3E%3C/svg%3E");
+}
+
+.summary-icon-first-buyer {
+    --prospect-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='10' cy='8' r='3'/%3E%3Cpath d='M4 20c.8-4 2.8-6 6-6 1.4 0 2.6.4 3.5 1.1L12 16.7l2.2 2.2 4.8-5 1.5 1.4-6.3 6.4-4.2-4.1 1.8-1.8c-.5-.2-1.1-.3-1.8-.3-2 0-3.2 1.4-3.8 4.5z'/%3E%3C/svg%3E");
+}
+
+.summary-icon-exchange {
+    --prospect-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 7h10l-2.5-2.5L16 3l5 5-5 5-1.5-1.5L17 9H7zm10 10H7l2.5 2.5L8 21l-5-5 5-5 1.5 1.5L7 15h10z'/%3E%3C/svg%3E");
+}
+
+.summary-icon-calendar {
+    --prospect-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 4h14v17H5zM7 2h2v4H7zm8 0h2v4h-2zM6 9h12v2H6z'/%3E%3C/svg%3E");
+}
+
+.summary-icon-ownership {
+    --prospect-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M14 7a5 5 0 1 0-4.2 4.9L12 14h3v3h3v3h3v-4.2l-6.9-6.9c.6-.5.9-1.2.9-1.9zM7 8.5A1.5 1.5 0 1 1 7 5a1.5 1.5 0 0 1 0 3.5z'/%3E%3C/svg%3E");
+}
+
+.summary-icon-insurance {
+    --prospect-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 2l8 3v6c0 5-3 8.6-8 11-5-2.4-8-6-8-11V5zm-1 13.5 6-6-1.5-1.5L11 12.5 8.8 10.3 7.3 11.8z'/%3E%3C/svg%3E");
+}
+
+.summary-icon-registration {
+    --prospect-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='3' y='5' width='18' height='14' rx='2'/%3E%3Ccircle cx='8' cy='10' r='2' fill='white'/%3E%3Cpath d='M6 16c.5-2 1.2-3 2-3s1.5 1 2 3zm7-7h5v2h-5zm0 4h4v2h-4z' fill='white'/%3E%3C/svg%3E");
+}
+
+.summary-icon-money {
+    --prospect-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 6h18v12H3zm3 4a2 2 0 0 0 2-2h8a2 2 0 0 0 2 2v4a2 2 0 0 0-2 2H8a2 2 0 0 0-2-2zm6 5a3 3 0 1 0 0-6 3 3 0 0 0 0 6z'/%3E%3C/svg%3E");
+}
+
+.summary-icon-distance {
+    --prospect-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 5a8 8 0 0 1 8 8 8.7 8.7 0 0 1-1.1 4H5.1A8.7 8.7 0 0 1 4 13a8 8 0 0 1 8-8zm0 3-2 6 5-4zM6 19h12v2H6z'/%3E%3C/svg%3E");
+}
+
+.summary-icon-tax {
+    --prospect-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 3h14v18H5zm3 4h8v2H8zm0 4h2v2H8zm4 0h2v2h-2zm4 0h2v2h-2zM8 15h2v2H8zm4 0h2v2h-2zm4 0h2v2h-2z'/%3E%3C/svg%3E");
+}
+
+.summary-icon-discount {
+    --prospect-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 10 12 2H4v8l8 8zM8 8.5A1.5 1.5 0 1 1 8 5.5a1.5 1.5 0 0 1 0 3zM7 19l2 2 11-11-2-2z'/%3E%3C/svg%3E");
+}
+
+.summary-icon-final-price {
+    --prospect-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='m8 12 2.2 2.2L16.5 8l1.5 1.5-7.8 7.8L6.5 13.5z' fill='white'/%3E%3C/svg%3E");
+}
+
+.summary-icon-remark {
+    --prospect-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 4h16v12H8l-4 4z'/%3E%3C/svg%3E");
+}
+
+.summary-icon-followup {
+    --prospect-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 4h14v16H5zM7 2h2v4H7zm8 0h2v4h-2zM7 9h10v2H7zm4 3h2v3l2 1-1 1.6-3-1.8z'/%3E%3C/svg%3E");
+}
+
+.summary-icon-reschedule {
+    --prospect-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 7a8 8 0 0 1 13.7 5.6h-2A6 6 0 0 0 7.4 8.4L10 11H3V4zm12 10A8 8 0 0 1 4.3 11.4h2a6 6 0 0 0 10.3 4.2L14 13h7v7z'/%3E%3C/svg%3E");
+}
+
+.summary-icon-status {
+    --prospect-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 3h12l-2 5 2 5H7v8H5z'/%3E%3C/svg%3E");
 }
 
 .summary-row span {
@@ -4457,7 +4587,8 @@ body {
 }
 
 .offer-step .offer-page-summary {
-    order: 1;
+    display: none;
+    order: 2;
     width: min(470px, 100%);
     margin: 14px auto 18px;
     text-align: center;
@@ -4495,11 +4626,11 @@ body {
 }
 
 .offer-step .offer-title-line {
-    order: 2;
-    width: min(1060px, 100%);
+    order: 1;
+    width: min(1120px, 100%);
     max-width: none;
-    min-height: 24px;
-    margin: 0 auto 18px;
+    min-height: 28px;
+    margin: 0 auto 12px;
     padding: 0;
     border: 0;
     border-radius: 0;
@@ -4526,7 +4657,7 @@ body {
 .offer-step .offer-edit-label {
     display: inline-flex;
     align-items: center;
-    gap: 0;
+    gap: 8px;
     margin: 0;
     padding: 0;
     border: 0;
@@ -4536,6 +4667,13 @@ body {
     font-size: 12px;
     font-weight: 700;
     cursor: pointer;
+}
+
+.offer-step .offer-edit-heading {
+    color: #111827;
+    font-size: 16px;
+    font-weight: 800;
+    line-height: 1;
 }
 
 .offer-step .offer-edit-label input {
@@ -4548,7 +4686,7 @@ body {
     position: relative;
     display: inline-block;
     width: 30px;
-    height: 18px;
+    height: 17px;
     overflow: hidden;
     color: transparent;
     font-size: 0;
@@ -4571,19 +4709,19 @@ body {
     z-index: 1;
     top: 2px;
     left: 2px;
-    width: 14px;
-    height: 14px;
+    width: 13px;
+    height: 13px;
     border-radius: 999px;
     background: #ffffff;
     transition: transform .18s ease;
 }
 
 .offer-step .offer-edit-label input:checked + span::before {
-    transform: translateX(12px);
+    transform: translateX(13px);
 }
 
 .offer-step .offer-summary-panel {
-    order: 3;
+    order: 2;
     display: grid;
     gap: 22px;
     width: 100%;
@@ -4735,7 +4873,7 @@ body {
 }
 
 .offer-step .offer-edit-group {
-    order: 3;
+    order: 2;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 18px;
@@ -4746,7 +4884,7 @@ body {
     max-width: none;
     margin: 0;
     border: 1px solid #111827;
-    border-radius: 9px;
+    border-radius: 8px;
     background: #ffffff;
     box-shadow: none;
     padding: 20px 24px 28px;
@@ -4758,7 +4896,7 @@ body {
 
 .offer-step .offer-panel-head span {
     color: #111827;
-    font-size: 13px;
+    font-size: 16px;
     font-weight: 900;
 }
 
@@ -4774,8 +4912,8 @@ body {
 .offer-step .offer-price-value-row::before {
     content: "Cost";
     color: #111827;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 13px;
+    font-weight: 800;
 }
 
 .offer-step .offer-price-value-row input,
@@ -4788,8 +4926,8 @@ body {
     background: #f5f5f5;
     color: #111827;
     text-align: center;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 16px;
+    font-weight: 800;
     padding: 0 12px;
 }
 
@@ -4801,8 +4939,8 @@ body {
 .offer-step .offer-discount-label {
     min-width: 0;
     color: #111827;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 16px;
+    font-weight: 800;
 }
 
 .offer-step .offer-free-check {
@@ -4876,12 +5014,32 @@ body {
 
 .offer-step .offer-total-strip-values strong {
     color: #e00000;
-    font-size: 14px;
-    font-weight: 700;
+    font-size: 16px;
+    font-weight: 800;
 }
 
 .offer-step .offer-total-strip-values span {
     color: transparent;
+}
+
+.offer-step .offer-edit-save-row {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: center;
+    margin-top: 18px;
+}
+
+.offer-step .offer-edit-save-btn {
+    min-width: 130px;
+    min-height: 40px;
+    border: 0;
+    border-radius: 999px;
+    background: #e00000;
+    color: #ffffff;
+    padding: 0 28px;
+    font-size: 16px;
+    font-weight: 900;
+    cursor: pointer;
 }
 
 @media (max-width: 900px) {
@@ -5686,5 +5844,102 @@ body {
     .exchange-step .exchange-upload-grid,
     .exchange-step .exchange-upload-grid-extra {
         grid-template-columns: 1fr;
+    }
+}
+
+/* Prospect form type scale */
+.prospect-page form label,
+.prospect-page form input:not([type='hidden']):not([type='checkbox']):not([type='radio']),
+.prospect-page form input[type='file']::file-selector-button,
+.prospect-page form select,
+.prospect-page form textarea,
+.prospect-page form .field-pill input,
+.prospect-page form .field-pill select,
+.prospect-page form .segmented span,
+.prospect-page form .vehicle-pill,
+.prospect-page form .vehicle-pill-display,
+.prospect-page form .plan-latest-pill strong,
+.prospect-page form .plan-previous-comment-row,
+.prospect-page form .plan-status-item em,
+.prospect-page form .offer-panel-head span,
+.prospect-page form .offer-discount-label,
+.prospect-page form .exchange-upload-text,
+.prospect-page form .exchange-upload-actions button {
+    font-size: 16px !important;
+}
+
+.prospect-page form h2,
+.prospect-page form h4,
+.prospect-page form .section-heading,
+.prospect-page form .sub-title,
+.prospect-page form .personal-step h3::before,
+.prospect-page form .buying-step h3::before,
+.prospect-page form .exchange-step h3::before,
+.prospect-page form .plan-step h3::before,
+.prospect-page form .exchange-card-head h3,
+.prospect-page form .offer-page-summary h3,
+.prospect-page form .summary-modal-card h3,
+.prospect-page .prospect-submit-popup-card h4 {
+    font-size: 18px !important;
+}
+
+/* Prospect Sheet stepper size increase */
+.prospect-page .stepper {
+    width: min(920px, calc(100% - 48px));
+    margin: 12px auto 10px;
+    padding: 18px 26px 14px;
+    gap: 8px;
+}
+
+.prospect-page .stepper-item {
+    padding: 0 4px;
+}
+
+.prospect-page .stepper-item:not(:last-child)::after {
+    left: calc(50% + 24px);
+    right: calc(-50% + 24px);
+    top: 24px;
+    height: 5px;
+}
+
+.prospect-page .step-number {
+    width: 48px;
+    height: 48px;
+    font-size: 17px;
+    border-width: 2px;
+}
+
+.prospect-page .step-label {
+    margin-top: 7px;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+@media (max-width: 760px) {
+    .prospect-page .stepper {
+        width: min(100%, calc(100% - 20px));
+        padding: 14px 12px 12px;
+        gap: 6px;
+    }
+
+    .prospect-page .stepper-item {
+        min-width: 96px;
+    }
+
+    .prospect-page .stepper-item:not(:last-child)::after {
+        left: calc(50% + 21px);
+        right: calc(-50% + 21px);
+        top: 21px;
+        height: 4px;
+    }
+
+    .prospect-page .step-number {
+        width: 42px;
+        height: 42px;
+        font-size: 15px;
+    }
+
+    .prospect-page .step-label {
+        font-size: 11px;
     }
 }

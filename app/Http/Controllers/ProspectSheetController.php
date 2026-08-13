@@ -89,6 +89,11 @@ class ProspectSheetController extends Controller
             $districtOptions[] = $currentDistrict;
         }
 
+        $requestedStep = (int) $request->input('active_step', 1);
+        $requestedStep = max(1, min(5, $requestedStep));
+        $isSaveExit = $request->input('exit_after_save') === '1';
+        $requiresStep = fn(int $step): bool => $requestedStep === $step && !$isSaveExit;
+
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:20'],
             'name' => ['required', 'string', 'max:255'],
@@ -112,37 +117,37 @@ class ProspectSheetController extends Controller
             'source_of_information' => ['nullable', 'string', 'max:255'],
 
             'quote_taken' => ['nullable', Rule::in(['yes', 'no'])],
-            'quote_date' => ['nullable', 'date', 'required_if:quote_taken,yes'],
+            'quote_date' => ['nullable', 'date', Rule::requiredIf(fn() => $requiresStep(2) && $request->input('quote_taken') === 'yes')],
 
             'test_drive_given' => ['nullable', Rule::in(['yes', 'no'])],
-            'test_drive_date' => ['nullable', 'date', 'required_if:test_drive_given,yes'],
-            'test_drive_vehicle_model' => ['nullable', 'string', 'max:255', 'required_if:test_drive_given,yes'],
-            'test_drive_vehicle_model_other' => ['nullable', 'string', 'max:255', Rule::requiredIf(fn() => $request->input('test_drive_given') === 'yes' && $request->input('test_drive_vehicle_model') === 'Other')],
+            'test_drive_date' => ['nullable', 'date', Rule::requiredIf(fn() => $requiresStep(2) && $request->input('test_drive_given') === 'yes')],
+            'test_drive_vehicle_model' => ['nullable', 'string', 'max:255', Rule::requiredIf(fn() => $requiresStep(2) && $request->input('test_drive_given') === 'yes')],
+            'test_drive_vehicle_model_other' => ['nullable', 'string', 'max:255', Rule::requiredIf(fn() => $requiresStep(2) && $request->input('test_drive_given') === 'yes' && $request->input('test_drive_vehicle_model') === 'Other')],
             'test_drive_to_whom' => ['nullable', 'string', 'max:255'],
             'test_drive_not_given_reason' => [
                 'nullable',
-                'required_if:test_drive_given,no',
+                Rule::requiredIf(fn() => $requiresStep(2) && $request->input('test_drive_given') === 'no'),
                 Rule::in($this->testDriveNotGivenReasons()),
             ],
             'test_drive_not_given_reason_other' => [
                 'nullable',
                 'string',
                 'max:255',
-                Rule::requiredIf(fn() => $request->input('test_drive_given') === 'no' && $request->input('test_drive_not_given_reason') === 'Others'),
+                Rule::requiredIf(fn() => $requiresStep(2) && $request->input('test_drive_given') === 'no' && $request->input('test_drive_not_given_reason') === 'Others'),
             ],
             'purchase_mode' => ['nullable', Rule::in(['cash', 'finance'])],
 
             'interested_in_exchange' => ['nullable', Rule::in(['yes', 'no'])],
             'exchange_vehicle_brand' => ['nullable', 'string', 'max:255'],
             'exchange_vehicle_model' => ['nullable', 'string', 'max:255'],
-            'exchange_manufacture_year' => ['nullable', 'integer', 'between:1950,2100', 'required_if:interested_in_exchange,yes'],
+            'exchange_manufacture_year' => ['nullable', 'integer', 'between:1950,2100', Rule::requiredIf(fn() => $requiresStep(3) && $request->input('interested_in_exchange') === 'yes')],
             'exchange_ownership' => ['nullable', 'string', 'max:50'],
             'exchange_insurance_validity' => ['nullable', 'date'],
-            'exchange_color' => ['nullable', 'string', 'max:255', 'required_if:interested_in_exchange,yes'],
-            'exchange_mileage_km' => ['nullable', 'integer', 'min:0', 'required_if:interested_in_exchange,yes'],
-            'exchange_registration_no' => ['nullable', 'string', 'max:50', 'required_if:interested_in_exchange,yes'],
-            'exchange_expected_price' => ['nullable', 'numeric', 'min:0', 'required_if:interested_in_exchange,yes'],
-            'exchange_quoted_price' => ['nullable', 'numeric', 'min:0', 'required_if:interested_in_exchange,yes'],
+            'exchange_color' => ['nullable', 'string', 'max:255', Rule::requiredIf(fn() => $requiresStep(3) && $request->input('interested_in_exchange') === 'yes')],
+            'exchange_mileage_km' => ['nullable', 'integer', 'min:0', Rule::requiredIf(fn() => $requiresStep(3) && $request->input('interested_in_exchange') === 'yes')],
+            'exchange_registration_no' => ['nullable', 'string', 'max:50', Rule::requiredIf(fn() => $requiresStep(3) && $request->input('interested_in_exchange') === 'yes')],
+            'exchange_expected_price' => ['nullable', 'numeric', 'min:0', Rule::requiredIf(fn() => $requiresStep(3) && $request->input('interested_in_exchange') === 'yes')],
+            'exchange_quoted_price' => ['nullable', 'numeric', 'min:0', Rule::requiredIf(fn() => $requiresStep(3) && $request->input('interested_in_exchange') === 'yes')],
             'exchange_price_difference' => ['nullable', 'numeric'],
 
             'add_exchange_images' => ['nullable', 'in:1'],
@@ -171,19 +176,19 @@ class ProspectSheetController extends Controller
             'offer_remark' => ['nullable', 'string', 'max:1000'],
 
             'interested_in_competition' => ['nullable', Rule::in(['yes', 'no', 'not_asked'])],
-            'competition_brand' => ['nullable', 'string', 'max:255', 'required_if:interested_in_competition,yes'],
-            'competition_model' => ['nullable', 'string', 'max:255', 'required_if:interested_in_competition,yes'],
+            'competition_brand' => ['nullable', 'string', 'max:255', Rule::requiredIf(fn() => $requiresStep(2) && $request->input('interested_in_competition') === 'yes')],
+            'competition_model' => ['nullable', 'string', 'max:255', Rule::requiredIf(fn() => $requiresStep(2) && $request->input('interested_in_competition') === 'yes')],
 
             'first_time_buyer' => ['nullable', Rule::in(['yes', 'no'])],
-            'existing_vehicle_brand' => ['nullable', 'string', 'max:255', 'required_if:first_time_buyer,no'],
-            'existing_vehicle_model' => ['nullable', 'string', 'max:255', 'required_if:first_time_buyer,no'],
-            'existing_vehicle_year' => ['nullable', 'integer', 'between:1950,2100', 'required_if:first_time_buyer,no'],
+            'existing_vehicle_brand' => ['nullable', 'string', 'max:255', Rule::requiredIf(fn() => $requiresStep(2) && $request->input('first_time_buyer') === 'no')],
+            'existing_vehicle_model' => ['nullable', 'string', 'max:255', Rule::requiredIf(fn() => $requiresStep(2) && $request->input('first_time_buyer') === 'no')],
+            'existing_vehicle_year' => ['nullable', 'integer', 'between:1950,2100', Rule::requiredIf(fn() => $requiresStep(2) && $request->input('first_time_buyer') === 'no')],
 
             'reschedule_followup' => ['nullable', 'in:0,1'],
-            'follow_type' => ['nullable', Rule::in(['Home Visit', 'Showroom Visit', 'Call']), 'required_if:reschedule_followup,1'],
-            'follow_date' => ['nullable', 'date', 'required_if:reschedule_followup,1'],
-            'follow_time' => ['nullable', 'date_format:H:i', 'required_if:reschedule_followup,1'],
-            'reschedule_reason' => ['nullable', 'string', 'max:1000', 'required_if:reschedule_followup,1'],
+            'follow_type' => ['nullable', Rule::in(['Home Visit', 'Showroom Visit', 'Call']), Rule::requiredIf(fn() => $requiresStep(5) && $request->input('reschedule_followup') === '1')],
+            'follow_date' => ['nullable', 'date', Rule::requiredIf(fn() => $requiresStep(5) && $request->input('reschedule_followup') === '1')],
+            'follow_time' => ['nullable', 'date_format:H:i', Rule::requiredIf(fn() => $requiresStep(5) && $request->input('reschedule_followup') === '1')],
+            'reschedule_reason' => ['nullable', 'string', 'max:1000', Rule::requiredIf(fn() => $requiresStep(5) && $request->input('reschedule_followup') === '1')],
             'lead_status' => ['nullable', Rule::in(['hot', 'warm', 'cold'])],
             'customer_remark' => ['nullable', 'string', 'max:1000'],
 

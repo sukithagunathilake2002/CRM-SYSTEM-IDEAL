@@ -664,6 +664,7 @@ select {
     align-items: start;
     min-height: 48px;
     width: 100%;
+    --buying-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3Cpath d='M5 22c.8-5 3.2-8 7-8s6.2 3 7 8z'/%3E%3C/svg%3E");
 }
 
 .booking-page .buying-summary-row::before {
@@ -674,15 +675,50 @@ select {
     height: 18px;
     margin-top: 2px;
     background: #ef2a22;
-    -webkit-mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 11l2-5h10l2 5 2 1v6h-3v-2H6v2H3v-6zM8 8l-1 3h10l-1-3z'/%3E%3Ccircle cx='7' cy='14' r='1.7'/%3E%3Ccircle cx='17' cy='14' r='1.7'/%3E%3C/svg%3E") center / contain no-repeat;
-    mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 11l2-5h10l2 5 2 1v6h-3v-2H6v2H3v-6zM8 8l-1 3h10l-1-3z'/%3E%3Ccircle cx='7' cy='14' r='1.7'/%3E%3Ccircle cx='17' cy='14' r='1.7'/%3E%3C/svg%3E") center / contain no-repeat;
+    -webkit-mask: var(--buying-summary-icon) center / contain no-repeat;
+    mask: var(--buying-summary-icon) center / contain no-repeat;
 }
 
 .booking-page .buying-summary-row:nth-child(2)::before {
-    border-radius: 50%;
-    -webkit-mask: none;
-    mask: none;
-    box-shadow: inset -5px -1px 0 #ffffff, inset 2px 2px 0 rgba(255, 255, 255, 0.8);
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.booking-page .buying-summary-row:nth-child(2) {
+    --buying-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 22s7-5.7 7-12A7 7 0 0 0 5 10c0 6.3 7 12 7 12z'/%3E%3Ccircle cx='12' cy='10' r='2.4' fill='white'/%3E%3C/svg%3E");
+}
+
+.booking-page .buying-summary-row:nth-child(3) {
+    --buying-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7.2 3.2h3.2l1.6 4-2.1 1.6c1 2.2 2.7 3.9 4.9 4.9l1.6-2.1 4 1.6v3.2c0 1-.8 1.8-1.8 1.8C10 18.2 3.8 12 3.8 5c0-1 .8-1.8 1.8-1.8h1.6z'/%3E%3C/svg%3E");
+}
+
+.booking-page .buying-summary-row:nth-child(4) {
+    --buying-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 11l2-5h10l2 5 2 1v6h-3v-2H6v2H3v-6zM8 8l-1 3h10l-1-3z'/%3E%3Ccircle cx='7' cy='14' r='1.7'/%3E%3Ccircle cx='17' cy='14' r='1.7'/%3E%3C/svg%3E");
+}
+
+.booking-page .buying-summary-row:nth-child(5) {
+    --buying-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 3c4.5 3.7 7 7 7 10.2A7 7 0 0 1 5 13.2C5 10 7.5 6.7 12 3z'/%3E%3C/svg%3E");
+}
+
+.booking-page .buying-summary-row:nth-child(6) {
+    --buying-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 3h11l3 3v15H5zM15 4.5V8h3.5M8 11h8v2H8zm0 4h6v2H8z'/%3E%3C/svg%3E");
+}
+
+.booking-page .buying-summary-row:nth-child(7),
+.booking-page .buying-summary-row:nth-child(8) {
+    --buying-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 17h2a2 2 0 0 0 4 0h2a2 2 0 0 0 4 0h2v-4l-2-3h-3l-2-3H7l-2 5zM8 9h3l1 2H7z'/%3E%3Cpath d='M4 19h16v2H4z'/%3E%3C/svg%3E");
+}
+
+.booking-page .buying-summary-row:nth-child(9) {
+    --buying-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 4h10v3h3v3c0 3.5-2.2 6.2-6 6.8V19h3v2H7v-2h3v-2.2c-3.8-.6-6-3.3-6-6.8V7h3zm2 2v4c0 3.2 1.1 5 3 5s3-1.8 3-5V6z'/%3E%3C/svg%3E");
+}
+
+.booking-page .buying-summary-row:nth-child(10) {
+    --buying-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='10' cy='8' r='3'/%3E%3Cpath d='M4 20c.8-4 2.8-6 6-6 1.4 0 2.6.4 3.5 1.1L12 16.7l2.2 2.2 4.8-5 1.5 1.4-6.3 6.4-4.2-4.1 1.8-1.8c-.5-.2-1.1-.3-1.8-.3-2 0-3.2 1.4-3.8 4.5z'/%3E%3C/svg%3E");
+}
+
+.booking-page .buying-summary-row:nth-child(11) {
+    --buying-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 6h18v12H3zm2 3v2h14V9zm0 5v2h6v-2z'/%3E%3C/svg%3E");
 }
 
 .booking-page .buying-summary-row:nth-child(3)::before,
@@ -691,8 +727,8 @@ select {
 .booking-page .buying-summary-row:nth-child(6)::before,
 .booking-page .buying-summary-row:nth-child(7)::before,
 .booking-page .buying-summary-row:nth-child(8)::before {
-    -webkit-mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='12' r='9' fill='none' stroke='black' stroke-width='2'/%3E%3Cpath d='M8 12h8M12 8v8' stroke='black' stroke-width='2'/%3E%3C/svg%3E") center / contain no-repeat;
-    mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='12' r='9' fill='none' stroke='black' stroke-width='2'/%3E%3Cpath d='M8 12h8M12 8v8' stroke='black' stroke-width='2'/%3E%3C/svg%3E") center / contain no-repeat;
+    -webkit-mask: var(--buying-summary-icon) center / contain no-repeat;
+    mask: var(--buying-summary-icon) center / contain no-repeat;
 }
 
 .booking-page .buying-summary-row span,
@@ -1958,10 +1994,18 @@ select {
     display: none !important;
 }
 
+.booking-page.booking-step-1 .action-row.no-back {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 96px;
+}
+
 .action-btn {
     border: 0;
-    width: auto;
-    min-width: 0;
+    width: 140px;
+    min-width: 140px;
+    max-width: 140px;
     min-height: 44px;
     height: 44px;
     display: inline-flex;
@@ -1970,29 +2014,27 @@ select {
     gap: 6px;
     text-decoration: none;
     color: #fff;
-    font-size: 9px;
+    font-size: 14px;
     font-weight: 700;
     cursor: pointer;
-    padding: 0 13px;
+    padding: 0 14px;
     border-radius: 999px;
     transition: transform .15s ease, filter .15s ease, box-shadow .15s ease;
     box-shadow: none;
     line-height: 1;
+    box-sizing: border-box;
 }
 
 .action-btn.back-btn {
     justify-self: start;
-    width: 64px;
 }
 
 .action-btn.save-exit-btn {
     justify-self: center;
-    width: 88px;
 }
 
 .action-btn.next-action-btn {
     justify-self: end;
-    width: 118px;
 }
 
 .action-btn.back-btn::before {
@@ -2219,11 +2261,21 @@ select:focus {
     .action-row.next-only {
         width: 100%;
         grid-template-columns: 1fr;
+        justify-items: center;
+    }
+
+    .booking-page.booking-step-1 .action-row.no-back {
+        flex-direction: column;
+        align-items: center;
     }
 
     .action-btn {
-        min-height: 50px;
-        font-size: 16px;
+        width: 140px;
+        min-width: 140px;
+        max-width: 140px;
+        height: 44px;
+        min-height: 44px;
+        font-size: 14px;
     }
 
     .upload-tile {
@@ -2478,7 +2530,7 @@ select:focus {
 }
 
 .offer-remarks-toggle {
-    justify-self: end;
+    justify-self: start;
     color: #111827;
     font-size: 12px;
     font-weight: 700;
@@ -2840,8 +2892,12 @@ select:focus {
 
 .booking-page .purchase-order-upload-tile {
     position: relative;
-    width: 132px;
-    height: 132px;
+    width: min(350px, 100%);
+    height: 142px;
+    padding: 4px;
+    border: 1px solid #d9dde4;
+    border-radius: 6px;
+    background: #ffffff;
 }
 
 .booking-page .purchase-order-upload-pill {
@@ -2852,11 +2908,11 @@ select:focus {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 10px;
+    gap: 8px;
     margin: 0;
-    border: 1px solid #d9dde4;
-    border-radius: 3px;
-    background: #f4f5f7;
+    border: 0;
+    border-radius: 4px;
+    background: #bfbfbf;
     color: #111827;
     padding: 8px;
     cursor: pointer;
@@ -2865,8 +2921,8 @@ select:focus {
 }
 
 .booking-page .purchase-order-upload-pill span {
-    width: 36px;
-    height: 36px;
+    width: 28px;
+    height: 28px;
     display: block;
     background: url("/icons/imageuploadic.png") center / contain no-repeat;
     filter: brightness(0);
@@ -2875,8 +2931,8 @@ select:focus {
 }
 
 .booking-page .purchase-order-upload-pill strong {
-    color: #111827;
-    font-size: 10px;
+    color: #ffffff;
+    font-size: 13px;
     font-weight: 900;
     line-height: 1.2;
     text-align: center;
@@ -2934,11 +2990,31 @@ select:focus {
     z-index: 3;
 }
 
-.booking-page .personal-purchase-order .existing-file {
-    margin: 0;
-    color: #111827;
-    font-size: 10px;
-    font-weight: 700;
+.booking-page .purchase-order-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: min(350px, 100%);
+}
+
+.booking-page .purchase-order-actions button {
+    min-width: 68px;
+    min-height: 30px;
+    border: 0;
+    border-radius: 999px;
+    background: #ed1c24;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.booking-page .purchase-order-actions button:disabled {
+    background: #d1d5db;
+    color: #6b7280;
+    cursor: not-allowed;
 }
 
 .booking-page .booking-personal-summary {
@@ -2974,11 +3050,27 @@ select:focus {
 }
 
 .booking-page .booking-personal-summary-row:nth-child(2) {
-    --booking-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 11l2-5h10l2 5 2 1v6h-3v-2H6v2H3v-6zM8 8l-1 3h10l-1-3z'/%3E%3Ccircle cx='7' cy='14' r='1.7'/%3E%3Ccircle cx='17' cy='14' r='1.7'/%3E%3C/svg%3E");
+    --booking-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 22s7-5.7 7-12A7 7 0 0 0 5 10c0 6.3 7 12 7 12z'/%3E%3Ccircle cx='12' cy='10' r='2.4' fill='white'/%3E%3C/svg%3E");
+}
+
+.booking-page .booking-personal-summary-row:nth-child(3) {
+    --booking-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7.2 3.2h3.2l1.6 4-2.1 1.6c1 2.2 2.7 3.9 4.9 4.9l1.6-2.1 4 1.6v3.2c0 1-.8 1.8-1.8 1.8C10 18.2 3.8 12 3.8 5c0-1 .8-1.8 1.8-1.8h1.6z'/%3E%3C/svg%3E");
 }
 
 .booking-page .booking-personal-summary-row:nth-child(4) {
-    --booking-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='3' y='4' width='18' height='14' rx='1.5'/%3E%3Ccircle cx='8' cy='10' r='2'/%3E%3Cpath d='M5.5 15c.5-2 1.4-3 2.5-3s2 .9 2.5 3zM13 8h5v2h-5zM13 12h4v2h-4z'/%3E%3C/svg%3E");
+    --booking-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3.5 6h17v12h-17zM4.5 7.2l7 5.2c.3.2.7.2 1 0l7-5.2v2.2l-7 5.2c-.3.2-.7.2-1 0l-7-5.2z'/%3E%3C/svg%3E");
+}
+
+.booking-page .booking-personal-summary-row:nth-child(5) {
+    --booking-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='9' cy='8' r='3'/%3E%3Cpath d='M3.5 20c.7-3.8 2.5-5.6 5.5-5.6s4.8 1.8 5.5 5.6z'/%3E%3Ccircle cx='17' cy='9' r='2.4'/%3E%3Cpath d='M14.5 15.2c2.8.2 4.5 1.8 5 4.8h-3.7c-.3-1.6-.9-2.9-1.8-3.8z'/%3E%3C/svg%3E");
+}
+
+.booking-page .booking-personal-summary-row:nth-child(6) {
+    --booking-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 21V6l8-3 8 3v15h-6v-5h-4v5zM7 9h3V7H7zm7 0h3V7h-3zM7 13h3v-2H7zm7 0h3v-2h-3z'/%3E%3C/svg%3E");
+}
+
+.booking-page .booking-personal-summary-row:nth-child(7) {
+    --booking-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M9 6V4h6v2h4v4H5V6zm-4 6h14v8H5zm5 0v2h4v-2z'/%3E%3C/svg%3E");
 }
 
 .booking-page .booking-personal-summary-row span {
@@ -3650,7 +3742,7 @@ select:focus {
 }
 
 .booking-page.booking-step-3 .exchange-summary-row:nth-child(4) {
-    --exchange-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='3' y='4' width='14' height='12' rx='1.5' fill='none' stroke='black' stroke-width='2'/%3E%3Cpath d='M6 8h8M6 12h5M17 18l4-4M19 14l2 2' stroke='black' stroke-width='2'/%3E%3C/svg%3E");
+    --exchange-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 7h10l-2.5-2.5L16 3l5 5-5 5-1.5-1.5L17 9H7zm10 10H7l2.5 2.5L8 21l-5-5 5-5 1.5 1.5L7 15h10z'/%3E%3C/svg%3E");
 }
 
 .booking-page.booking-step-3 .exchange-summary-row::before {
@@ -4842,20 +4934,26 @@ select:focus {
 
 .booking-page.booking-step-5 .booking-form-nav-btn,
 .booking-page.booking-step-5 .booking-book-now-btn {
-    min-width: 156px;
-    min-height: 42px;
+    width: 140px;
+    min-width: 140px;
+    max-width: 140px;
+    height: 44px;
+    min-height: 44px;
     border: 0;
-    border-radius: 8px;
+    border-radius: 999px;
     background: #e50000;
     color: #ffffff;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     text-decoration: none;
-    font-size: 15px;
-    font-weight: 800;
+    padding: 0 14px;
+    font-size: 14px;
+    font-weight: 700;
     cursor: pointer;
     box-shadow: none;
+    line-height: 1;
+    box-sizing: border-box;
 }
 
 @media (max-width: 760px) {
@@ -4921,7 +5019,7 @@ select:focus {
     display: block !important;
     margin: 0 0 12px !important;
     color: #111111 !important;
-    font-size: 20px !important;
+    font-size: 16px !important;
     line-height: 1.2 !important;
     font-weight: 800 !important;
 }
@@ -5516,4 +5614,339 @@ select:focus {
 
 .booking-page.booking-step-3 .exchange-summary-row {
     grid-template-columns: 18px 210px 10px minmax(0, 1fr) !important;
+}
+
+/* Booking form type scale */
+.booking-page form label,
+.booking-page form input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]),
+.booking-page form input[type="file"]::file-selector-button,
+.booking-page form select,
+.booking-page form textarea,
+.booking-page form .segment-row span,
+.booking-page form .vehicle-pill-display,
+.booking-page form .booking-toggle-label,
+.booking-page form .booking-card-edit-mark,
+.booking-page form .offer-panel-head span,
+.booking-page form .offer-discount-label,
+.booking-page form .exchange-upload-title,
+.booking-page form .exchange-upload-actions button,
+.booking-page form .booking-receipt-row input,
+.booking-page form .booking-receipt-row select,
+.booking-page form .booking-receipt-row label {
+    font-size: 16px !important;
+}
+
+.booking-page form h2,
+.booking-page form h3,
+.booking-page form h4,
+.booking-page form .section-heading,
+.booking-page form .section-heading::before,
+.booking-page form .personal-head .section-heading,
+.booking-page form .booking-receipt-head h4,
+.booking-page .booking-submit-popup-card h4 {
+    font-size: 18px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-insurance-row,
+.booking-page.booking-step-3 .exchange-section .exchange-registration-row {
+    display: block !important;
+    width: 100% !important;
+    margin-bottom: 16px !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-insurance-field,
+.booking-page.booking-step-3 .exchange-section .exchange-registration-field {
+    display: block !important;
+    width: 100% !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-insurance-heading,
+.booking-page.booking-step-3 .exchange-section .exchange-visible-field-heading {
+    display: block !important;
+    margin: 0 0 6px !important;
+    color: #111;
+    font-size: 16px !important;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-insurance-field input[type="date"] {
+    display: block !important;
+    width: 100% !important;
+}
+
+.booking-page.booking-step-3 .exchange-section .exchange-registration-field input[type="text"] {
+    display: block !important;
+    width: 100% !important;
+}
+
+/* Normalize Booking segmented controls so selected options fill their full cell. */
+.booking-page .segment-row {
+    gap: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    align-items: stretch !important;
+}
+
+.booking-page .segment-row.two {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
+.booking-page .segment-row.three {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+
+.booking-page .segment-row.four {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+}
+
+.booking-page .segment-row label {
+    display: flex !important;
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    align-items: stretch !important;
+}
+
+.booking-page .segment-row span {
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+    border-radius: 0 !important;
+}
+
+.booking-page .segment-row input:checked + span {
+    border-radius: 0 !important;
+}
+
+/* Booking offer edit/preview interface */
+.booking-page.booking-step-4 .offer-section .section-head-inline {
+    display: flex !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    margin: 0 0 14px !important;
+}
+
+.booking-page.booking-step-4 .offer-section .offer-edit-toggle {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin: 0 !important;
+    color: #111827 !important;
+    font-size: 14px !important;
+    font-weight: 800 !important;
+}
+
+.booking-page.booking-step-4 .offer-section .offer-edit-toggle strong {
+    font-size: 14px !important;
+    font-weight: 800 !important;
+}
+
+.booking-page.booking-step-4 .offer-section .offer-edit-toggle span {
+    width: 30px !important;
+    height: 16px !important;
+    display: inline-block !important;
+    position: relative !important;
+    border: 1px solid #111827 !important;
+    border-radius: 999px !important;
+    background: #111827 !important;
+    box-shadow: none !important;
+}
+
+.booking-page.booking-step-4 .offer-section .offer-edit-toggle span::after {
+    display: none !important;
+}
+
+.booking-page.booking-step-4 .offer-section .offer-edit-toggle span::before {
+    content: "" !important;
+    position: absolute !important;
+    top: 2px !important;
+    left: 2px !important;
+    width: 12px !important;
+    height: 12px !important;
+    border-radius: 50% !important;
+    background: #ffffff !important;
+    transition: transform .18s ease !important;
+}
+
+.booking-page.booking-step-4 .offer-section .offer-edit-toggle input[type="checkbox"]:checked + span::before {
+    transform: translateX(14px) !important;
+}
+
+.booking-page.booking-step-4 .offer-section .offer-edit-group {
+    margin-top: 0 !important;
+}
+
+.booking-page.booking-step-4 .offer-section .offer-edit-save-row {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 12px;
+}
+
+.booking-page.booking-step-4 .offer-section .offer-edit-save-btn {
+    width: 140px;
+    height: 44px;
+    border: 0;
+    border-radius: 999px;
+    background: #df0000;
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 14px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+@media (max-width: 760px) {
+    .booking-page.booking-step-4 .offer-section .offer-edit-save-row {
+        justify-content: center;
+    }
+}
+
+/* Booking Exchange Details live summary card */
+.booking-page.booking-step-3 .exchange-summary {
+    width: min(1120px, 100%) !important;
+    max-width: none !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px 22px !important;
+    margin: 0 auto 18px !important;
+    padding: 16px 22px !important;
+    border: 1px solid #d5d5d5 !important;
+    border-left: 5px solid #e50000 !important;
+    border-radius: 0 12px 12px 0 !important;
+    background: #ffffff !important;
+    box-shadow: 2px 3px 6px rgba(15, 23, 42, 0.18) !important;
+}
+
+.booking-page.booking-step-3 .exchange-summary-row {
+    display: grid !important;
+    grid-template-columns: minmax(170px, .82fr) minmax(0, 1fr) !important;
+    align-items: center !important;
+    gap: 12px !important;
+    min-height: 30px !important;
+    margin: 0 !important;
+}
+
+.booking-page.booking-step-3 .exchange-summary-row::before,
+.booking-page.booking-step-3 .exchange-summary-row::after {
+    content: none !important;
+    display: none !important;
+}
+
+.booking-page.booking-step-3 .exchange-summary-row span,
+.booking-page.booking-step-3 .exchange-summary-row strong {
+    grid-column: auto !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    color: #111827 !important;
+    font-size: 13px !important;
+    line-height: 1.25 !important;
+}
+
+.booking-page.booking-step-3 .exchange-summary-row span {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 9px !important;
+    font-weight: 800 !important;
+}
+
+.booking-page.booking-step-3 .exchange-summary-row span::before {
+    content: "" !important;
+    flex: 0 0 15px !important;
+    width: 15px !important;
+    height: 15px !important;
+    background: #ef2a22 !important;
+    -webkit-mask: var(--exchange-summary-icon, url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3Cpath d='M5 22c.8-5 3.2-8 7-8s6.2 3 7 8z'/%3E%3C/svg%3E")) center / contain no-repeat !important;
+    mask: var(--exchange-summary-icon, url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3Cpath d='M5 22c.8-5 3.2-8 7-8s6.2 3 7 8z'/%3E%3C/svg%3E")) center / contain no-repeat !important;
+}
+
+.booking-page.booking-step-3 .exchange-summary-row strong {
+    overflow-wrap: anywhere !important;
+    font-weight: 600 !important;
+}
+
+.booking-page.booking-step-3 .exchange-summary-vehicle,
+.booking-page.booking-step-3 .exchange-summary-insurance,
+.booking-page.booking-step-3 .exchange-summary-registration {
+    grid-column: span 2 !important;
+}
+
+.booking-page.booking-step-3 .exchange-summary-vehicle {
+    --exchange-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 11l2-5h10l2 5 2 1v6h-3v-2H6v2H3v-6zM8 8l-1 3h10l-1-3z'/%3E%3Ccircle cx='7' cy='14' r='1.7'/%3E%3Ccircle cx='17' cy='14' r='1.7'/%3E%3C/svg%3E");
+}
+
+.booking-page.booking-step-3 .exchange-summary-mobile {
+    --exchange-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 3l3 4-2 2c1.3 2.5 3.5 4.7 6 6l2-2 4 3v4c0 .6-.4 1-1 1C10.2 21 3 13.8 3 5c0-.6.4-1 1-1h3z'/%3E%3C/svg%3E");
+}
+
+.booking-page.booking-step-3 .exchange-summary-exchange,
+.booking-page.booking-step-3 .exchange-summary-type {
+    --exchange-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 7h10l-2.5-2.5L16 3l5 5-5 5-1.5-1.5L17 9H7zm10 10H7l2.5 2.5L8 21l-5-5 5-5 1.5 1.5L7 15h10z'/%3E%3C/svg%3E");
+}
+
+@media (max-width: 760px) {
+    .booking-page.booking-step-3 .exchange-summary {
+        grid-template-columns: 1fr !important;
+        padding: 14px 16px !important;
+    }
+
+    .booking-page.booking-step-3 .exchange-summary-row,
+    .booking-page.booking-step-3 .exchange-summary-vehicle,
+    .booking-page.booking-step-3 .exchange-summary-insurance,
+    .booking-page.booking-step-3 .exchange-summary-registration {
+        grid-column: 1 !important;
+    }
+}
+
+@media (max-width: 520px) {
+    .booking-page.booking-step-3 .exchange-summary-row {
+        grid-template-columns: 1fr !important;
+        gap: 3px !important;
+    }
+}
+
+/* Standard single-list layout for Booking Exchange Details summary */
+.booking-page.booking-step-3 .exchange-summary {
+    grid-template-columns: 1fr !important;
+    gap: 0 !important;
+    width: min(980px, 100%) !important;
+    padding: 14px 20px !important;
+}
+
+.booking-page.booking-step-3 .exchange-summary-row,
+.booking-page.booking-step-3 .exchange-summary-vehicle,
+.booking-page.booking-step-3 .exchange-summary-insurance,
+.booking-page.booking-step-3 .exchange-summary-registration {
+    grid-column: 1 !important;
+}
+
+.booking-page.booking-step-3 .exchange-summary-row {
+    grid-template-columns: minmax(220px, 34%) minmax(0, 1fr) !important;
+    gap: 18px !important;
+    min-height: 34px !important;
+    padding: 4px 0 !important;
+}
+
+.booking-page.booking-step-3 .exchange-summary-row span {
+    justify-content: flex-start !important;
+}
+
+.booking-page.booking-step-3 .exchange-summary-row strong {
+    justify-self: start !important;
+    text-align: left !important;
+}
+
+@media (max-width: 640px) {
+    .booking-page.booking-step-3 .exchange-summary-row {
+        grid-template-columns: 1fr !important;
+        gap: 4px !important;
+        padding: 7px 0 !important;
+    }
 }

@@ -214,6 +214,7 @@ $viewerId = (int) ($user?->id ?? 0);
                                 </div>
                             </details>
 
+                            @unless(in_array($viewerRole, [\App\Models\User::ROLE_AREA_MANAGER, \App\Models\User::ROLE_SALES_CONSULTANT], true))
                             <a href="{{ route('dashboard.home') }}" class="crm-analytics-nav" aria-label="Open analyzing dashboard" title="Analyzing Dashboard">
                                 <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
                                     <path d="M4 19h16" stroke-linecap="round"></path>
@@ -223,6 +224,7 @@ $viewerId = (int) ($user?->id ?? 0);
                                     <path d="M6 11l4-3 3 2 5-5" stroke-linecap="round" stroke-linejoin="round"></path>
                                 </svg>
                             </a>
+                            @endunless
 
                             <details class="crm-profile-menu-wrap">
                                 <summary class="crm-profile-btn" aria-label="Open profile menu">

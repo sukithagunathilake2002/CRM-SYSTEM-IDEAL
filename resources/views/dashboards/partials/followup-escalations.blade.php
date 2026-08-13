@@ -153,7 +153,7 @@
 
             <div class="followup-summary-panel" data-followup-panel="area">
                 <div class="followup-chart-card followup-chart-card-wide">
-                    <h3>Area Manager wise Pending Chart</h3>
+                    <h3 class="no-heading-icon">Area Manager wise Pending Chart</h3>
                     <canvas id="followupAreaPendingChart" aria-label="Area Manager wise pending chart"></canvas>
                 </div>
                 <div class="analytics-table-wrap followup-summary-table-wrap">
@@ -188,7 +188,7 @@
 
             <div class="followup-summary-panel" data-followup-panel="consultants">
                 <div class="followup-chart-card followup-chart-card-wide">
-                    <h3>Sales Consultants Wise Pending Chart</h3>
+                    <h3 class="no-heading-icon">Sales Consultants Wise Pending Chart</h3>
                     <canvas id="followupConsultantPendingChart" aria-label="Sales Consultants wise pending chart"></canvas>
                 </div>
                 <div class="analytics-table-wrap followup-summary-table-wrap">

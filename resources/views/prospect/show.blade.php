@@ -79,7 +79,17 @@
         !empty($prospect->car_pic_2_image) ||
         !empty($prospect->exchange_extra_images);
     $isExchangeImageAdd = old('add_exchange_images', $hasExistingExchangeImages ? '1' : '0') === '1';
-    $extraExchangeImages = is_array($prospect->exchange_extra_images) ? $prospect->exchange_extra_images : [];
+    $prospectStorageImageUrl = function ($path): string {
+        $path = trim((string) $path);
+        return $path !== '' && \Illuminate\Support\Facades\Storage::disk('public')->exists($path)
+            ? asset('storage/' . $path)
+            : '';
+    };
+    $extraExchangeImages = collect(is_array($prospect->exchange_extra_images) ? $prospect->exchange_extra_images : [])
+        ->map(fn($path) => trim((string) $path))
+        ->filter(fn($path) => $path !== '' && \Illuminate\Support\Facades\Storage::disk('public')->exists($path))
+        ->values()
+        ->all();
     $selectedExchangeBrand = old('exchange_vehicle_brand', $prospect->exchange_vehicle_brand);
     $selectedExchangeModel = old('exchange_vehicle_model', $prospect->exchange_vehicle_model);
     $selectedExchangeOwnership = old('exchange_ownership', $prospect->exchange_ownership);
@@ -232,37 +242,37 @@
         <div class="summary-row summary-detail-row summary-icon-customer-type" data-summary-step="1"><span>Customer Type</span><strong data-summary-field="customer_type">{{ $selectedCustomerType ? ucfirst($selectedCustomerType) : 'N/A' }}</strong></div>
         <div class="summary-row summary-detail-row summary-icon-profession" data-summary-step="1"><span>Profession</span><strong data-summary-field="profession">{{ $selectedProfession ? ucwords(str_replace('_', ' ', $selectedProfession)) : 'N/A' }}</strong></div>
 
-        <div class="summary-row summary-detail-row" data-summary-step="2"><span>Color</span><strong data-summary-field="interested_vehicle_color">{{ $selectedInterestedColor ?: 'N/A' }}</strong></div>
-        <div class="summary-row summary-detail-row" data-summary-step="2"><span>Lead Source</span><strong data-summary-field="lead_source">{{ trim(($selectedLeadSource ?? '') . (($selectedSourceOfInformation ?? '') ? ' - ' . $selectedSourceOfInformation : '')) ?: 'N/A' }}</strong></div>
-        <div class="summary-row summary-detail-row" data-summary-step="2"><span>Quote Taken</span><strong data-summary-field="quote_taken">{{ $selectedQuote ? ucfirst($selectedQuote) : 'N/A' }}</strong></div>
-        <div class="summary-row summary-detail-row" data-summary-step="2"><span>Test Drive</span><strong data-summary-field="test_drive_given">{{ $selectedTestDrive ? ucfirst($selectedTestDrive) : 'N/A' }}</strong></div>
-        <div class="summary-row summary-detail-row" data-summary-step="2"><span>Purchase Mode</span><strong data-summary-field="purchase_mode">{{ $selectedPurchaseMode ? ucfirst($selectedPurchaseMode) : 'N/A' }}</strong></div>
-        <div class="summary-row summary-detail-row" data-summary-step="2"><span>Competition</span><strong data-summary-field="competition">{{ $selectedCompetition ? ucfirst(str_replace('_', ' ', $selectedCompetition)) : 'N/A' }}</strong></div>
-        <div class="summary-row summary-detail-row" data-summary-step="2"><span>First Time Buyer</span><strong data-summary-field="first_time_buyer">{{ $firstTimeBuyerSummary }}</strong></div>
+        <div class="summary-row summary-detail-row summary-icon-color" data-summary-step="2"><span>Color</span><strong data-summary-field="interested_vehicle_color">{{ $selectedInterestedColor ?: 'N/A' }}</strong></div>
+        <div class="summary-row summary-detail-row summary-icon-source" data-summary-step="2"><span>Lead Source</span><strong data-summary-field="lead_source">{{ trim(($selectedLeadSource ?? '') . (($selectedSourceOfInformation ?? '') ? ' - ' . $selectedSourceOfInformation : '')) ?: 'N/A' }}</strong></div>
+        <div class="summary-row summary-detail-row summary-icon-quote" data-summary-step="2"><span>Quote Taken</span><strong data-summary-field="quote_taken">{{ $selectedQuote ? ucfirst($selectedQuote) : 'N/A' }}</strong></div>
+        <div class="summary-row summary-detail-row summary-icon-test-drive" data-summary-step="2"><span>Test Drive</span><strong data-summary-field="test_drive_given">{{ $selectedTestDrive ? ucfirst($selectedTestDrive) : 'N/A' }}</strong></div>
+        <div class="summary-row summary-detail-row summary-icon-payment" data-summary-step="2"><span>Purchase Mode</span><strong data-summary-field="purchase_mode">{{ $selectedPurchaseMode ? ucfirst($selectedPurchaseMode) : 'N/A' }}</strong></div>
+        <div class="summary-row summary-detail-row summary-icon-competition" data-summary-step="2"><span>Competition</span><strong data-summary-field="competition">{{ $selectedCompetition ? ucfirst(str_replace('_', ' ', $selectedCompetition)) : 'N/A' }}</strong></div>
+        <div class="summary-row summary-detail-row summary-icon-first-buyer" data-summary-step="2"><span>First Time Buyer</span><strong data-summary-field="first_time_buyer">{{ $firstTimeBuyerSummary }}</strong></div>
 
-        <div class="summary-row summary-detail-row summary-step3-mobile" data-summary-step="3"><span>Mobile No</span><strong data-summary-field="exchange_mobile">{{ $mobileString ?: 'N/A' }}</strong></div>
-        <div class="summary-row summary-detail-row" data-summary-step="3"><span>Exchange?</span><strong data-summary-field="interested_in_exchange">{{ ucfirst($selectedInterestedExchange ?: 'No') }}</strong></div>
-        <div class="summary-row summary-detail-row" data-summary-step="3"><span>Exchange Vehicle</span><strong data-summary-field="exchange_vehicle">{{ $exchangeVehicleLabel ?: 'N/A' }}</strong></div>
-        <div class="summary-row summary-detail-row" data-summary-step="3"><span>Model Year</span><strong data-summary-field="exchange_year">{{ old('exchange_manufacture_year', $prospect->exchange_manufacture_year) ?: 'N/A' }}</strong></div>
-        <div class="summary-row summary-detail-row" data-summary-step="3"><span>Ownership</span><strong data-summary-field="exchange_ownership">{{ $selectedExchangeOwnership ?: 'N/A' }}</strong></div>
-        <div class="summary-row summary-detail-row" data-summary-step="3"><span>Insurance Validity</span><strong data-summary-field="exchange_insurance_validity">{{ $selectedExchangeInsuranceValidity ?: 'N/A' }}</strong></div>
-        <div class="summary-row summary-detail-row" data-summary-step="3"><span>Registration No</span><strong data-summary-field="exchange_registration_no">{{ old('exchange_registration_no', $prospect->exchange_registration_no) ?: 'N/A' }}</strong></div>
-        <div class="summary-row summary-detail-row" data-summary-step="3"><span>Price</span><strong data-summary-field="exchange_price">{{ old('exchange_expected_price', $prospect->exchange_expected_price) || old('exchange_quoted_price', $prospect->exchange_quoted_price) ? 'Expected: ' . old('exchange_expected_price', $prospect->exchange_expected_price) . ' / Quoted: ' . old('exchange_quoted_price', $prospect->exchange_quoted_price) : 'N/A' }}</strong></div>
-        <div class="summary-row summary-detail-row" data-summary-step="3"><span>Total KM</span><strong data-summary-field="exchange_mileage_km">{{ $selectedExchangeMileageKm ?: 'N/A' }}</strong></div>
+        <div class="summary-row summary-detail-row summary-step3-mobile summary-icon-phone" data-summary-step="3"><span>Mobile No</span><strong data-summary-field="exchange_mobile">{{ $mobileString ?: 'N/A' }}</strong></div>
+        <div class="summary-row summary-detail-row summary-icon-exchange" data-summary-step="3"><span>Exchange?</span><strong data-summary-field="interested_in_exchange">{{ ucfirst($selectedInterestedExchange ?: 'No') }}</strong></div>
+        <div class="summary-row summary-detail-row summary-icon-vehicle" data-summary-step="3"><span>Exchange Vehicle</span><strong data-summary-field="exchange_vehicle">{{ $exchangeVehicleLabel ?: 'N/A' }}</strong></div>
+        <div class="summary-row summary-detail-row summary-icon-calendar" data-summary-step="3"><span>Model Year</span><strong data-summary-field="exchange_year">{{ old('exchange_manufacture_year', $prospect->exchange_manufacture_year) ?: 'N/A' }}</strong></div>
+        <div class="summary-row summary-detail-row summary-icon-ownership" data-summary-step="3"><span>Ownership</span><strong data-summary-field="exchange_ownership">{{ $selectedExchangeOwnership ?: 'N/A' }}</strong></div>
+        <div class="summary-row summary-detail-row summary-icon-insurance" data-summary-step="3"><span>Insurance Validity</span><strong data-summary-field="exchange_insurance_validity">{{ $selectedExchangeInsuranceValidity ?: 'N/A' }}</strong></div>
+        <div class="summary-row summary-detail-row summary-icon-registration" data-summary-step="3"><span>Registration No</span><strong data-summary-field="exchange_registration_no">{{ old('exchange_registration_no', $prospect->exchange_registration_no) ?: 'N/A' }}</strong></div>
+        <div class="summary-row summary-detail-row summary-icon-money" data-summary-step="3"><span>Price</span><strong data-summary-field="exchange_price">{{ old('exchange_expected_price', $prospect->exchange_expected_price) || old('exchange_quoted_price', $prospect->exchange_quoted_price) ? 'Expected: ' . old('exchange_expected_price', $prospect->exchange_expected_price) . ' / Quoted: ' . old('exchange_quoted_price', $prospect->exchange_quoted_price) : 'N/A' }}</strong></div>
+        <div class="summary-row summary-detail-row summary-icon-distance" data-summary-step="3"><span>Total KM</span><strong data-summary-field="exchange_mileage_km">{{ $selectedExchangeMileageKm ?: 'N/A' }}</strong></div>
 
-        <div class="summary-row summary-detail-row" data-summary-step="4"><span>Unit Price</span><strong data-summary-field="offer_unit_price">{{ number_format((float) $offerUnitPrice, 2) }}</strong></div>
-        <div class="summary-row summary-detail-row" data-summary-step="4"><span>VAT</span><strong data-summary-field="offer_vat_amount">{{ number_format((float) $offerVatAmount, 2) }}</strong></div>
-        <div class="summary-row summary-detail-row" data-summary-step="4"><span>Total Cost</span><strong data-summary-field="offer_total_cost">{{ number_format((float) $offerTotalCost, 2) }}</strong></div>
-        <div class="summary-row summary-detail-row" data-summary-step="4"><span>Total Discount</span><strong data-summary-field="offer_total_discount">{{ number_format((float) $offerTotalDiscount, 2) }}</strong></div>
-        <div class="summary-row summary-detail-row" data-summary-step="4"><span>Final Price</span><strong data-summary-field="offer_final_price">{{ number_format((float) $offerFinalPrice, 2) }}</strong></div>
-        <div class="summary-row summary-detail-row" data-summary-step="4"><span>Offer Remark</span><strong data-summary-field="offer_remark">{{ $offerRemark ?: 'N/A' }}</strong></div>
+        <div class="summary-row summary-detail-row summary-icon-money" data-summary-step="4"><span>Unit Price</span><strong data-summary-field="offer_unit_price">{{ number_format((float) $offerUnitPrice, 2) }}</strong></div>
+        <div class="summary-row summary-detail-row summary-icon-tax" data-summary-step="4"><span>VAT</span><strong data-summary-field="offer_vat_amount">{{ number_format((float) $offerVatAmount, 2) }}</strong></div>
+        <div class="summary-row summary-detail-row summary-icon-money" data-summary-step="4"><span>Total Cost</span><strong data-summary-field="offer_total_cost">{{ number_format((float) $offerTotalCost, 2) }}</strong></div>
+        <div class="summary-row summary-detail-row summary-icon-discount" data-summary-step="4"><span>Total Discount</span><strong data-summary-field="offer_total_discount">{{ number_format((float) $offerTotalDiscount, 2) }}</strong></div>
+        <div class="summary-row summary-detail-row summary-icon-final-price" data-summary-step="4"><span>Final Price</span><strong data-summary-field="offer_final_price">{{ number_format((float) $offerFinalPrice, 2) }}</strong></div>
+        <div class="summary-row summary-detail-row summary-icon-remark" data-summary-step="4"><span>Offer Remark</span><strong data-summary-field="offer_remark">{{ $offerRemark ?: 'N/A' }}</strong></div>
 
-        <div class="summary-row summary-detail-row" data-summary-step="5"><span>Latest Followup</span><strong>{{ $latestFollowupText }}</strong></div>
-        <div class="summary-row summary-detail-row" data-summary-step="5"><span>Reschedule</span><strong data-summary-field="reschedule_followup">{{ $isRescheduleFollowup ? 'Yes' : 'No' }}</strong></div>
-        <div class="summary-row summary-detail-row" data-summary-step="5"><span>Followup Plan</span><strong data-summary-field="followup_plan">{{ trim(($selectedFollowType ?? '') . (($selectedFollowDate ?? '') ? ' on ' . $selectedFollowDate : '') . (($selectedFollowTime ?? '') ? ' at ' . $selectedFollowTime : '')) ?: 'N/A' }}</strong></div>
-        <div class="summary-row summary-detail-row" data-summary-step="5"><span>Reschedule Reason</span><strong data-summary-field="reschedule_reason">{{ $rescheduleReason ?: 'N/A' }}</strong></div>
-        <div class="summary-row summary-detail-row" data-summary-step="5"><span>Lead Status</span><strong data-summary-field="lead_status">{{ $selectedLeadStatus ? ucfirst($selectedLeadStatus) : 'N/A' }}</strong></div>
-        <div class="summary-row summary-detail-row" data-summary-step="5"><span>Remark</span><strong data-summary-field="customer_remark">{{ $customerRemark ?: 'N/A' }}</strong></div>
+        <div class="summary-row summary-detail-row summary-icon-followup" data-summary-step="5"><span>Latest Followup</span><strong>{{ $latestFollowupText }}</strong></div>
+        <div class="summary-row summary-detail-row summary-icon-reschedule" data-summary-step="5"><span>Reschedule</span><strong data-summary-field="reschedule_followup">{{ $isRescheduleFollowup ? 'Yes' : 'No' }}</strong></div>
+        <div class="summary-row summary-detail-row summary-icon-followup" data-summary-step="5"><span>Followup Plan</span><strong data-summary-field="followup_plan">{{ trim(($selectedFollowType ?? '') . (($selectedFollowDate ?? '') ? ' on ' . $selectedFollowDate : '') . (($selectedFollowTime ?? '') ? ' at ' . $selectedFollowTime : '')) ?: 'N/A' }}</strong></div>
+        <div class="summary-row summary-detail-row summary-icon-remark" data-summary-step="5"><span>Reschedule Reason</span><strong data-summary-field="reschedule_reason">{{ $rescheduleReason ?: 'N/A' }}</strong></div>
+        <div class="summary-row summary-detail-row summary-icon-status" data-summary-step="5"><span>Lead Status</span><strong data-summary-field="lead_status">{{ $selectedLeadStatus ? ucfirst($selectedLeadStatus) : 'N/A' }}</strong></div>
+        <div class="summary-row summary-detail-row summary-icon-remark" data-summary-step="5"><span>Remark</span><strong data-summary-field="customer_remark">{{ $customerRemark ?: 'N/A' }}</strong></div>
     </div>
 
     <form method="POST" action="{{ route('prospect.store', $enquiry->id) }}" id="prospectForm" data-initial-step="{{ old('active_step', $initialStep) }}" enctype="multipart/form-data">
@@ -696,7 +706,7 @@
                                     type="file"
                                     name="blue_book_image"
                                     accept="image/*"
-                                    data-existing-src="{{ !empty($prospect->blue_book_image) ? asset('storage/' . $prospect->blue_book_image) : '' }}"
+                                    data-existing-src="{{ $prospectStorageImageUrl($prospect->blue_book_image) }}"
                                 >
                             </label>
                             <input type="hidden" name="remove_blue_book_image" value="0" data-exchange-remove-input>
@@ -717,7 +727,7 @@
                                     type="file"
                                     name="lot_no_image"
                                     accept="image/*"
-                                    data-existing-src="{{ !empty($prospect->lot_no_image) ? asset('storage/' . $prospect->lot_no_image) : '' }}"
+                                    data-existing-src="{{ $prospectStorageImageUrl($prospect->lot_no_image) }}"
                                 >
                             </label>
                             <input type="hidden" name="remove_lot_no_image" value="0" data-exchange-remove-input>
@@ -738,7 +748,7 @@
                                     type="file"
                                     name="car_pic_1_image"
                                     accept="image/*"
-                                    data-existing-src="{{ !empty($prospect->car_pic_1_image) ? asset('storage/' . $prospect->car_pic_1_image) : '' }}"
+                                    data-existing-src="{{ $prospectStorageImageUrl($prospect->car_pic_1_image) }}"
                                 >
                             </label>
                             <input type="hidden" name="remove_car_pic_1_image" value="0" data-exchange-remove-input>
@@ -759,7 +769,7 @@
                                     type="file"
                                     name="car_pic_2_image"
                                     accept="image/*"
-                                    data-existing-src="{{ !empty($prospect->car_pic_2_image) ? asset('storage/' . $prospect->car_pic_2_image) : '' }}"
+                                    data-existing-src="{{ $prospectStorageImageUrl($prospect->car_pic_2_image) }}"
                                 >
                             </label>
                             <input type="hidden" name="remove_car_pic_2_image" value="0" data-exchange-remove-input>
@@ -843,7 +853,7 @@
                             @foreach($extraExchangeImages as $index => $extraImagePath)
                                 @if(!empty($extraImagePath))
                                     <div class="exchange-existing-preview-item" data-existing-extra-image>
-                                        <img src="{{ asset('storage/' . $extraImagePath) }}" alt="Existing extra exchange image {{ $index + 1 }}">
+                                        <img src="{{ asset('storage/' . $extraImagePath) }}" alt="Existing extra exchange image {{ $index + 1 }}" onerror="this.closest('[data-existing-extra-image]').remove()">
                                         <input type="checkbox" name="remove_extra_exchange_images[]" value="{{ $extraImagePath }}" hidden>
                                         <div class="exchange-upload-actions">
                                             <button type="button" data-existing-extra-action="view" data-image-src="{{ asset('storage/' . $extraImagePath) }}">View</button>
@@ -859,9 +869,10 @@
         </section>
         <section class="prospect-step offer-step" data-step="4" data-step-completed="{{ $isStepCompleted(4) ? '1' : '0' }}">
             <div class="section-title-line offer-title-line">
-                <label class="switch-label offer-edit-label" aria-label="Edit Buying Details">
-                    <input type="checkbox" id="allowOfferEdit" checked>
-                    <span>Edit Buying Details</span>
+                <label class="switch-label offer-edit-label" aria-label="Edit Offer Details">
+                    <strong class="offer-edit-heading">Edit</strong>
+                    <input type="checkbox" id="allowOfferEdit">
+                    <span>Edit Offer Details</span>
                 </label>
             </div>
 
@@ -964,19 +975,19 @@
                         <strong id="offerFinalPriceDisplay">{{ number_format((float) $offerFinalPrice, 2, '.', '') }}</strong>
                     </div>
                 </div>
+
+                <div class="offer-edit-save-row">
+                    <button type="button" class="offer-edit-save-btn" id="offerEditSaveBtn">Save</button>
+                </div>
             </div>
 
             <input type="hidden" name="offer_total_cost" id="offer_total_cost" value="{{ $offerTotalCost }}">
             <input type="hidden" name="offer_total_discount" id="offer_total_discount" value="{{ $offerTotalDiscount }}">
             <input type="hidden" name="offer_final_price" id="offer_final_price" value="{{ $offerFinalPrice }}">
         </section>
-        <section class="prospect-step plan-step step-collapsible {{ $shouldOpenStep(5) ? '' : 'step-collapsed' }}" data-step="5" data-step-completed="{{ $isStepCompleted(5) ? '1' : '0' }}">
+        <section class="prospect-step plan-step" data-step="5" data-step-completed="{{ $isStepCompleted(5) ? '1' : '0' }}">
             <div class="section-title-line step-edit-line">
                 <h3>Plan Followup</h3>
-                <label class="switch-label">
-                    <input type="checkbox" class="step-edit-toggle" data-step-edit-toggle @checked($shouldOpenStep(5))>
-                    <span>Edit</span>
-                </label>
             </div>
 
             <div class="plan-top-row">

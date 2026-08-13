@@ -1,17 +1,10 @@
-@extends('layouts.app')
-
-<link rel="stylesheet" href="{{ asset('css/emi.css') }}">
+@extends('layouts.portal')
 
 
 @section('content')
-<div class="emi-page">
-    <header class="emi-topbar">
-        <a href="{{ route('dashboard.main') }}" class="brand-logo-link" aria-label="Go to dashboard">
-            <img src="{{ asset('icons/logo.png') }}" alt="Ideal Motors" class="emi-brand-logo">
-        </a>
-        <div class="top-icons-right"></div>
-    </header>
+<link rel="stylesheet" href="{{ asset('css/emi.css') }}">
 
+<div class="emi-page">
     <div class="emi-shell">
         <div class="emi-layout">
             <section class="emi-form-panel">

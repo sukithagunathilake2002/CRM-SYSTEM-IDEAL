@@ -170,7 +170,6 @@
                 $terminalLeadLabel = $terminalLeadResult ? ucfirst($terminalLeadResult) . ' Lead' : '';
                 $bookingAvailable = $e->canOpenBooking();
                 $deliveryAvailable = $e->canOpenDelivery();
-                $bookingSubmitted = $e->hasCompletedBooking();
                 $whatsAppPhone = preg_replace('/\D+/', '', $primaryPhone);
                 if (substr($whatsAppPhone, 0, 1) === '0') {
                     $whatsAppPhone = '94' . substr($whatsAppPhone, 1);
@@ -273,9 +272,9 @@
                                 @else
                                     <a href="{{ route('followup.show', $e->id) }}" class="chip-btn">Followup</a>
                                     <a href="{{ route('prospect.show', $e->id) }}" class="chip-btn">Prospect Sheet</a>
-                                    @if($bookingAvailable && !$bookingSubmitted)
+                                    @if($bookingAvailable)
                                         <a href="{{ route('booking.show', $e->id) }}" class="chip-btn">Booking</a>
-                                    @elseif(!$bookingSubmitted)
+                                    @else
                                         <span class="chip-btn chip-btn-disabled" aria-disabled="true">Booking</span>
                                     @endif
                                     @if($deliveryAvailable)

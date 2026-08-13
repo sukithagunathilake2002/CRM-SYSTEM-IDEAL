@@ -2459,6 +2459,22 @@ html.theme-dark .consultant-pending-details > summary::after {
     font-size: 14px;
 }
 
+.followup-chart-card h3.no-heading-icon::before,
+.followup-chart-card h3.no-heading-icon::after,
+.lost-analytics-chart-top h3.no-heading-icon::before,
+.lost-analytics-chart-top h3.no-heading-icon::after,
+.analytics-chart-card h3.no-heading-icon::before,
+.analytics-chart-card h3.no-heading-icon::after {
+    content: none !important;
+    display: none !important;
+}
+
+.followup-chart-card h3.no-heading-icon > .chart-title-dot,
+.lost-analytics-chart-top h3.no-heading-icon > .chart-title-dot,
+.analytics-chart-card h3.no-heading-icon > .chart-title-dot {
+    display: none !important;
+}
+
 .followup-chart-card canvas {
     width: 100% !important;
     height: 230px !important;

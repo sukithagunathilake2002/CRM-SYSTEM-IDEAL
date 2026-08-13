@@ -179,6 +179,72 @@
     --summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M9 3h6v3h4v4h-2V8H7v2H5V6h4zM7 11h10v10H7z'/%3E%3C/svg%3E");
 }
 
+.delivery-summary .summary-icon-customer {
+    --summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3Cpath d='M5 22c.8-5 3.2-8 7-8s6.2 3 7 8z'/%3E%3C/svg%3E");
+}
+
+.delivery-summary .summary-icon-address {
+    --summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 22s7-5.7 7-12A7 7 0 0 0 5 10c0 6.3 7 12 7 12z'/%3E%3Ccircle cx='12' cy='10' r='2.4' fill='white'/%3E%3C/svg%3E");
+}
+
+.delivery-summary .summary-icon-phone {
+    --summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7.2 3.2h3.2l1.6 4-2.1 1.6c1 2.2 2.7 3.9 4.9 4.9l1.6-2.1 4 1.6v3.2c0 1-.8 1.8-1.8 1.8C10 18.2 3.8 12 3.8 5c0-1 .8-1.8 1.8-1.8h1.6z'/%3E%3C/svg%3E");
+}
+
+.delivery-summary .summary-icon-email {
+    --summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3.5 6h17v12h-17zM4.5 7.2l7 5.2c.3.2.7.2 1 0l7-5.2v2.2l-7 5.2c-.3.2-.7.2-1 0l-7-5.2z'/%3E%3C/svg%3E");
+}
+
+.delivery-summary .summary-icon-customer-type {
+    --summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='9' cy='8' r='3'/%3E%3Cpath d='M3.5 20c.7-3.8 2.5-5.6 5.5-5.6s4.8 1.8 5.5 5.6z'/%3E%3Ccircle cx='17' cy='9' r='2.4'/%3E%3Cpath d='M14.5 15.2c2.8.2 4.5 1.8 5 4.8h-3.7c-.3-1.6-.9-2.9-1.8-3.8z'/%3E%3C/svg%3E");
+}
+
+.delivery-summary .summary-icon-profession {
+    --summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M9 6V4h6v2h4v4H5V6zm-4 6h14v8H5zm5 0v2h4v-2z'/%3E%3C/svg%3E");
+}
+
+.delivery-summary .summary-icon-vehicle {
+    --summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 11l2-5h10l2 5 2 1v6h-3v-2H6v2H3v-6zM8 8l-1 3h10l-1-3z'/%3E%3Ccircle cx='7' cy='14' r='1.7'/%3E%3Ccircle cx='17' cy='14' r='1.7'/%3E%3C/svg%3E");
+}
+
+.delivery-summary .summary-icon-color {
+    --summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 3c4.5 3.7 7 7 7 10.2A7 7 0 0 1 5 13.2C5 10 7.5 6.7 12 3z'/%3E%3C/svg%3E");
+}
+
+.delivery-summary .summary-icon-test-drive {
+    --summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 17h2a2 2 0 0 0 4 0h2a2 2 0 0 0 4 0h2v-4l-2-3h-3l-2-3H7l-2 5zM8 9h3l1 2H7z'/%3E%3Cpath d='M4 19h16v2H4z'/%3E%3C/svg%3E");
+}
+
+.delivery-summary .summary-icon-competition {
+    --summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 4h10v3h3v3c0 3.5-2.2 6.2-6 6.8V19h3v2H7v-2h3v-2.2c-3.8-.6-6-3.3-6-6.8V7h3zm2 2v4c0 3.2 1.1 5 3 5s3-1.8 3-5V6z'/%3E%3C/svg%3E");
+}
+
+.delivery-summary .summary-icon-first-buyer {
+    --summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='10' cy='8' r='3'/%3E%3Cpath d='M4 20c.8-4 2.8-6 6-6 1.4 0 2.6.4 3.5 1.1L12 16.7l2.2 2.2 4.8-5 1.5 1.4-6.3 6.4-4.2-4.1 1.8-1.8c-.5-.2-1.1-.3-1.8-.3-2 0-3.2 1.4-3.8 4.5z'/%3E%3C/svg%3E");
+}
+
+.delivery-summary .summary-icon-payment,
+.delivery-summary .summary-icon-finance {
+    --summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 6h18v12H3zm2 3v2h14V9zm0 5v2h6v-2z'/%3E%3C/svg%3E");
+}
+
+.delivery-summary .summary-icon-exchange {
+    --summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 7h10l-2.5-2.5L16 3l5 5-5 5-1.5-1.5L17 9H7zm10 10H7l2.5 2.5L8 21l-5-5 5-5 1.5 1.5L7 15h10z'/%3E%3C/svg%3E");
+}
+
+.delivery-summary .summary-icon-calendar {
+    --summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 4h14v17H5zM7 2h2v4H7zm8 0h2v4h-2zM6 9h12v2H6z'/%3E%3C/svg%3E");
+}
+
+.delivery-summary .summary-icon-registration {
+    --summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='3' y='5' width='18' height='14' rx='2'/%3E%3Ccircle cx='8' cy='10' r='2' fill='white'/%3E%3Cpath d='M6 16c.5-2 1.2-3 2-3s1.5 1 2 3zm7-7h5v2h-5zm0 4h4v2h-4z' fill='white'/%3E%3C/svg%3E");
+}
+
+.delivery-summary .summary-icon-money,
+.delivery-summary .summary-icon-balance {
+    --summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 6h18v12H3zm3 4a2 2 0 0 0 2-2h8a2 2 0 0 0 2 2v4a2 2 0 0 0-2 2H8a2 2 0 0 0-2-2zm6 5a3 3 0 1 0 0-6 3 3 0 0 0 0 6z'/%3E%3C/svg%3E");
+}
+
 .delivery-summary span {
     grid-column: 2;
     grid-row: 1;
@@ -1093,14 +1159,16 @@
     gap: 12px;
 }
 
-.delivery-payment-grid label {
+.delivery-payment-grid label,
+.delivery-payment-grid .delivery-payment-row {
     display: grid;
     grid-template-columns: 240px minmax(0, 1fr);
     align-items: center;
     gap: 14px;
 }
 
-.delivery-payment-grid label > span:first-child {
+.delivery-payment-grid label > span:first-child,
+.delivery-payment-grid .delivery-payment-row > span:first-child {
     color: #111827;
     font-size: 12px;
     font-weight: 700;
@@ -1147,16 +1215,18 @@
     cursor: pointer;
 }
 
-.delivery-payment-finance-wrap input {
+.delivery-payment-finance-wrap > input[type="text"] {
     padding-right: 42px;
 }
 
-.delivery-payment-finance-wrap input[readonly] {
+.delivery-payment-finance-wrap > input[type="text"][readonly] {
     background: #f8fafc;
     cursor: default;
 }
 
-.delivery-payment-finance-wrap.is-editing input {
+.delivery-payment-finance-wrap.is-editing > input[type="text"] {
+    background: #ffffff;
+    cursor: default;
     border-color: #3f8d2f;
     box-shadow: 0 0 0 2px rgba(63, 141, 47, 0.14);
 }
@@ -1164,7 +1234,7 @@
 .delivery-payment-finance-wrap button {
     position: absolute;
     right: 14px;
-    top: 50%;
+    top: 19px;
     width: 15px;
     height: 15px;
     border: 0;
@@ -1174,6 +1244,81 @@
     -webkit-mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 17.5V21h3.5L18.1 10.4l-3.5-3.5L4 17.5zm16.7-9.8c.4-.4.4-1 0-1.4l-3-3c-.4-.4-1-.4-1.4 0l-1.8 1.8L18 8.6l2.7-2.7z'/%3E%3C/svg%3E") center / contain no-repeat;
     mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 17.5V21h3.5L18.1 10.4l-3.5-3.5L4 17.5zm16.7-9.8c.4-.4.4-1 0-1.4l-3-3c-.4-.4-1-.4-1.4 0l-1.8 1.8L18 8.6l2.7-2.7z'/%3E%3C/svg%3E") center / contain no-repeat;
     cursor: pointer;
+}
+
+.delivery-payment-finance-editor {
+    width: min(336px, 100%);
+    margin-top: 10px;
+    display: grid;
+    gap: 9px;
+}
+
+.delivery-payment-finance-editor.hidden,
+.delivery-payment-finance-self.hidden,
+.delivery-payment-finance-other.hidden {
+    display: none !important;
+}
+
+.delivery-payment-finance-segment {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+    border: 1px solid #cfd2d8;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.delivery-payment-finance-segment label {
+    display: block;
+    min-height: 28px;
+}
+
+.delivery-payment-finance-segment input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.delivery-payment-finance-segment span {
+    min-height: 28px;
+    display: grid;
+    place-items: center;
+    border-right: 1px solid #cfd2d8;
+    background: #ffffff;
+    color: #111111;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.delivery-payment-finance-segment label:last-child span {
+    border-right: 0;
+}
+
+.delivery-payment-finance-segment input:checked + span {
+    background: #e00000;
+    color: #ffffff;
+}
+
+.delivery-payment-finance-self,
+.delivery-payment-finance-other {
+    display: grid;
+    gap: 8px;
+}
+
+.delivery-payment-finance-self label,
+.delivery-payment-finance-other label {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 5px;
+}
+
+.delivery-payment-finance-self label > span,
+.delivery-payment-finance-other label > span {
+    color: #111827;
+    font-size: 12px;
+    font-weight: 700;
 }
 
 .delivery-pending-badge {
@@ -1529,26 +1674,41 @@
     gap: 18px;
 }
 
-.delivery-final-payment-rows div {
+.delivery-final-payment-rows div,
+.delivery-final-receipt-trigger {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 150px 24px;
     align-items: center;
     gap: 18px;
 }
 
-.delivery-final-payment-rows span {
+.delivery-final-receipt-trigger {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    padding: 0;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.delivery-final-payment-rows span,
+.delivery-final-receipt-trigger span {
     font-size: 14px;
     font-weight: 900;
 }
 
-.delivery-final-payment-rows strong {
+.delivery-final-payment-rows strong,
+.delivery-final-receipt-trigger strong {
     color: #e00000;
     text-align: right;
     font-size: 14px;
     font-weight: 900;
 }
 
-.delivery-final-payment-rows i {
+.delivery-final-payment-rows i,
+.delivery-final-receipt-trigger i {
     width: 18px;
     height: 18px;
     border-radius: 50%;
@@ -1556,13 +1716,168 @@
     position: relative;
 }
 
-.delivery-final-payment-rows i::before {
+.delivery-final-payment-rows i::before,
+.delivery-final-receipt-trigger i::before {
     content: "";
     position: absolute;
     inset: 5px 4px;
     border-top: 2px solid #ffffff;
     border-right: 2px solid #ffffff;
     transform: rotate(45deg);
+}
+
+.delivery-final-receipt-trigger:hover i,
+.delivery-final-receipt-trigger:focus-visible i {
+    background: #c40000;
+}
+
+.delivery-final-receipt-trigger:focus-visible {
+    outline: 2px solid rgba(239, 49, 39, 0.35);
+    outline-offset: 4px;
+}
+
+.delivery-final-receipt-popup {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    background: rgba(15, 23, 42, 0.45);
+}
+
+.delivery-final-receipt-popup.hidden {
+    display: none !important;
+}
+
+.delivery-final-receipt-card {
+    width: min(440px, 100%);
+    max-height: min(82vh, 620px);
+    overflow: auto;
+    border-radius: 4px;
+    background: #ffffff;
+    padding: 26px 34px 24px;
+    box-shadow: 0 22px 50px rgba(15, 23, 42, 0.28);
+}
+
+.delivery-final-receipt-head {
+    position: relative;
+    margin-bottom: 28px;
+    text-align: center;
+}
+
+.delivery-final-receipt-head h4 {
+    margin: 0;
+    color: #111827;
+    font-size: 18px;
+    font-weight: 900;
+}
+
+.delivery-final-receipt-head button {
+    position: absolute;
+    top: -14px;
+    right: -22px;
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: 50%;
+    background: #ef3127;
+    color: #ffffff;
+    font-size: 20px;
+    line-height: 1;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.delivery-final-receipt-list {
+    display: grid;
+    gap: 14px;
+}
+
+.delivery-final-receipt-detail-card {
+    display: grid;
+    gap: 9px;
+    padding: 12px 14px 12px 16px;
+    border-left: 3px solid #ff1010;
+    border-radius: 10px;
+    background: #ffffff;
+    box-shadow: 1px 2px 4px rgba(17, 24, 39, 0.26);
+}
+
+.delivery-final-receipt-detail-row {
+    display: grid;
+    grid-template-columns: 16px minmax(110px, 1fr) 10px minmax(0, 1.25fr);
+    align-items: center;
+    gap: 8px;
+    color: #111827;
+    font-size: 12px;
+}
+
+.delivery-final-receipt-detail-row strong {
+    font-weight: 900;
+}
+
+.delivery-final-receipt-detail-row i {
+    font-style: normal;
+    font-weight: 900;
+}
+
+.delivery-final-receipt-detail-row > span:last-child {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.delivery-final-receipt-icon {
+    width: 12px;
+    height: 12px;
+    background: #ff2a22;
+    -webkit-mask: var(--receipt-icon) center / contain no-repeat;
+    mask: var(--receipt-icon) center / contain no-repeat;
+}
+
+.receipt-icon-name {
+    --receipt-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='7' r='4'/%3E%3Cpath d='M5 22c.8-5 3.2-8 7-8s6.2 3 7 8z'/%3E%3C/svg%3E");
+}
+
+.receipt-icon-date {
+    --receipt-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 3h2v2h10V3h2v2h2v16H3V5h2zm0 8v8h14v-8zm2 2h3v3H7z'/%3E%3C/svg%3E");
+}
+
+.receipt-icon-amount {
+    --receipt-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath fill='white' d='M13 6v2.1c1.4.2 2.4.9 3.1 2l-1.8 1c-.5-.7-1.1-1-2-1-.9 0-1.4.3-1.4.8 0 .6.7.8 2.1 1.2 1.8.5 3.2 1.2 3.2 3 0 1.6-1.2 2.7-3.2 3V20h-2v-1.9c-1.7-.2-3-.9-3.8-2.2l1.8-1c.6.8 1.4 1.2 2.5 1.2 1 0 1.6-.3 1.6-.9 0-.6-.6-.9-2-1.2-1.8-.5-3.2-1.1-3.2-2.9 0-1.5 1.1-2.7 3.1-2.9V6z'/%3E%3C/svg%3E");
+}
+
+.receipt-icon-payment {
+    --receipt-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 13h5l2-3 4 6 2-3h5v3h-3.4L14 21l-4-6-1 1.5H3zM18 4l3 3-3 3V8h-4V6h4zM6 4v2h4v2H6v2L3 7z'/%3E%3C/svg%3E");
+}
+
+.receipt-icon-type {
+    --receipt-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 3h12v18H6zm3 4h6v2H9zm0 4h6v2H9zm0 4h4v2H9z'/%3E%3C/svg%3E");
+}
+
+.delivery-final-receipt-empty {
+    margin: 0;
+    padding: 18px 12px;
+    border-left: 3px solid #ff1010;
+    border-radius: 10px;
+    box-shadow: 1px 2px 4px rgba(17, 24, 39, 0.26);
+    text-align: center;
+    color: #6b7280;
+    font-weight: 800;
+}
+
+.delivery-final-receipt-done {
+    min-width: 116px;
+    min-height: 30px;
+    margin: 26px auto 0;
+    display: block;
+    border: 0;
+    border-radius: 9px;
+    background: #85e37c;
+    color: #148b16;
+    font-size: 15px;
+    font-weight: 900;
+    cursor: pointer;
 }
 
 .delivery-final-reference {
@@ -2007,6 +2322,7 @@ html.theme-dark .delivery-summary strong {
     }
 
     .delivery-payment-grid label,
+    .delivery-payment-grid .delivery-payment-row,
     .delivery-offer-popup-head,
     .delivery-offer-popup-row,
     .delivery-offer-popup-total,
@@ -2014,6 +2330,7 @@ html.theme-dark .delivery-summary strong {
     .delivery-final-offer-row,
     .delivery-final-offer-total,
     .delivery-final-payment-rows div,
+    .delivery-final-receipt-trigger,
     .delivery-final-input-grid {
         grid-template-columns: 1fr;
     }
@@ -2130,5 +2447,421 @@ html.theme-dark .delivery-summary strong {
 
     .delivery-review-row p {
         grid-column: 2;
+    }
+}
+
+/* Delivery form type scale */
+.delivery-page form label,
+.delivery-page form input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]),
+.delivery-page form input[type="file"]::file-selector-button,
+.delivery-page form select,
+.delivery-page form textarea,
+.delivery-page form .delivery-pill span,
+.delivery-page form .delivery-segment span,
+.delivery-page form .delivery-question p,
+.delivery-page form .delivery-more p,
+.delivery-page form .delivery-exchange-edit-inline,
+.delivery-page form .delivery-exchange-interested span,
+.delivery-page form .delivery-offer-card-head,
+.delivery-page form .delivery-offer-card-label,
+.delivery-page form .delivery-payment-grid label,
+.delivery-page form .delivery-payment-grid .delivery-payment-row,
+.delivery-page form .delivery-final-reference,
+.delivery-page form .delivery-final-reasons label,
+.delivery-page form .delivery-receipt-row input,
+.delivery-page form .delivery-receipt-row select,
+.delivery-page form .delivery-receipt-row label {
+    font-size: 16px !important;
+}
+
+.delivery-page form h2,
+.delivery-page form h3,
+.delivery-page form h4,
+.delivery-page .delivery-offer-page-summary h3,
+.delivery-page .delivery-receipt-head h4,
+.delivery-page .delivery-offer-popup-card h3,
+.delivery-page .delivery-submit-popup-card h4 {
+    font-size: 18px !important;
+}
+
+/* Delivery personal details requested row layout */
+.delivery-page .delivery-grid {
+    grid-template-columns:
+        64px
+        minmax(190px, 1.35fr)
+        minmax(210px, 1.55fr)
+        minmax(150px, 1fr)
+        minmax(190px, 1.3fr)
+        24px !important;
+    align-items: end;
+    gap: 14px 10px;
+}
+
+.delivery-page .delivery-grid .delivery-title {
+    grid-column: 1;
+}
+
+.delivery-page .delivery-grid .delivery-name-field {
+    grid-column: 2;
+}
+
+.delivery-page .delivery-grid .delivery-email-field {
+    grid-column: 3;
+}
+
+.delivery-page .delivery-grid .delivery-dob-field {
+    grid-column: 4;
+}
+
+.delivery-page .delivery-grid .delivery-contact-no-field {
+    grid-column: 5;
+}
+
+.delivery-page .delivery-grid .delivery-contact-add-btn {
+    grid-column: 6;
+    width: 18px;
+    height: 18px;
+    align-self: end;
+    margin-bottom: 8px;
+    border: 0;
+    border-radius: 50%;
+    background: #050505;
+    color: #ffffff;
+    display: inline-grid;
+    place-items: center;
+    padding: 0;
+    font-size: 14px;
+    line-height: 1;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.delivery-page .delivery-grid .delivery-district-field,
+.delivery-page .delivery-grid .delivery-state-field {
+    grid-column: 1 / span 2;
+}
+
+.delivery-page .delivery-grid .delivery-location-field,
+.delivery-page .delivery-grid .delivery-address1-field {
+    grid-column: 3 / -1;
+}
+
+.delivery-page .delivery-grid .delivery-wide {
+    grid-column: 1 / -1;
+}
+
+.delivery-page .delivery-grid .delivery-contact-no-field input[name="mobile_numbers"] {
+    min-width: 0;
+    width: 100%;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: nowrap;
+}
+
+@media (max-width: 1120px) {
+    .delivery-page .delivery-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    .delivery-page .delivery-grid .delivery-title,
+    .delivery-page .delivery-grid .delivery-name-field,
+    .delivery-page .delivery-grid .delivery-email-field,
+    .delivery-page .delivery-grid .delivery-dob-field,
+    .delivery-page .delivery-grid .delivery-contact-no-field,
+    .delivery-page .delivery-grid .delivery-district-field,
+    .delivery-page .delivery-grid .delivery-location-field,
+    .delivery-page .delivery-grid .delivery-state-field,
+    .delivery-page .delivery-grid .delivery-address1-field {
+        grid-column: auto;
+    }
+
+    .delivery-page .delivery-grid .delivery-contact-no-field,
+    .delivery-page .delivery-grid .delivery-location-field,
+    .delivery-page .delivery-grid .delivery-address1-field,
+    .delivery-page .delivery-grid .delivery-wide {
+        grid-column: 1 / -1;
+    }
+
+    .delivery-page .delivery-grid .delivery-contact-add-btn {
+        grid-column: auto;
+        justify-self: start;
+    }
+}
+
+@media (max-width: 620px) {
+    .delivery-page .delivery-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .delivery-page .delivery-grid .delivery-title,
+    .delivery-page .delivery-grid .delivery-name-field,
+    .delivery-page .delivery-grid .delivery-email-field,
+    .delivery-page .delivery-grid .delivery-dob-field,
+    .delivery-page .delivery-grid .delivery-contact-no-field,
+    .delivery-page .delivery-grid .delivery-district-field,
+    .delivery-page .delivery-grid .delivery-location-field,
+    .delivery-page .delivery-grid .delivery-state-field,
+    .delivery-page .delivery-grid .delivery-address1-field,
+    .delivery-page .delivery-grid .delivery-wide,
+    .delivery-page .delivery-grid .delivery-contact-add-btn {
+        grid-column: 1 / -1;
+    }
+}
+
+/* Delivery exchange details booking-style layout */
+.delivery-page .delivery-exchange-top-label,
+.delivery-page .delivery-exchange-question-label,
+.delivery-page .delivery-exchange-detail-fields .delivery-pill > span,
+.delivery-page .delivery-exchange-tyre-row > span {
+    display: block;
+    position: static !important;
+    width: auto !important;
+    height: auto !important;
+    margin: 0 0 7px !important;
+    overflow: visible !important;
+    clip: auto !important;
+    color: #111111;
+    font-size: 16px !important;
+    font-weight: 800;
+    line-height: 1.2;
+    white-space: normal;
+}
+
+.delivery-page .delivery-exchange-type-segment,
+.delivery-page .delivery-exchange-interest-segment {
+    width: min(392px, 100%);
+    max-width: none;
+    margin: 0 0 14px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0;
+    border: 1px solid #cfd2d8;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.delivery-page .delivery-exchange-type-segment label,
+.delivery-page .delivery-exchange-interest-segment label,
+.delivery-page .delivery-exchange-tyre-segment label {
+    min-height: 30px;
+}
+
+.delivery-page .delivery-exchange-type-segment span,
+.delivery-page .delivery-exchange-interest-segment span {
+    width: 100%;
+    min-height: 30px;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.delivery-page .delivery-exchange-type-segment input:checked + span,
+.delivery-page .delivery-exchange-interest-segment input:checked + span,
+.delivery-page .delivery-exchange-tyre-segment input:checked + span {
+    background: #e00000;
+    border-color: #e00000;
+    color: #ffffff;
+}
+
+.delivery-page .delivery-exchange-purchase-row {
+    width: min(392px, 100%);
+    margin: 0 0 14px;
+    display: grid;
+    gap: 7px;
+}
+
+.delivery-page .delivery-exchange-purchase-row.hidden,
+.delivery-page .delivery-exchange-brand-model-row.hidden {
+    display: none !important;
+}
+
+.delivery-page .delivery-exchange-wrap {
+    margin-top: 10px;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
+}
+
+.delivery-page .delivery-exchange-detail-fields {
+    display: grid;
+    gap: 10px;
+}
+
+.delivery-page .delivery-exchange-vehicle-pill {
+    min-height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    padding: 0 10px;
+    border: 1px solid #cfd2d8;
+    border-radius: 7px;
+    background: #ffffff;
+    color: #111111;
+    font-size: 16px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.delivery-page .delivery-exchange-edit-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin: 0;
+    color: #e00000;
+    font-size: 16px !important;
+    font-weight: 800;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.delivery-page .delivery-exchange-edit-inline input {
+    width: 14px;
+    height: 14px;
+    margin: 0;
+    accent-color: #e00000;
+}
+
+.delivery-page .delivery-exchange-brand-model-row,
+.delivery-page .delivery-exchange-two-col {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 12px;
+}
+
+.delivery-page .delivery-exchange-wide {
+    display: grid;
+    gap: 7px;
+}
+
+.delivery-page .delivery-exchange-detail-fields .delivery-pill input,
+.delivery-page .delivery-exchange-detail-fields .delivery-pill select,
+.delivery-page .delivery-exchange-price-row input,
+.delivery-page .delivery-exchange-purchase-row input {
+    width: 100%;
+    min-width: 0;
+    height: 34px;
+    border: 1px solid #cfd2d8;
+    border-radius: 7px;
+    background: #ffffff;
+    color: #111111;
+    box-shadow: none;
+    padding: 0 12px;
+    font-size: 16px !important;
+    font-weight: 600;
+}
+
+.delivery-page .delivery-exchange-detail-fields [data-locked],
+.delivery-page .delivery-exchange-detail-fields .delivery-locked {
+    pointer-events: none;
+}
+
+.delivery-page .delivery-exchange-tyre-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 4px 0 0;
+}
+
+.delivery-page .delivery-exchange-image-switch {
+    display: inline-flex;
+    align-items: center;
+}
+
+.delivery-page .delivery-exchange-image-switch input {
+    position: absolute;
+    opacity: 0;
+}
+
+.delivery-page .delivery-exchange-image-switch span {
+    width: 30px;
+    height: 16px;
+    border-radius: 999px;
+    background: #ffffff;
+    border: 1px solid #cfd2d8;
+    position: relative;
+}
+
+.delivery-page .delivery-exchange-image-switch span::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #c62d3a;
+    transition: transform 0.2s ease;
+}
+
+.delivery-page .delivery-exchange-image-switch input:checked + span::after {
+    transform: translateX(14px);
+}
+
+.delivery-page .delivery-exchange-tyre-segment {
+    width: min(572px, 100%);
+    max-width: none;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0;
+    border: 1px solid #cfd2d8;
+    border-radius: 7px;
+    overflow: hidden;
+}
+
+.delivery-page .delivery-exchange-tyre-segment span {
+    width: 100%;
+    min-height: 28px;
+    border: 0;
+    border-right: 1px solid #cfd2d8;
+    border-radius: 0;
+    box-shadow: none;
+    font-size: 14px !important;
+    font-weight: 800;
+}
+
+.delivery-page .delivery-exchange-tyre-segment label:last-child span {
+    border-right: 0;
+}
+
+.delivery-page .delivery-exchange-price-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+@media (max-width: 760px) {
+    .delivery-page .delivery-exchange-brand-model-row,
+    .delivery-page .delivery-exchange-two-col,
+    .delivery-page .delivery-exchange-price-row,
+    .delivery-page .delivery-exchange-tyre-segment {
+        grid-template-columns: 1fr;
+    }
+
+    .delivery-page .delivery-exchange-tyre-segment span {
+        border-right: 0;
+        border-bottom: 1px solid #cfd2d8;
+    }
+
+    .delivery-page .delivery-exchange-tyre-segment label:last-child span {
+        border-bottom: 0;
+    }
+}
+
+@media (max-width: 520px) {
+    .delivery-final-receipt-card {
+        padding: 24px 18px 22px;
+    }
+
+    .delivery-final-receipt-head button {
+        right: -8px;
+    }
+
+    .delivery-final-receipt-detail-row {
+        grid-template-columns: 14px minmax(90px, 1fr) 8px minmax(0, 1fr);
+        gap: 6px;
     }
 }

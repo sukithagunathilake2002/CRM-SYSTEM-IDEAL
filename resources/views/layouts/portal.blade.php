@@ -61,6 +61,7 @@
                             </svg>
                         </a>
 
+                        @unless(in_array($portalUser?->role, [\App\Models\User::ROLE_AREA_MANAGER, \App\Models\User::ROLE_SALES_CONSULTANT], true))
                         <a href="{{ route('dashboard.home') }}" class="portal-quick-icon" aria-label="Open analyzing dashboard" title="Analyzing Dashboard">
                             <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
                                 <path d="M4 19h16" stroke-linecap="round"></path>
@@ -70,6 +71,7 @@
                                 <path d="M6 11l4-3 3 2 5-5" stroke-linecap="round" stroke-linejoin="round"></path>
                             </svg>
                         </a>
+                        @endunless
 
                         <details class="portal-profile-menu-wrap">
                             <summary class="portal-quick-icon portal-profile-btn" aria-label="Open profile menu" title="Profile">

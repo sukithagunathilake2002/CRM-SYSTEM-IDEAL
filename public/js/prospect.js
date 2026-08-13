@@ -47,6 +47,7 @@
     const prospectOfferEditGroup = document.getElementById('prospectOfferEditGroup');
     const offerRemarksToggle = document.getElementById('offerRemarksToggle');
     const offerRemarksText = document.getElementById('offerRemarksText');
+    const offerEditSaveBtn = document.getElementById('offerEditSaveBtn');
     const prospectOfferSummaryVatCost = document.getElementById('prospectOfferSummaryVatCost');
     const prospectOfferSummaryVatOffer = document.getElementById('prospectOfferSummaryVatOffer');
     const prospectOfferSummaryVatPayable = document.getElementById('prospectOfferSummaryVatPayable');
@@ -780,11 +781,11 @@
         const offerEditable = isOfferEditable();
 
         if (offerUnitFreeInput) {
-            offerUnitFreeInput.disabled = !offerEditable;
+            offerUnitFreeInput.disabled = false;
         }
 
         if (offerVatFreeInput) {
-            offerVatFreeInput.disabled = !offerEditable;
+            offerVatFreeInput.disabled = false;
         }
 
         let unitDiscount = toNonNegativeNumber(offerUnitDiscountInput?.value ?? 0);
@@ -1296,6 +1297,16 @@
     if (offerEditCheckbox) {
         offerEditCheckbox.addEventListener('change', () => {
             updateOfferTotals();
+            updateOfferViewMode();
+        });
+    }
+
+    if (offerEditSaveBtn) {
+        offerEditSaveBtn.addEventListener('click', () => {
+            updateOfferTotals();
+            if (offerEditCheckbox) {
+                offerEditCheckbox.checked = false;
+            }
             updateOfferViewMode();
         });
     }

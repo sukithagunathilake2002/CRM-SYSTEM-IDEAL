@@ -152,6 +152,9 @@ class DeliveryController extends Controller
             'chassis_number' => $delivery->chassis_number,
             'pending_commitments' => $delivery->pending_commitments,
             'payment_finance_provider' => $delivery->payment_finance_provider ?: 'Self',
+            'payment_finance_bank' => $delivery->payment_finance_bank ?: $booking?->finance_bank,
+            'payment_finance_disbursal_amount' => $delivery->payment_finance_disbursal_amount,
+            'payment_finance_other_reason' => $delivery->payment_finance_other_reason ?: $booking?->finance_other_details,
             'payment_pending_reason' => $delivery->payment_pending_reason,
             'payment_pending_amount' => $delivery->payment_pending_amount,
             'payment_agent_name' => $delivery->payment_agent_name,
@@ -175,6 +178,7 @@ class DeliveryController extends Controller
             'vehicleModels' => $vehicleModels,
             'competitionMap' => $competitionMap,
             'deliveryReceiptPaymentModes' => $this->deliveryReceiptPaymentModes(),
+            'bankOptions' => $this->bankOptions(),
         ]);
     }
 
@@ -287,7 +291,10 @@ class DeliveryController extends Controller
             'date_of_delivery' => ['nullable', 'date'],
             'chassis_number' => ['nullable', 'string', 'max:255'],
             'pending_commitments' => ['nullable', 'string', 'max:1000'],
-            'payment_finance_provider' => ['nullable', 'string', 'max:255'],
+            'payment_finance_provider' => ['nullable', Rule::in(['In-House', 'Self', 'Other'])],
+            'payment_finance_bank' => ['nullable', 'string', 'max:255', Rule::in($this->bankOptions())],
+            'payment_finance_disbursal_amount' => ['nullable', 'numeric', 'min:0'],
+            'payment_finance_other_reason' => ['nullable', 'string', 'max:255'],
             'payment_pending_reason' => ['nullable', 'string', 'max:255'],
             'payment_pending_amount' => ['nullable', 'numeric', 'min:0'],
             'payment_agent_name' => ['nullable', 'string', 'max:255'],
@@ -347,6 +354,18 @@ class DeliveryController extends Controller
         }
         if (!empty($deliveryReceipts)) {
             $payload['payment_delivery_amount'] = $deliveryReceiptTotal;
+        }
+
+        if (array_key_exists('payment_finance_provider', $payload)) {
+            $financeProvider = $payload['payment_finance_provider'] ?? null;
+            if ($financeProvider !== 'Self') {
+                $payload['payment_finance_bank'] = null;
+                $payload['payment_finance_disbursal_amount'] = null;
+            }
+
+            if ($financeProvider !== 'Other') {
+                $payload['payment_finance_other_reason'] = null;
+            }
         }
 
         if (array_key_exists('customer_type', $payload) && ($payload['customer_type'] ?? null) !== 'corporate') {
@@ -768,6 +787,36 @@ class DeliveryController extends Controller
             'Cheque',
             'Bank Transfer',
             'Credit/Debit Card',
+        ];
+    }
+
+    private function bankOptions(): array
+    {
+        return [
+            'Amana Bank PLC',
+            'Bank of Ceylon',
+            'Bank of China Ltd',
+            'Cargills Bank PLC',
+            'Citibank, N.A.',
+            'Commercial Bank of Ceylon PLC',
+            'Deutsche Bank AG',
+            'DFCC Bank PLC',
+            'Habib Bank Ltd',
+            'Hatton National Bank PLC',
+            'Indian Bank',
+            'Indian Overseas Bank',
+            'MCB Bank Ltd',
+            'National Development Bank PLC',
+            'Nations Trust Bank PLC',
+            'Pan Asia Banking Corporation PLC',
+            "People's Bank",
+            'Public Bank Berhad',
+            'Sampath Bank PLC',
+            'Seylan Bank PLC',
+            'Standard Chartered Bank',
+            'State Bank of India',
+            'The Hongkong & Shanghai Banking Corporation Ltd (HSBC)',
+            'Union Bank of Colombo PLC',
         ];
     }
 

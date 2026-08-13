@@ -22,6 +22,7 @@
         $globalHeaderUserName = (string) ($globalHeaderUser?->name ?? 'User');
         $globalHeaderUserEmail = (string) ($globalHeaderUser?->email ?? 'No email');
         $globalHeaderUserRole = (string) ($globalHeaderUser?->role_label ?? 'User');
+        $globalHeaderShowAnalyticsIcon = !in_array($globalHeaderUser?->role, [\App\Models\User::ROLE_AREA_MANAGER, \App\Models\User::ROLE_SALES_CONSULTANT], true);
     @endphp
 
     @yield('content')
@@ -183,6 +184,7 @@
             const globalUserName = @json($globalHeaderUserName);
             const globalUserEmail = @json($globalHeaderUserEmail);
             const globalUserRole = @json($globalHeaderUserRole);
+            const showAnalyticsIcon = @json($globalHeaderShowAnalyticsIcon);
 
             const resolveUnifiedTopbar = () =>
                 document.querySelector('.epr-topbar, .prospect-topbar, .emi-topbar, .topbar, .booking-topbar, .followup-topbar, .map-topbar');
@@ -221,14 +223,7 @@
 
                 const quickIcons = document.createElement('div');
                 quickIcons.className = 'global-quick-icons';
-                quickIcons.innerHTML = `
-                    <a href="${dashboardMainUrl}" class="global-quick-icon" aria-label="Dashboard" title="Dashboard">
-                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <path d="M3.5 11.5 12 4l8.5 7.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                            <path d="M6.5 10.5V20h11V10.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-                            <path d="M10 20v-5h4v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-                        </svg>
-                    </a>
+                const analyticsIconMarkup = showAnalyticsIcon ? `
                     <a href="${analyticsUrl}" class="global-quick-icon" aria-label="Dashboard analytics" title="Dashboard analytics">
                         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <path d="M4 18h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
@@ -237,6 +232,16 @@
                             <path d="M17 16V6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
                         </svg>
                     </a>
+                ` : '';
+                quickIcons.innerHTML = `
+                    <a href="${dashboardMainUrl}" class="global-quick-icon" aria-label="Dashboard" title="Dashboard">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path d="M3.5 11.5 12 4l8.5 7.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M6.5 10.5V20h11V10.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                            <path d="M10 20v-5h4v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                        </svg>
+                    </a>
+                    ${analyticsIconMarkup}
                     <details class="global-quick-profile">
                         <summary class="global-quick-icon" aria-label="Profile" title="Profile">
                             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">

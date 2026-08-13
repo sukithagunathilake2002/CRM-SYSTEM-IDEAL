@@ -17,6 +17,8 @@
     $selectedName = old('name', $defaultValues['name']);
     $selectedContactType = old('contact_type', $defaultValues['contact_type']);
     $selectedEmail = old('email', $defaultValues['email']);
+    $selectedDob = old('date_of_birth', $delivery?->date_of_birth ?? $booking?->date_of_birth ?? $prospect?->date_of_birth ?? '');
+    $selectedDob = $selectedDob ? \Carbon\Carbon::parse($selectedDob)->format('Y-m-d') : '';
     $selectedMobile = old('mobile_numbers', $defaultValues['mobile_numbers']);
     $selectedDistrict = old('district', $defaultValues['district']);
     $selectedLocation = old('location', $defaultValues['location']);
@@ -60,9 +62,18 @@
     $selectedExistingYear = old('existing_vehicle_year', $defaultValues['existing_vehicle_year']);
     $selectedInterestedExchange = old('interested_in_exchange', $defaultValues['interested_in_exchange']);
     $selectedExchangeType = old('exchange_type', $defaultValues['exchange_type']);
+    $selectedExchangePurchaseValue = old('exchange_purchase_value', $booking?->exchange_purchase_value ?? null);
     $selectedExchangeBrand = old('exchange_vehicle_brand', $defaultValues['exchange_vehicle_brand']);
     $selectedExchangeModel = old('exchange_vehicle_model', $defaultValues['exchange_vehicle_model']);
     $selectedExchangeYear = old('exchange_manufacture_year', $defaultValues['exchange_manufacture_year']);
+    $selectedExchangeOwnership = old('exchange_ownership', $booking?->exchange_ownership ?? $prospect?->exchange_ownership ?? '');
+    $selectedExchangeInsuranceRaw = old('exchange_insurance_validity', $booking?->exchange_insurance_validity ?? $prospect?->exchange_insurance_validity ?? null);
+    $selectedExchangeInsuranceValidity = $selectedExchangeInsuranceRaw ? \Carbon\Carbon::parse($selectedExchangeInsuranceRaw)->format('Y-m-d') : '';
+    $selectedExchangeTyreReplacements = old('exchange_tyre_replacements', $booking?->exchange_tyre_replacements ?? []);
+    if (is_string($selectedExchangeTyreReplacements)) {
+        $selectedExchangeTyreReplacements = json_decode($selectedExchangeTyreReplacements, true) ?: [];
+    }
+    $selectedExchangeTyreReplacements = is_array($selectedExchangeTyreReplacements) ? $selectedExchangeTyreReplacements : [];
     $selectedExchangeColor = old('exchange_color', $defaultValues['exchange_color']);
     $selectedExchangeMileage = old('exchange_mileage_km', $defaultValues['exchange_mileage_km']);
     $selectedExchangeRegistration = old('exchange_registration_no', $defaultValues['exchange_registration_no']);
@@ -91,6 +102,7 @@
     $selectedPaymentPreDelivery = old('payment_pre_delivery_amount', $defaultValues['payment_pre_delivery_amount']);
     $selectedPaymentDelivery = old('payment_delivery_amount', $defaultValues['payment_delivery_amount']);
     $deliveryReceiptPaymentModes = $deliveryReceiptPaymentModes ?? ['Cash', 'Cheque', 'Bank Transfer', 'Credit/Debit Card'];
+    $bankOptions = $bankOptions ?? [];
     $selectedDeliveryReceipts = old('delivery_receipts', $defaultValues['delivery_receipts'] ?? []);
     $selectedDeliveryReceipts = is_array($selectedDeliveryReceipts) ? array_values($selectedDeliveryReceipts) : [];
     if (empty($selectedDeliveryReceipts)) {
@@ -103,6 +115,13 @@
         ]];
     }
     $selectedPaymentFinanceProvider = old('payment_finance_provider', $defaultValues['payment_finance_provider']);
+    $financeProviderKey = strtolower(str_replace(['_', ' '], '-', trim((string) $selectedPaymentFinanceProvider)));
+    $selectedPaymentFinanceProvider = in_array($financeProviderKey, ['in-house', 'inhouse'], true)
+        ? 'In-House'
+        : ($financeProviderKey === 'other' ? 'Other' : 'Self');
+    $selectedPaymentFinanceBank = old('payment_finance_bank', $defaultValues['payment_finance_bank'] ?? '');
+    $selectedPaymentFinanceDisbursalAmount = old('payment_finance_disbursal_amount', $defaultValues['payment_finance_disbursal_amount'] ?? '');
+    $selectedPaymentFinanceOtherReason = old('payment_finance_other_reason', $defaultValues['payment_finance_other_reason'] ?? '');
     $selectedPaymentPendingReason = old('payment_pending_reason', $defaultValues['payment_pending_reason']);
     $selectedPaymentPendingAmount = old('payment_pending_amount', $defaultValues['payment_pending_amount']);
     $selectedPaymentAgentName = old('payment_agent_name', $defaultValues['payment_agent_name']);
@@ -123,6 +142,17 @@
         + (float) ($selectedPaymentDelivery ?? 0);
     $selectedPaymentPendingAmount = $selectedPaymentPendingAmount ?? max(0, (float) ($selectedOfferFinalPrice ?? 0) - $paymentReceivedTotal);
     $selectedPaymentFinalBalance = max(0, (float) ($selectedOfferFinalPrice ?? 0) - $paymentReceivedTotal);
+    $selectedBookingReceipts = old('booking_receipts', is_array($booking?->booking_receipts) ? $booking->booking_receipts : []);
+    $selectedBookingReceipts = is_array($selectedBookingReceipts) ? array_values($selectedBookingReceipts) : [];
+    if (empty($selectedBookingReceipts) && (float) ($selectedPaymentReceiptBooking ?? 0) > 0) {
+        $selectedBookingReceipts = [[
+            'receipt_name_no' => '',
+            'receipt_date' => '',
+            'receipt_amount' => $selectedPaymentReceiptBooking,
+            'payment_mode' => '',
+            'receipt_type' => 'Booking',
+        ]];
+    }
 
     $vehicleColorOptions = ['White', 'Black', 'Silver', 'Grey', 'Red', 'Blue', 'Green', 'Brown', 'Orange', 'Other'];
     $testDriveNoReasons = [
@@ -303,35 +333,35 @@
         @elseif($currentStep === 6)
         @elseif($currentStep === 2)
             <section class="delivery-summary">
-                <div><span>Interested In</span><strong>{{ $summaryVehicle ?: 'N/A' }}</strong></div>
-                <div><span>Colour</span><strong>{{ $selectedInterestedColor ?: 'N/A' }}</strong></div>
-                <div><span>Test Driven Given</span><strong>{{ $selectedTestDrive ? ucfirst($selectedTestDrive) : 'N/A' }}</strong></div>
-                <div><span>With Test Driven</span><strong>{{ $selectedTestDriveModel ?: 'Vehicle not available' }}</strong></div>
-                <div><span>Interested In Competition</span><strong>{{ $selectedCompetition ? ucwords(str_replace('_', ' ', $selectedCompetition)) : 'N/A' }}</strong></div>
-                <div><span>First Time Buyer</span><strong>{{ $selectedFirstTimeBuyer ? ucfirst($selectedFirstTimeBuyer) : 'N/A' }}</strong></div>
-                <div><span>Mode of Purchase</span><strong>{{ $selectedPurchaseMode ? ucfirst($selectedPurchaseMode) : 'N/A' }}</strong></div>
-                <div><span>Finance Form</span><strong>{{ $selectedFinanceForm ? ucwords(str_replace('_', ' ', $selectedFinanceForm)) : 'N/A' }}</strong></div>
+                <div class="summary-icon-vehicle"><span>Interested In</span><strong>{{ $summaryVehicle ?: 'N/A' }}</strong></div>
+                <div class="summary-icon-color"><span>Colour</span><strong>{{ $selectedInterestedColor ?: 'N/A' }}</strong></div>
+                <div class="summary-icon-test-drive"><span>Test Driven Given</span><strong>{{ $selectedTestDrive ? ucfirst($selectedTestDrive) : 'N/A' }}</strong></div>
+                <div class="summary-icon-test-drive"><span>With Test Driven</span><strong>{{ $selectedTestDriveModel ?: 'Vehicle not available' }}</strong></div>
+                <div class="summary-icon-competition"><span>Interested In Competition</span><strong>{{ $selectedCompetition ? ucwords(str_replace('_', ' ', $selectedCompetition)) : 'N/A' }}</strong></div>
+                <div class="summary-icon-first-buyer"><span>First Time Buyer</span><strong>{{ $selectedFirstTimeBuyer ? ucfirst($selectedFirstTimeBuyer) : 'N/A' }}</strong></div>
+                <div class="summary-icon-payment"><span>Mode of Purchase</span><strong>{{ $selectedPurchaseMode ? ucfirst($selectedPurchaseMode) : 'N/A' }}</strong></div>
+                <div class="summary-icon-finance"><span>Finance Form</span><strong>{{ $selectedFinanceForm ? ucwords(str_replace('_', ' ', $selectedFinanceForm)) : 'N/A' }}</strong></div>
             </section>
         @elseif($currentStep === 3)
             <section class="delivery-summary">
-                <div><span>Interested in Exchange?</span><strong>{{ $selectedInterestedExchange ? ucfirst($selectedInterestedExchange) : 'N/A' }}</strong></div>
-                <div><span>Exchange Type</span><strong>{{ $selectedExchangeType ? ucwords(str_replace('_', ' ', $selectedExchangeType)) : 'N/A' }}</strong></div>
-                <div><span>Vehicle</span><strong>{{ trim(($selectedExchangeBrand ?: '') . ' ' . ($selectedExchangeModel ?: '')) ?: 'N/A' }}</strong></div>
-                <div><span>Manufacture Year</span><strong>{{ $selectedExchangeYear ?: 'N/A' }}</strong></div>
-                <div><span>Registration No</span><strong>{{ $selectedExchangeRegistration ?: 'N/A' }}</strong></div>
-                <div><span>Expected Price</span><strong>{{ $selectedExchangeExpectedPrice !== null && $selectedExchangeExpectedPrice !== '' ? number_format((float) $selectedExchangeExpectedPrice, 2) : 'N/A' }}</strong></div>
-                <div><span>Quoted Price</span><strong>{{ $selectedExchangeQuotedPrice !== null && $selectedExchangeQuotedPrice !== '' ? number_format((float) $selectedExchangeQuotedPrice, 2) : 'N/A' }}</strong></div>
-                <div><span>Difference</span><strong>{{ $selectedExchangeDifference !== null && $selectedExchangeDifference !== '' ? number_format((float) $selectedExchangeDifference, 2) : 'N/A' }}</strong></div>
+                <div class="summary-icon-exchange"><span>Interested in Exchange?</span><strong>{{ $selectedInterestedExchange ? ucfirst($selectedInterestedExchange) : 'N/A' }}</strong></div>
+                <div class="summary-icon-exchange"><span>Exchange Type</span><strong>{{ $selectedExchangeType ? ucwords(str_replace('_', ' ', $selectedExchangeType)) : 'N/A' }}</strong></div>
+                <div class="summary-icon-vehicle"><span>Vehicle</span><strong>{{ trim(($selectedExchangeBrand ?: '') . ' ' . ($selectedExchangeModel ?: '')) ?: 'N/A' }}</strong></div>
+                <div class="summary-icon-calendar"><span>Manufacture Year</span><strong>{{ $selectedExchangeYear ?: 'N/A' }}</strong></div>
+                <div class="summary-icon-registration"><span>Registration No</span><strong>{{ $selectedExchangeRegistration ?: 'N/A' }}</strong></div>
+                <div class="summary-icon-money"><span>Expected Price</span><strong>{{ $selectedExchangeExpectedPrice !== null && $selectedExchangeExpectedPrice !== '' ? number_format((float) $selectedExchangeExpectedPrice, 2) : 'N/A' }}</strong></div>
+                <div class="summary-icon-money"><span>Quoted Price</span><strong>{{ $selectedExchangeQuotedPrice !== null && $selectedExchangeQuotedPrice !== '' ? number_format((float) $selectedExchangeQuotedPrice, 2) : 'N/A' }}</strong></div>
+                <div class="summary-icon-balance"><span>Difference</span><strong>{{ $selectedExchangeDifference !== null && $selectedExchangeDifference !== '' ? number_format((float) $selectedExchangeDifference, 2) : 'N/A' }}</strong></div>
             </section>
         @else
             <section class="delivery-summary">
-                <div><span>Name</span><strong>{{ $summaryName }}</strong></div>
-                <div><span>Interested In</span><strong>{{ $summaryVehicle ?: 'N/A' }}</strong></div>
-                <div><span>Mobile No.</span><strong>{{ $summaryMobile }}</strong></div>
-                <div><span>Email</span><strong>{{ $selectedEmail ?: 'N/A' }}</strong></div>
-                <div><span>Address</span><strong>{{ $summaryAddress ?: 'N/A' }}</strong></div>
-                <div><span>Type of Customer</span><strong>{{ ucfirst((string) ($selectedCustomerType ?: 'N/A')) }}</strong></div>
-                <div><span>Profession</span><strong>{{ ucwords(str_replace('_', ' ', (string) ($selectedProfession ?: 'N/A'))) }}</strong></div>
+                <div class="summary-icon-customer"><span>Name</span><strong>{{ $summaryName }}</strong></div>
+                <div class="summary-icon-vehicle"><span>Interested In</span><strong>{{ $summaryVehicle ?: 'N/A' }}</strong></div>
+                <div class="summary-icon-phone"><span>Mobile No.</span><strong>{{ $summaryMobile }}</strong></div>
+                <div class="summary-icon-email"><span>Email</span><strong>{{ $selectedEmail ?: 'N/A' }}</strong></div>
+                <div class="summary-icon-address"><span>Address</span><strong>{{ $summaryAddress ?: 'N/A' }}</strong></div>
+                <div class="summary-icon-customer-type"><span>Type of Customer</span><strong>{{ ucfirst((string) ($selectedCustomerType ?: 'N/A')) }}</strong></div>
+                <div class="summary-icon-profession"><span>Profession</span><strong>{{ ucwords(str_replace('_', ' ', (string) ($selectedProfession ?: 'N/A'))) }}</strong></div>
             </section>
         @endif
 
@@ -358,41 +388,45 @@
                     </select>
                 </label>
 
-                <label class="delivery-pill">
-                    <span>Name</span>
+                <label class="delivery-pill delivery-name-field">
+                    <span>Customer Name</span>
                     <input type="text" name="name" value="{{ $selectedName }}" data-lockable>
                 </label>
 
-                <label class="delivery-pill">
+                <label class="delivery-pill delivery-email-field">
                     <span>Email</span>
                     <input type="email" name="email" value="{{ $selectedEmail }}" data-lockable>
                 </label>
 
-                <label class="delivery-pill">
-                    <span>Contact</span>
-                    <select name="contact_type" data-lockable>
-                        @foreach(['Mobile', 'Home', 'Office'] as $contactType)
-                            <option value="{{ $contactType }}" @selected($selectedContactType === $contactType)>{{ $contactType }}</option>
-                        @endforeach
-                    </select>
+                <label class="delivery-pill delivery-dob-field">
+                    <span>DOB</span>
+                    <input type="date" value="{{ $selectedDob }}" data-lockable>
                 </label>
 
-                <label class="delivery-pill">
-                    <span>Phone</span>
+                <label class="delivery-pill delivery-contact-no-field">
+                    <span>Contact No</span>
+                    <input type="hidden" name="contact_type" value="{{ $selectedContactType }}">
                     <input type="text" name="mobile_numbers" value="{{ $selectedMobile }}" data-lockable>
                 </label>
 
-                <label class="delivery-pill">
+                <button type="button" class="delivery-contact-add-btn" aria-label="Add contact number">+</button>
+
+                <label class="delivery-pill delivery-district-field">
                     <span>District</span>
                     <input type="text" name="district" value="{{ $selectedDistrict }}" data-lockable>
                 </label>
 
-                <label class="delivery-pill">
+                <label class="delivery-pill delivery-location-field">
                     <span>Location</span>
                     <input type="text" name="location" value="{{ $selectedLocation }}" data-lockable>
                 </label>
 
-                <label class="delivery-pill delivery-wide">
+                <label class="delivery-pill delivery-state-field">
+                    <span>State</span>
+                    <input type="text" name="state" value="{{ $selectedState }}" data-lockable>
+                </label>
+
+                <label class="delivery-pill delivery-address1-field">
                     <span>Address Line 1</span>
                     <input type="text" name="address1" value="{{ $selectedAddress1 }}" data-lockable>
                 </label>
@@ -402,10 +436,6 @@
                     <input type="text" name="address2" value="{{ $selectedAddress2 }}" data-lockable>
                 </label>
 
-                <label class="delivery-pill delivery-wide">
-                    <span>State</span>
-                    <input type="text" name="state" value="{{ $selectedState }}" data-lockable>
-                </label>
             </div>
 
             <div class="delivery-question">
@@ -679,94 +709,111 @@
                 </label>
             </div>
 
-            <div class="delivery-question">
-                <p>Interested in Exchange?</p>
-                <div class="delivery-segment">
-                    <label><input type="radio" name="interested_in_exchange" value="yes" @checked($selectedInterestedExchange === 'yes')><span>Yes</span></label>
-                    <label><input type="radio" name="interested_in_exchange" value="no" @checked($selectedInterestedExchange === 'no')><span>No</span></label>
-                </div>
+            <label class="delivery-exchange-top-label">Exchange Type</label>
+            <div class="delivery-segment delivery-exchange-type-segment">
+                <label><input type="radio" name="exchange_type" value="in_house" @checked($selectedExchangeType !== 'outhouse')><span>In - House</span></label>
+                <label><input type="radio" name="exchange_type" value="outhouse" @checked($selectedExchangeType === 'outhouse')><span>Out- House</span></label>
+            </div>
+
+            <label class="delivery-pill delivery-exchange-purchase-row" id="deliveryExchangePurchaseRow">
+                <span>Purchase Value</span>
+                <input type="number" step="0.01" min="0" name="exchange_purchase_value" value="{{ $selectedExchangePurchaseValue }}" data-exchange-lockable>
+            </label>
+
+            <label class="delivery-exchange-question-label">Interested in Exchange?</label>
+            <div class="delivery-segment delivery-exchange-interest-segment">
+                <label><input type="radio" name="interested_in_exchange" value="yes" @checked($selectedInterestedExchange === 'yes')><span>Yes</span></label>
+                <label><input type="radio" name="interested_in_exchange" value="no" @checked($selectedInterestedExchange === 'no')><span>No</span></label>
             </div>
 
             <div id="deliveryExchangeDetailsWrap" class="delivery-exchange-wrap">
-                <div class="delivery-exchange-interested">
-                    <span>Interested In</span>
-                    <select name="interested_model" data-exchange-lockable>
-                        <option value="">Select Model</option>
-                        @foreach($vehicleModels as $modelOption)
-                            <option value="{{ $modelOption }}" @selected($selectedInterestedModel === $modelOption)>{{ $modelOption }}</option>
-                        @endforeach
-                        @if(!empty($selectedInterestedModel) && !$vehicleModels->contains($selectedInterestedModel))
-                            <option value="{{ $selectedInterestedModel }}" selected>{{ $selectedInterestedModel }}</option>
-                        @endif
-                    </select>
-                </div>
+                <div class="delivery-exchange-detail-fields">
+                    <div class="delivery-exchange-vehicle-pill">
+                        <span>{{ strtoupper(collect([$selectedExchangeBrand, $selectedExchangeModel])->filter()->implode(' ') ?: 'Not selected') }}</span>
+                        <label class="delivery-exchange-edit-inline">
+                            <input type="checkbox" id="deliveryExchangeInlineEdit">
+                            <span>Edit</span>
+                        </label>
+                    </div>
 
-                <div class="delivery-buying-grid">
-                    <label class="delivery-pill delivery-wide">
-                        <span>Vehicle</span>
-                        <select name="exchange_vehicle_brand" id="deliveryExchangeBrand" data-exchange-lockable>
-                            <option value="">Select Brand</option>
-                            @foreach($competitionBrands as $brandOption)
-                                <option value="{{ $brandOption }}" @selected($selectedExchangeBrand === $brandOption)>{{ $brandOption }}</option>
-                            @endforeach
-                            @if(!empty($selectedExchangeBrand) && !in_array($selectedExchangeBrand, $competitionBrands, true))
-                                <option value="{{ $selectedExchangeBrand }}" selected>{{ $selectedExchangeBrand }}</option>
-                            @endif
-                        </select>
+                    <div class="delivery-exchange-brand-model-row hidden" id="deliveryExchangeBrandModelRow">
+                        <label class="delivery-pill">
+                            <span>Select Brand</span>
+                            <select name="exchange_vehicle_brand" id="deliveryExchangeBrand" data-exchange-lockable>
+                                <option value="">Select Brand</option>
+                                @foreach($competitionBrands as $brandOption)
+                                    <option value="{{ $brandOption }}" @selected($selectedExchangeBrand === $brandOption)>{{ $brandOption }}</option>
+                                @endforeach
+                                @if(!empty($selectedExchangeBrand) && !in_array($selectedExchangeBrand, $competitionBrands, true))
+                                    <option value="{{ $selectedExchangeBrand }}" selected>{{ $selectedExchangeBrand }}</option>
+                                @endif
+                            </select>
+                        </label>
+                        <label class="delivery-pill">
+                            <span>Select Model</span>
+                            <select name="exchange_vehicle_model" id="deliveryExchangeModel" data-selected-model="{{ $selectedExchangeModel }}" data-exchange-lockable>
+                                <option value="">Select Model</option>
+                            </select>
+                        </label>
+                    </div>
+
+                    <div class="delivery-exchange-two-col">
+                        <label class="delivery-pill">
+                            <span>Model Year</span>
+                            <input type="number" name="exchange_manufacture_year" min="1950" max="2100" value="{{ $selectedExchangeYear }}" placeholder="Year" data-exchange-lockable>
+                        </label>
+                        <label class="delivery-pill">
+                            <span>Select Ownership</span>
+                            <select name="exchange_ownership" data-exchange-lockable>
+                                <option value="">Select</option>
+                                <option value="1st Owner" @selected($selectedExchangeOwnership === '1st Owner')>1st Owner</option>
+                                <option value="2nd Owner" @selected($selectedExchangeOwnership === '2nd Owner')>2nd Owner</option>
+                                <option value="3rd Owner" @selected($selectedExchangeOwnership === '3rd Owner')>3rd Owner</option>
+                            </select>
+                        </label>
+                    </div>
+
+                    <label class="delivery-pill delivery-exchange-wide">
+                        <span>Insurance Validity</span>
+                        <input type="date" name="exchange_insurance_validity" value="{{ $selectedExchangeInsuranceValidity }}" data-exchange-lockable>
                     </label>
-                    <label class="delivery-exchange-edit-inline">
-                        <input type="checkbox" id="deliveryExchangeInlineEdit">
-                        <span>Edit</span>
+
+                    <div class="delivery-exchange-tyre-row">
+                        <span>Tyre Replacement</span>
+                        <label class="delivery-exchange-image-switch">
+                            <input type="checkbox" checked>
+                            <span></span>
+                        </label>
+                    </div>
+
+                    <div class="delivery-segment delivery-exchange-tyre-segment">
+                        <label><input type="checkbox" name="exchange_tyre_replacements[]" value="front_lhs" @checked(in_array('front_lhs', $selectedExchangeTyreReplacements, true))><span>Front LHS</span></label>
+                        <label><input type="checkbox" name="exchange_tyre_replacements[]" value="front_rhs" @checked(in_array('front_rhs', $selectedExchangeTyreReplacements, true))><span>Front RHS</span></label>
+                        <label><input type="checkbox" name="exchange_tyre_replacements[]" value="rear_lhs" @checked(in_array('rear_lhs', $selectedExchangeTyreReplacements, true))><span>Rear LHS</span></label>
+                        <label><input type="checkbox" name="exchange_tyre_replacements[]" value="rear_rhs" @checked(in_array('rear_rhs', $selectedExchangeTyreReplacements, true))><span>Rear RHS</span></label>
+                    </div>
+
+                    <div class="delivery-exchange-two-col">
+                        <label class="delivery-pill">
+                            <span>Color</span>
+                            <input type="text" name="exchange_color" value="{{ $selectedExchangeColor }}" data-exchange-lockable>
+                        </label>
+                        <label class="delivery-pill">
+                            <span>Total KM</span>
+                            <input type="number" name="exchange_mileage_km" min="0" value="{{ $selectedExchangeMileage }}" placeholder="Mileage KM" data-exchange-lockable>
+                        </label>
+                    </div>
+
+                    <label class="delivery-pill delivery-exchange-wide">
+                        <span>Registration No</span>
+                        <input type="text" name="exchange_registration_no" value="{{ $selectedExchangeRegistration }}" placeholder="Registration No" data-exchange-lockable>
                     </label>
-                    <label class="delivery-pill">
-                        <span>Type</span>
-                        <select name="exchange_type" data-exchange-lockable>
-                            <option value="in_house" @selected($selectedExchangeType === 'in_house')>In House</option>
-                            <option value="outhouse" @selected($selectedExchangeType === 'outhouse')>Outhouse</option>
-                        </select>
-                    </label>
-                    <label class="delivery-pill">
-                        <span>Model</span>
-                        <select name="exchange_vehicle_model" id="deliveryExchangeModel" data-selected-model="{{ $selectedExchangeModel }}" data-exchange-lockable>
-                            <option value="">Select Model</option>
-                        </select>
-                    </label>
-                    <label class="delivery-pill">
-                        <span>Year</span>
-                        <input type="number" name="exchange_manufacture_year" min="1950" max="2100" value="{{ $selectedExchangeYear }}" placeholder="Year" data-exchange-lockable>
-                    </label>
-                    <label class="delivery-pill">
-                        <span>Color</span>
-                        <select name="interested_vehicle_color" data-exchange-lockable>
-                            <option value="">Color</option>
-                            @foreach($vehicleColorOptions as $colorOption)
-                                <option value="{{ $colorOption }}" @selected($selectedInterestedColor === $colorOption)>{{ $colorOption }}</option>
-                            @endforeach
-                            @if(!empty($selectedInterestedColor) && !in_array($selectedInterestedColor, $vehicleColorOptions, true))
-                                <option value="{{ $selectedInterestedColor }}" selected>{{ $selectedInterestedColor }}</option>
-                            @endif
-                        </select>
-                    </label>
-                    <label class="delivery-pill">
-                        <span>Mileage Km</span>
-                        <input type="number" name="exchange_mileage_km" min="0" value="{{ $selectedExchangeMileage }}" placeholder="Mileage KM" data-exchange-lockable>
-                    </label>
-                    <label class="delivery-pill">
-                        <span>Registration No.</span>
-                        <input type="text" name="exchange_registration_no" value="{{ $selectedExchangeRegistration }}" placeholder="Registration No." data-exchange-lockable>
-                    </label>
-                    <label class="delivery-pill">
-                        <span>Expected Price</span>
+
+                    <div class="delivery-exchange-price-row">
                         <input type="number" step="0.01" min="0" name="exchange_expected_price" id="deliveryExchangeExpectedPrice" value="{{ $selectedExchangeExpectedPrice }}" placeholder="Expected Price" data-exchange-lockable>
-                    </label>
-                    <label class="delivery-pill">
-                        <span>Quoted Price</span>
                         <input type="number" step="0.01" min="0" name="exchange_quoted_price" id="deliveryExchangeQuotedPrice" value="{{ $selectedExchangeQuotedPrice }}" placeholder="Quoted Price" data-exchange-lockable>
-                    </label>
-                    <label class="delivery-pill">
-                        <span>Difference</span>
                         <input type="number" step="0.01" name="exchange_price_difference" id="deliveryExchangeDifference" value="{{ $selectedExchangeDifference }}" placeholder="Difference" readonly>
-                    </label>
+                    </div>
                 </div>
 
                 <div class="delivery-more">
@@ -960,13 +1007,48 @@
                                 <button type="button" id="deliveryReceiptOpen">Add Receipts</button>
                             </span>
                         </label>
-                        <label>
+                        <div class="delivery-payment-row delivery-payment-finance-row">
                             <span>Finance</span>
                             <span class="delivery-payment-finance-wrap">
-                                <input type="text" name="payment_finance_provider" id="paymentFinanceProvider" value="{{ $selectedPaymentFinanceProvider }}" readonly>
+                                <input type="hidden" name="payment_finance_provider" id="paymentFinanceProvider" value="{{ $selectedPaymentFinanceProvider }}">
+                                <input type="text" id="paymentFinanceProviderDisplay" value="{{ $selectedPaymentFinanceProvider }}" readonly>
                                 <button type="button" id="paymentFinanceEdit" aria-label="Edit finance"></button>
+                                <span class="delivery-payment-finance-editor hidden" id="paymentFinanceEditor">
+                                    <span class="delivery-payment-finance-segment">
+                                        @foreach(['In-House', 'Self', 'Other'] as $financeOption)
+                                            <label>
+                                                <input type="radio" name="payment_finance_provider_choice" value="{{ $financeOption }}" @checked($selectedPaymentFinanceProvider === $financeOption)>
+                                                <span>{{ $financeOption }}</span>
+                                            </label>
+                                        @endforeach
+                                    </span>
+                                    <span class="delivery-payment-finance-self" id="paymentFinanceSelfFields">
+                                        <label>
+                                            <span>Select Bank</span>
+                                            <select name="payment_finance_bank" id="paymentFinanceBank">
+                                                <option value="">Select Bank</option>
+                                                @foreach($bankOptions as $bankOption)
+                                                    <option value="{{ $bankOption }}" @selected($selectedPaymentFinanceBank === $bankOption)>{{ $bankOption }}</option>
+                                                @endforeach
+                                                @if(!empty($selectedPaymentFinanceBank) && !in_array($selectedPaymentFinanceBank, $bankOptions, true))
+                                                    <option value="{{ $selectedPaymentFinanceBank }}" selected>{{ $selectedPaymentFinanceBank }}</option>
+                                                @endif
+                                            </select>
+                                        </label>
+                                        <label>
+                                            <span>Disbursal Amount</span>
+                                            <input type="number" step="0.01" min="0" name="payment_finance_disbursal_amount" id="paymentFinanceDisbursalAmount" value="{{ $selectedPaymentFinanceDisbursalAmount }}" placeholder="Disbursal Amount">
+                                        </label>
+                                    </span>
+                                    <span class="delivery-payment-finance-other hidden" id="paymentFinanceOtherFields">
+                                        <label>
+                                            <span>Reason</span>
+                                            <input type="text" name="payment_finance_other_reason" id="paymentFinanceOtherReason" value="{{ $selectedPaymentFinanceOtherReason }}" placeholder="Reason">
+                                        </label>
+                                    </span>
+                                </span>
                             </span>
-                        </label>
+                        </div>
                     </div>
 
                     <div class="delivery-pending-badge">
@@ -1082,11 +1164,30 @@
                     <div class="delivery-final-payment-rows">
                         <div><span>Total Deal Closure Amount</span><strong>{{ number_format((float) ($selectedOfferFinalPrice ?? 0), 0) }}</strong></div>
                         <div><span>Total Payable Amount</span><strong>{{ number_format((float) ($selectedOfferFinalPrice ?? 0), 0) }}</strong></div>
-                        <div><span>Receipt Amount (Booking)</span><strong>{{ number_format((float) ($selectedPaymentReceiptBooking ?? 0), 0) }}</strong><i aria-hidden="true"></i></div>
-                        <div><span>Receipt Amount (Delivery)</span><strong>{{ number_format((float) ($selectedPaymentDelivery ?? 0), 0) }}</strong><i aria-hidden="true"></i></div>
+                        <button type="button" class="delivery-final-receipt-trigger" data-final-receipt-type="booking">
+                            <span>Receipt Amount (Booking)</span>
+                            <strong>{{ number_format((float) ($selectedPaymentReceiptBooking ?? 0), 0) }}</strong>
+                            <i aria-hidden="true"></i>
+                        </button>
+                        <button type="button" class="delivery-final-receipt-trigger" data-final-receipt-type="delivery">
+                            <span>Receipt Amount (Delivery)</span>
+                            <strong>{{ number_format((float) ($selectedPaymentDelivery ?? 0), 0) }}</strong>
+                            <i aria-hidden="true"></i>
+                        </button>
                         <div><span>Final Balance</span><strong>{{ number_format((float) ($selectedPaymentFinalBalance ?? 0), 0) }}</strong></div>
                     </div>
                 </section>
+
+                <div class="delivery-final-receipt-popup hidden" id="deliveryFinalReceiptPopup" role="dialog" aria-modal="true" aria-labelledby="deliveryFinalReceiptTitle" aria-hidden="true">
+                    <div class="delivery-final-receipt-card">
+                        <div class="delivery-final-receipt-head">
+                            <h4 id="deliveryFinalReceiptTitle">Receipts</h4>
+                            <button type="button" id="deliveryFinalReceiptClose" aria-label="Close receipt popup">&times;</button>
+                        </div>
+                        <div class="delivery-final-receipt-list" id="deliveryFinalReceiptBody"></div>
+                        <button type="button" class="delivery-final-receipt-done" id="deliveryFinalReceiptDone">Done</button>
+                    </div>
+                </div>
 
                 <div class="delivery-final-reference">
                     <span>Reference Taken</span>
@@ -1392,7 +1493,25 @@
     const paymentSummaryBookingAmount = document.getElementById('paymentSummaryBookingAmount');
     const paymentSummaryPendingAmount = document.getElementById('paymentSummaryPendingAmount');
     const paymentFinanceProvider = document.getElementById('paymentFinanceProvider');
+    const paymentFinanceProviderDisplay = document.getElementById('paymentFinanceProviderDisplay');
     const paymentFinanceEdit = document.getElementById('paymentFinanceEdit');
+    const paymentFinanceEditor = document.getElementById('paymentFinanceEditor');
+    const paymentFinanceSelfFields = document.getElementById('paymentFinanceSelfFields');
+    const paymentFinanceOtherFields = document.getElementById('paymentFinanceOtherFields');
+    const paymentFinanceChoices = Array.from(document.querySelectorAll('input[name="payment_finance_provider_choice"]'));
+    const paymentFinanceBank = document.getElementById('paymentFinanceBank');
+    const paymentFinanceDisbursalAmount = document.getElementById('paymentFinanceDisbursalAmount');
+    const paymentFinanceOtherReason = document.getElementById('paymentFinanceOtherReason');
+    const finalReceiptPopup = document.getElementById('deliveryFinalReceiptPopup');
+    const finalReceiptTitle = document.getElementById('deliveryFinalReceiptTitle');
+    const finalReceiptBody = document.getElementById('deliveryFinalReceiptBody');
+    const finalReceiptClose = document.getElementById('deliveryFinalReceiptClose');
+    const finalReceiptDone = document.getElementById('deliveryFinalReceiptDone');
+    const finalReceiptTriggers = Array.from(document.querySelectorAll('[data-final-receipt-type]'));
+    const finalReceiptData = {
+        booking: @json($selectedBookingReceipts),
+        delivery: @json($selectedDeliveryReceipts),
+    };
     const deliveryReceiptOpen = document.getElementById('deliveryReceiptOpen');
     const deliveryReceiptModal = document.getElementById('deliveryReceiptModal');
     const deliveryReceiptRows = document.getElementById('deliveryReceiptRows');
@@ -1572,19 +1691,135 @@
             cancelDeliveryReceiptChanges();
         }
     });
-    const enablePaymentFinanceEdit = () => {
+    const syncPaymentFinanceFields = () => {
+        const selectedFinance = paymentFinanceChoices.find((choice) => choice.checked)?.value || paymentFinanceProvider?.value || 'Self';
+        if (paymentFinanceProvider) {
+            paymentFinanceProvider.value = selectedFinance;
+        }
+        if (paymentFinanceProviderDisplay) {
+            paymentFinanceProviderDisplay.value = selectedFinance;
+        }
+        const showSelf = selectedFinance === 'Self';
+        const showOther = selectedFinance === 'Other';
+        paymentFinanceSelfFields?.classList.toggle('hidden', !showSelf);
+        paymentFinanceOtherFields?.classList.toggle('hidden', !showOther);
+        [paymentFinanceBank, paymentFinanceDisbursalAmount].forEach((field) => {
+            if (field) {
+                field.disabled = !showSelf;
+            }
+        });
+        if (paymentFinanceOtherReason) {
+            paymentFinanceOtherReason.disabled = !showOther;
+        }
+    };
+
+    const enablePaymentFinanceEdit = (event) => {
+        event?.preventDefault();
+        event?.stopPropagation();
         if (!paymentFinanceProvider) {
             return;
         }
 
-        paymentFinanceProvider.readOnly = false;
+        paymentFinanceEditor?.classList.remove('hidden');
         paymentFinanceProvider.closest('.delivery-payment-finance-wrap')?.classList.add('is-editing');
-        paymentFinanceProvider.focus();
-        paymentFinanceProvider.select();
+        syncPaymentFinanceFields();
+        paymentFinanceChoices.find((choice) => choice.checked)?.focus();
     };
 
     paymentFinanceEdit?.addEventListener('click', enablePaymentFinanceEdit);
-    paymentFinanceProvider?.addEventListener('dblclick', enablePaymentFinanceEdit);
+    paymentFinanceProviderDisplay?.addEventListener('dblclick', enablePaymentFinanceEdit);
+    paymentFinanceChoices.forEach((choice) => {
+        choice.addEventListener('change', syncPaymentFinanceFields);
+    });
+    syncPaymentFinanceFields();
+
+    const formatFinalReceiptAmount = (value) => {
+        const numeric = Number.parseFloat(value || '0');
+        return Number.isFinite(numeric)
+            ? numeric.toLocaleString('en-US', { maximumFractionDigits: 0 })
+            : '';
+    };
+
+    const formatFinalReceiptDate = (value) => {
+        if (!value) {
+            return '';
+        }
+
+        const date = new Date(`${value}T00:00:00`);
+        return Number.isNaN(date.getTime())
+            ? value
+            : date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    };
+
+    const openFinalReceiptPopup = (type) => {
+        if (!finalReceiptPopup || !finalReceiptBody || !finalReceiptTitle) {
+            return;
+        }
+
+        const rows = Array.isArray(finalReceiptData[type]) ? finalReceiptData[type] : [];
+        const receiptTypeLabel = type === 'booking' ? 'Booking' : 'Delivery';
+        finalReceiptTitle.textContent = rows.length > 1 ? `${receiptTypeLabel} Receipts` : `${receiptTypeLabel} Receipt`;
+        finalReceiptBody.innerHTML = '';
+
+        if (!rows.length) {
+            const empty = document.createElement('p');
+            empty.className = 'delivery-final-receipt-empty';
+            empty.textContent = 'No receipts available.';
+            finalReceiptBody.appendChild(empty);
+        } else {
+            rows.forEach((receipt) => {
+                const card = document.createElement('div');
+                card.className = 'delivery-final-receipt-detail-card';
+                [
+                    ['name', 'Receipt Name/No', receipt?.receipt_name_no || '-'],
+                    ['date', 'Receipt Date', formatFinalReceiptDate(receipt?.receipt_date) || '-'],
+                    ['amount', 'Receipt Amount', formatFinalReceiptAmount(receipt?.receipt_amount) || '-'],
+                    ['payment', 'Mode of Payment', receipt?.payment_mode || '-'],
+                    ['type', 'Receipt Type', receipt?.receipt_type || receiptTypeLabel],
+                ].forEach(([icon, label, value]) => {
+                    const item = document.createElement('div');
+                    item.className = 'delivery-final-receipt-detail-row';
+
+                    const iconEl = document.createElement('span');
+                    iconEl.className = `delivery-final-receipt-icon receipt-icon-${icon}`;
+                    iconEl.setAttribute('aria-hidden', 'true');
+
+                    const labelEl = document.createElement('strong');
+                    labelEl.textContent = label;
+
+                    const colonEl = document.createElement('i');
+                    colonEl.textContent = ':';
+
+                    const valueEl = document.createElement('span');
+                    valueEl.textContent = value || '-';
+
+                    item.append(iconEl, labelEl, colonEl, valueEl);
+                    card.appendChild(item);
+                });
+                finalReceiptBody.appendChild(card);
+            });
+        }
+
+        finalReceiptPopup.classList.remove('hidden');
+        finalReceiptPopup.setAttribute('aria-hidden', 'false');
+        finalReceiptClose?.focus();
+    };
+
+    const closeFinalReceiptPopup = () => {
+        finalReceiptPopup?.classList.add('hidden');
+        finalReceiptPopup?.setAttribute('aria-hidden', 'true');
+    };
+
+    finalReceiptTriggers.forEach((trigger) => {
+        trigger.addEventListener('click', () => openFinalReceiptPopup(trigger.dataset.finalReceiptType || 'delivery'));
+    });
+    finalReceiptClose?.addEventListener('click', closeFinalReceiptPopup);
+    finalReceiptDone?.addEventListener('click', closeFinalReceiptPopup);
+    finalReceiptPopup?.addEventListener('click', (event) => {
+        if (event.target === finalReceiptPopup) {
+            closeFinalReceiptPopup();
+        }
+    });
     syncDeliveryReceiptTotal();
     syncPaymentPendingAmount();
 
@@ -1744,30 +1979,48 @@
 
     const exchangeWrap = document.getElementById('deliveryExchangeDetailsWrap');
     const exchangeTypeInputs = Array.from(document.querySelectorAll('input[name="interested_in_exchange"]'));
+    const exchangeHouseTypeInputs = Array.from(document.querySelectorAll('input[name="exchange_type"]'));
     const exchangeEditToggle = document.getElementById('deliveryExchangeEditToggle');
     const exchangeInlineEdit = document.getElementById('deliveryExchangeInlineEdit');
+    const exchangePurchaseRow = document.getElementById('deliveryExchangePurchaseRow');
+    const exchangeBrandModelRow = document.getElementById('deliveryExchangeBrandModelRow');
     const exchangeLockableFields = Array.from(document.querySelectorAll('[data-exchange-lockable]'));
 
     const syncExchangeLockable = () => {
         const isEditable = Boolean(exchangeEditToggle?.checked || exchangeInlineEdit?.checked);
+        if (exchangeBrandModelRow) {
+            exchangeBrandModelRow.classList.toggle('hidden', !isEditable);
+        }
         exchangeLockableFields.forEach((field) => {
             field.classList.toggle('delivery-locked', !isEditable);
             if (field.tagName.toLowerCase() === 'input') {
                 field.readOnly = !isEditable || field.id === 'deliveryExchangeDifference';
+            } else if (field.tagName.toLowerCase() === 'select') {
+                field.toggleAttribute('data-locked', !isEditable);
             }
         });
     };
 
     const syncExchangeDetails = () => {
         const isExchange = picked('interested_in_exchange') === 'yes';
+        const isInHouse = picked('exchange_type') !== 'outhouse';
         if (exchangeWrap) {
             exchangeWrap.classList.toggle('hidden', !isExchange);
+        }
+        if (exchangePurchaseRow) {
+            exchangePurchaseRow.classList.toggle('hidden', !isInHouse);
         }
         syncExchangeLockable();
     };
 
     exchangeTypeInputs.forEach((input) => input.addEventListener('change', syncExchangeDetails));
-    exchangeEditToggle?.addEventListener('change', syncExchangeLockable);
+    exchangeHouseTypeInputs.forEach((input) => input.addEventListener('change', syncExchangeDetails));
+    exchangeEditToggle?.addEventListener('change', () => {
+        if (exchangeInlineEdit) {
+            exchangeInlineEdit.checked = exchangeEditToggle.checked;
+        }
+        syncExchangeLockable();
+    });
     exchangeInlineEdit?.addEventListener('change', () => {
         if (exchangeEditToggle) {
             exchangeEditToggle.checked = exchangeInlineEdit.checked;
