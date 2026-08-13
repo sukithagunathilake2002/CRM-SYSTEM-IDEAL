@@ -2612,13 +2612,14 @@ html.theme-dark .analytics-filter-note {
 
 .analytics-filter-form {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 10px;
 }
 
 .analytics-filter-form label {
     display: grid;
     gap: 6px;
+    min-width: 0;
     font-size: 13px;
     font-weight: 600;
     color: #334155;
@@ -2626,6 +2627,9 @@ html.theme-dark .analytics-filter-note {
 
 .analytics-filter-form input,
 .analytics-filter-form select {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
     height: 38px;
     border-radius: 8px;
     border: 1px solid #cdd5e1;
