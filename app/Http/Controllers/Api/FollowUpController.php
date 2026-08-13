@@ -55,7 +55,21 @@ class FollowUpController extends Controller
         $viewer = request()->user();
         abort_unless($this->canAccessEnquiry($viewer, $enquiry), 403);
 
-        $enquiry->load(['customer', 'vehicle', 'user']);
+        // ============================================================
+        // FIXED: Load followup attempts with user relation - MATCHES WEB VERSION
+        // ============================================================
+        $enquiry->load([
+            'customer',
+            'vehicle',
+            'user',
+            'prospectSheet',
+            'booking',
+            'delivery',
+            'followupAttempts' => function ($query) {
+                $query->with('user:id,name')->latest('attempted_at')->latest('id');
+            }
+        ]);
+
         $customer = $enquiry->customer;
         $vehicle = $enquiry->vehicle;
         $mobileNumbers = is_array($customer?->mobile_numbers)
@@ -70,8 +84,29 @@ class FollowUpController extends Controller
             ? Carbon::parse($enquiry->follow_date)->format('d-M-Y')
             : 'No followup date';
 
+        // ============================================================
+        // Format followup history for API response - MATCHES WEB VERSION
+        // ============================================================
+        $followupHistory = $enquiry->followupAttempts->map(function ($attempt) {
+            return [
+                'id' => $attempt->id,
+                'enquiry_id' => $attempt->enquiry_id,
+                'user_id' => $attempt->user_id,
+                'follow_type' => $attempt->follow_type,
+                'followup_status' => $attempt->followup_status,
+                'attempted_at' => $attempt->attempted_at,
+                'not_done_reason' => $attempt->not_done_reason,
+                'not_done_reason_other' => $attempt->not_done_reason_other,
+                'user' => $attempt->user ? [
+                    'id' => $attempt->user->id,
+                    'name' => $attempt->user->name,
+                ] : null,
+            ];
+        })->values()->all();
+
         return response()->json([
             'enquiry' => $enquiry,
+            'followup_history' => $followupHistory,
             'customer_name' => $customerName,
             'interested_in' => $interestedIn ?: 'N/A',
             'primary_phone' => $primaryPhone,
@@ -114,6 +149,8 @@ class FollowUpController extends Controller
             'followup_lost_reject_reasons.*' => [Rule::in(['issue_with_product', 'got_better_discount', 'other'])],
             'followup_lost_reject_other_text' => ['nullable', 'string', 'max:255'],
             'followup_not_done_reason' => ['nullable', 'string', 'max:255'],
+            'followup_remove_picture_1' => ['nullable', 'boolean'],
+            'followup_remove_picture_2' => ['nullable', 'boolean'],
         ]);
 
         $enquiry->followup_status = $validated['followup_status'];
