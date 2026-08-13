@@ -1,6 +1,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap");
 
 :root {
+    --crm-header-height: 64px;
     --page-bg: #eceef3;
     --surface: #f3f4f7;
     --surface-card: #ffffff;
@@ -2243,13 +2244,17 @@ html.theme-dark .plan-follow-type-segment input:checked + span {
 
 .crm-header,
 .global-unified-topbar {
-    position: relative !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
     z-index: 1500 !important;
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important;
     align-items: center !important;
     gap: 12px !important;
-    min-height: 64px !important;
+    height: var(--crm-header-height) !important;
+    min-height: var(--crm-header-height) !important;
     width: 100% !important;
     box-sizing: border-box !important;
     margin: 0 !important;
@@ -2261,8 +2266,18 @@ html.theme-dark .plan-follow-type-segment input:checked + span {
     box-shadow: none !important;
 }
 
+.global-unified-topbar {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    height: auto !important;
+    min-height: var(--crm-header-height) !important;
+}
+
 .crm-dashboard {
     padding: 0 !important;
+    padding-top: var(--crm-header-height) !important;
 }
 
 .crm-layout-shell {
@@ -2278,13 +2293,17 @@ html.theme-dark .plan-follow-type-segment input:checked + span {
 }
 
 .crm-left-nav {
-    top: 64px !important;
+    top: var(--crm-header-height) !important;
     bottom: 0 !important;
+    height: calc(100vh - var(--crm-header-height)) !important;
     z-index: 1400 !important;
 }
 
 .crm-sidebar-overlay {
-    top: 64px !important;
+    top: var(--crm-header-height) !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
     z-index: 1350 !important;
 }
 
