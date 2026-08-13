@@ -72,6 +72,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard/analytics', [DashboardController::class, 'analytics'])
         ->name('dashboard.analytics');
 
+    Route::get('/dashboard/delivery-analytics', [DashboardController::class, 'deliveryAnalytics'])
+        ->name('dashboard.delivery_analytics');
+
     Route::get('/dashboard/followup-summary', [DashboardController::class, 'followupSummary'])
         ->name('dashboard.followup_summary');
 

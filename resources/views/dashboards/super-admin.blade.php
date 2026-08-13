@@ -167,6 +167,7 @@ html.theme-dark .analytics-card-enhanced {
         <a class="btn-link" href="{{ route('auth.register.form', 'area-manager') }}">Register Area Manager</a>
         <a class="btn-link" href="{{ route('auth.register.form', 'sales-consultant') }}">Register Sales Consultant</a>
         <a class="btn-link" href="{{ route('dashboard.analytics') }}">Analytics Filters</a>
+        <a class="btn-link" href="{{ route('dashboard.delivery_analytics') }}">Delivery</a>
         <a class="btn-link alt" href="{{ url('/epr') }}">Open EPR</a>
         <a class="btn-link alt" href="{{ route('enquiries.list', ['view' => 'all']) }}">Delete Leads</a>
     </div>
@@ -315,6 +316,7 @@ html.theme-dark .analytics-card-enhanced {
     <a class="hierarchy-metric-btn analytics" href="{{ route('dashboard.analytics') }}">Analytics Filters</a>
     <a class="hierarchy-metric-btn active" href="{{ route('dashboard.analytics.detail', 'active') }}">Active</a>
     <a class="hierarchy-metric-btn booking" href="{{ route('dashboard.analytics.detail', 'booking') }}">Booking</a>
+    <a class="hierarchy-metric-btn delivery" href="{{ route('dashboard.delivery_analytics') }}">Delivery</a>
     <a class="hierarchy-metric-btn lost" href="{{ route('dashboard.analytics.detail', 'lost') }}">Lost</a>
     <a class="hierarchy-metric-btn closed" href="{{ route('dashboard.analytics.detail', 'closed') }}">Closed Lead</a>
     <a class="hierarchy-metric-btn followup" href="{{ route('dashboard.followup_tracker') }}">FollowUp</a>
