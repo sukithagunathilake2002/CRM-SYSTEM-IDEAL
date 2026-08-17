@@ -1,7 +1,41 @@
 @extends('layouts.portal')
 
+@section('bodyClass', 'super-admin-page')
+
 @section('content')
 <style>
+body.super-admin-page {
+    --portal-topbar-height: 58px;
+}
+
+body.super-admin-page .portal-topbar {
+    min-height: 58px !important;
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+}
+
+body.super-admin-page .portal-brand-logo {
+    width: clamp(130px, 11vw, 220px) !important;
+    max-height: 46px !important;
+}
+
+body.super-admin-page .portal-menu-link,
+body.super-admin-page .portal-quick-icon,
+body.super-admin-page .portal-topbar-right > .theme-toggle-btn {
+    width: 30px !important;
+    height: 30px !important;
+}
+
+body.super-admin-page .portal-quick-icon svg,
+body.super-admin-page .portal-topbar-right > .theme-toggle-btn svg {
+    width: 16px !important;
+    height: 16px !important;
+}
+
+body.super-admin-page .portal-menu-link span {
+    width: 16px !important;
+}
+
 /* Adjust portal-main for balanced spacing */
 .portal-main {
     max-width: 1400px !important;
@@ -149,9 +183,6 @@ html.theme-dark .analytics-card-enhanced {
 
 <section class="card dashboard-header-card">
     <div class="card-title-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path d="M3 12h2l3-9 3 9h2M5 21v-6M19 13V7M15 13V9M21 21H3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-        </svg>
         <h1>Super Admin Dashboard</h1>
     </div>
     <p>Manage full organization hierarchy and access all CRM modules.</p>
