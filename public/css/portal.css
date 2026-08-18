@@ -1510,6 +1510,72 @@ html.theme-dark .analytics-filter-form select {
     font-size: 13px;
 }
 
+body.consultant-transfer-page .portal-main {
+    max-width: 920px;
+}
+
+.consultant-transfer-card {
+    width: 100%;
+    max-width: 860px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: clamp(18px, 3vw, 28px);
+    overflow: hidden;
+}
+
+.consultant-transfer-card h1 {
+    margin-bottom: 8px;
+    color: #111827;
+    font-size: clamp(24px, 3vw, 32px);
+    line-height: 1.15;
+}
+
+.consultant-transfer-card p {
+    max-width: 620px;
+    margin: 0 0 18px;
+    color: #475569;
+    line-height: 1.45;
+}
+
+.consultant-transfer-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 16px;
+}
+
+.consultant-transfer-field,
+.consultant-transfer-form .btn-primary,
+.consultant-transfer-card .helper-links {
+    grid-column: 1 / -1;
+}
+
+.consultant-transfer-field:not(.consultant-transfer-field-wide) {
+    grid-column: span 1;
+}
+
+.consultant-transfer-field select,
+.consultant-transfer-field input {
+    width: 100%;
+    min-width: 0;
+}
+
+.consultant-transfer-field select {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.consultant-transfer-form .btn-primary {
+    width: 100%;
+    margin-top: 4px;
+}
+
+html.theme-dark .consultant-transfer-card h1 {
+    color: #f7fbff;
+}
+
+html.theme-dark .consultant-transfer-card p {
+    color: #cbd5e1;
+}
+
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -4282,6 +4348,14 @@ html.theme-dark .analytics-table tbody tr:nth-child(odd) {
 
     .analytics-filter-form {
         grid-template-columns: 1fr;
+    }
+
+    .consultant-transfer-form {
+        grid-template-columns: 1fr;
+    }
+
+    .consultant-transfer-field:not(.consultant-transfer-field-wide) {
+        grid-column: 1 / -1;
     }
 
     .analytics-filter-actions {
