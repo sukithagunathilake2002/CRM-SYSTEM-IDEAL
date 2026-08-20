@@ -689,6 +689,13 @@ class BookingController extends Controller
             $payload
         );
 
+        if ($customer && !$sameAsCustomer) {
+            $customer->fill([
+                'title' => $payload['title'],
+                'name' => $payload['name'],
+            ])->save();
+        }
+
         $exchangeErrors = $this->missingExchangeRequiredErrors($payload);
         if (!empty($exchangeErrors) && (($actionType === 'next' && $currentStep === 3) || $actionType === 'submit')) {
             return redirect()

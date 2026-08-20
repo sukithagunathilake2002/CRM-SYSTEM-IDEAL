@@ -169,7 +169,10 @@
 </style>
 
 @php
-$summaryName = trim(($customer?->title ? $customer->title . ' ' : '') . ($customer?->name ?? 'N/A'));
+$summaryName = collect([$booking?->title ?: $customer?->title, $booking?->name ?: $customer?->name])
+->map(fn($part) => trim((string) $part))
+->filter()
+->implode(' ') ?: 'N/A';
 $summaryMobiles = collect($customer?->mobile_numbers ?? [])->filter()->values();
 $summaryMobile = $summaryMobiles->isNotEmpty() ? $summaryMobiles->implode(', ') : 'N/A';
 $summaryAddress = collect([$customer?->address1, $customer?->address2, $customer?->location, $customer?->district, $customer?->state])
@@ -197,6 +200,10 @@ $dobLabel = $prospect?->date_of_birth
 
 $selectedTitle = old('title', $defaultValues['title']);
 $selectedName = old('name', $defaultValues['name']);
+$summaryName = collect([$selectedTitle, $selectedName])
+->map(fn($part) => trim((string) $part))
+->filter()
+->implode(' ') ?: 'N/A';
 $selectedContactType = old('contact_type', $defaultValues['contact_type']);
 $selectedEmail = old('email', $defaultValues['email']);
 $selectedMobile = old('mobile_numbers', $defaultValues['mobile_numbers']);
@@ -486,7 +493,7 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
 
         @if($currentStep === 1)
         <div class="booking-personal-summary">
-            <div class="booking-personal-summary-row"><span>Customer Name</span><strong id="bookingSummaryCustomerName">{{ $summaryName }}</strong></div>
+            <div class="booking-personal-summary-row"><span>Customer Name</span><strong id="bookingSummaryCustomerName" data-booking-customer-name>{{ $summaryName }}</strong></div>
             <div class="booking-personal-summary-row"><span>Address</span><strong id="bookingSummaryAddress">{{ $summaryAddress ?: 'N/A' }}</strong></div>
             <div class="booking-personal-summary-row"><span>Mobile No</span><strong id="bookingSummaryMobile">{{ $summaryMobile }}</strong></div>
             <div class="booking-personal-summary-row"><span>Email</span><strong id="bookingSummaryEmail">{{ $selectedEmail ?: 'N/A' }}</strong></div>
@@ -504,12 +511,12 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
         @if($currentStep === 4)
         <div class="offer-page-summary">
             <h3>SUMMARY</h3>
-            <p>Customer Name: <strong>{{ $summaryName }}</strong></p>
+            <p>Customer Name: <strong id="offerSummaryCustomerName" data-booking-customer-name>{{ $summaryName }}</strong></p>
             <p>Interested in: <strong>{{ strtoupper($interestedVehicleLine) }}</strong></p>
         </div>
         @elseif($currentStep === 3)
         <div class="booking-summary exchange-summary">
-            <div class="exchange-summary-row exchange-summary-customer"><span>Customer Name</span><strong id="exchangeSummaryCustomerName">{{ $summaryName ?: '-' }}</strong></div>
+            <div class="exchange-summary-row exchange-summary-customer"><span>Customer Name</span><strong id="exchangeSummaryCustomerName" data-booking-customer-name>{{ $summaryName ?: '-' }}</strong></div>
             <div class="exchange-summary-row exchange-summary-vehicle"><span>Interested In</span><strong id="exchangeSummaryInterested">{{ strtoupper($interestedVehicleLine !== 'Not selected' ? $interestedVehicleLine : '-') }}</strong></div>
             <div class="exchange-summary-row exchange-summary-mobile"><span>Mobile No</span><strong id="exchangeSummaryMobile">{{ $summaryMobile ?: '-' }}</strong></div>
             <div class="exchange-summary-row exchange-summary-exchange"><span>Interested in Exchange?</span><strong id="exchangeSummaryInterestedExchange">{{ $buyingYesNoLabel($selectedInterestedExchange) ?: '-' }}</strong></div>
@@ -528,7 +535,7 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
         </div>
         @elseif($currentStep !== 5)
         <div class="booking-summary">
-            <p>{{ $summaryName }}</p>
+            <p><span data-booking-customer-name>{{ $summaryName }}</span></p>
             <p>{{ $summaryMobile }}</p>
             <p>{{ $summaryAddress ?: 'N/A' }}</p>
             <p>{{ $customerTypeLabel }}</p>
@@ -686,7 +693,7 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
 
             <section class="booking-section buying-section {{ $currentStep === 2 ? 'active' : '' }}">
                 <div class="buying-details-summary">
-                    <div class="buying-summary-row{{ $buyingSummaryRowClass($summaryName) }}"><span>Customer Name</span><strong id="buyingSummaryCustomerName">{{ $summaryName }}</strong></div>
+                    <div class="buying-summary-row{{ $buyingSummaryRowClass($summaryName) }}"><span>Customer Name</span><strong id="buyingSummaryCustomerName" data-booking-customer-name>{{ $summaryName }}</strong></div>
                     <div class="buying-summary-row{{ $buyingSummaryRowClass($summaryAddress) }}"><span>Address</span><strong id="buyingSummaryAddress">{{ $summaryAddress }}</strong></div>
                     <div class="buying-summary-row{{ $buyingSummaryRowClass($summaryMobile) }}"><span>Mobile No</span><strong id="buyingSummaryMobile">{{ $summaryMobile }}</strong></div>
                     <div class="buying-summary-row{{ $buyingSummaryRowClass($interestedVehicleLine === 'Not selected' ? '' : $interestedVehicleLine) }}"><span>Interested In</span><strong id="buyingSummaryInterested">{{ $interestedVehicleLine === 'Not selected' ? '' : $interestedVehicleLine }}</strong></div>
@@ -1251,14 +1258,14 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
             <h4>Enquiry Details</h4>
             <div class="booking-form-card-rows compact">
                 <p><i></i><strong>Date of Enquiry</strong><em>:</em><span>{{ $enquiryDateLabel }}</span></p>
-                <p><i></i><strong>Name</strong><em>:</em><span>{{ $summaryName }}</span></p>
+                <p><i></i><strong>Name</strong><em>:</em><span id="bookingReviewEnquiryName" data-booking-customer-name>{{ $summaryName }}</span></p>
             </div>
         </article>
 
         <article class="booking-form-card">
             <h4>Personal Details</h4>
             <div class="booking-form-card-rows">
-                <p><i></i><strong>Customer Name</strong><em>:</em><span>{{ $selectedName ?: $summaryName }}</span></p>
+                <p><i></i><strong>Customer Name</strong><em>:</em><span id="bookingReviewCustomerName" data-booking-customer-name>{{ $summaryName }}</span></p>
                 <p><i></i><strong>Mobile No</strong><em>:</em><span>{{ $summaryMobile }}</span></p>
                 <p><i></i><strong>Address</strong><em>:</em><span>{{ $summaryAddress ?: 'N/A' }}</span></p>
                 <p><i></i><strong>Type of Customer</strong><em>:</em><span>{{ $selectedCustomerTypeLabel ?: 'N/A' }}</span></p>
@@ -1410,6 +1417,18 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
 </main>
 </div>
 
+<div id="bookingExchangeImageModal" class="booking-image-viewer hidden" aria-hidden="true">
+    <div class="booking-image-viewer-card" role="dialog" aria-modal="true" aria-labelledby="bookingExchangeImageTitle">
+        <div class="booking-image-viewer-head">
+            <h4 id="bookingExchangeImageTitle">Exchange Image</h4>
+            <button type="button" id="bookingExchangeImageClose" class="booking-image-viewer-close" aria-label="Close exchange image">&times;</button>
+        </div>
+        <div class="booking-image-viewer-body">
+            <img id="bookingExchangeImagePreview" alt="Exchange image preview">
+        </div>
+    </div>
+</div>
+
 @if(session('booking_submitted_popup'))
 <div class="booking-submit-popup" id="bookingSubmitPopup" role="dialog" aria-modal="true" aria-labelledby="bookingSubmitTitle">
     <div class="booking-submit-popup-card">
@@ -1492,6 +1511,7 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
         const exchangeSummaryExpected = document.getElementById('exchangeSummaryExpected');
         const exchangeSummaryQuoted = document.getElementById('exchangeSummaryQuoted');
         const exchangeSummaryDifference = document.getElementById('exchangeSummaryDifference');
+        const bookingCustomerNameDisplays = document.querySelectorAll('[data-booking-customer-name]');
         const interestedModelInput = document.getElementById('interested_model');
         const interestedEngineInput = document.getElementById('interested_engine');
         const interestedVariantInput = document.getElementById('interested_variant');
@@ -1529,6 +1549,10 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
         const bookingImageBody = document.getElementById('bookingImageBody');
         const bookingAddMoreImagesToggle = document.getElementById('bookingAddMoreImagesToggle');
         const bookingExtraImageGrid = document.getElementById('bookingExtraImageGrid');
+        const bookingExchangeImageModal = document.getElementById('bookingExchangeImageModal');
+        const bookingExchangeImagePreview = document.getElementById('bookingExchangeImagePreview');
+        const bookingExchangeImageTitle = document.getElementById('bookingExchangeImageTitle');
+        const bookingExchangeImageClose = document.getElementById('bookingExchangeImageClose');
         const exchangePreviewObjectUrls = new WeakMap();
         const amountCollectedInput = document.getElementById('amountCollectedInput');
         const bookingReceiptModal = document.getElementById('bookingReceiptModal');
@@ -1675,6 +1699,12 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
             }
         }
 
+        function syncCustomerNameDisplays(customerName) {
+            bookingCustomerNameDisplays.forEach((target) => {
+                setSummaryText(target, customerName);
+            });
+        }
+
         function syncBookingPersonalSummary() {
             const customerTypeLabels = {
                 individual: 'Individual',
@@ -1697,6 +1727,7 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
                 .filter(Boolean)
                 .join(', ');
 
+            syncCustomerNameDisplays(customerName);
             setSummaryText(bookingSummaryCustomerName, customerName);
             setSummaryText(bookingSummaryAddress, address);
             setSummaryText(bookingSummaryMobile, bookingMobileNumbersInput ? bookingMobileNumbersInput.value.trim() : '');
@@ -2401,6 +2432,31 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
             return tile.dataset.previewSrc || tile.dataset.existingSrc || '';
         }
 
+        function currentExchangePreviewTitle(tile) {
+            return tile?.querySelector('.exchange-upload-title')?.textContent?.trim() || 'Exchange Image';
+        }
+
+        function openExchangeImageViewer(sourceUrl, title = 'Exchange Image') {
+            if (!sourceUrl || !bookingExchangeImageModal || !bookingExchangeImagePreview) return;
+
+            if (bookingExchangeImageTitle) {
+                bookingExchangeImageTitle.textContent = title || 'Exchange Image';
+            }
+            bookingExchangeImagePreview.src = sourceUrl;
+            bookingExchangeImagePreview.alt = `${title || 'Exchange image'} preview`;
+            bookingExchangeImageModal.classList.remove('hidden');
+            bookingExchangeImageModal.setAttribute('aria-hidden', 'false');
+            bookingExchangeImageClose?.focus();
+        }
+
+        function closeExchangeImageViewer() {
+            if (!bookingExchangeImageModal || !bookingExchangeImagePreview) return;
+
+            bookingExchangeImageModal.classList.add('hidden');
+            bookingExchangeImageModal.setAttribute('aria-hidden', 'true');
+            bookingExchangeImagePreview.removeAttribute('src');
+        }
+
         function bindExchangeUploadPreview(inputEl) {
             if (!inputEl) return;
 
@@ -2880,7 +2936,7 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
                     const tile = viewBtn.closest('.exchange-upload-tile');
                     const previewUrl = currentExchangePreviewUrl(tile);
                     if (previewUrl) {
-                        window.open(previewUrl, '_blank', 'noopener');
+                        openExchangeImageViewer(previewUrl, currentExchangePreviewTitle(tile));
                     }
                     return;
                 }
@@ -2935,7 +2991,7 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
                     const tile = viewBtn.closest('.exchange-upload-tile');
                     const previewUrl = currentExchangePreviewUrl(tile);
                     if (previewUrl) {
-                        window.open(previewUrl, '_blank', 'noopener');
+                        openExchangeImageViewer(previewUrl, currentExchangePreviewTitle(tile));
                     }
                     return;
                 }
@@ -3004,6 +3060,18 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
         bookingReceiptModal?.addEventListener('click', (event) => {
             if (event.target === bookingReceiptModal) {
                 cancelReceiptChanges();
+            }
+        });
+
+        bookingExchangeImageClose?.addEventListener('click', closeExchangeImageViewer);
+        bookingExchangeImageModal?.addEventListener('click', (event) => {
+            if (event.target === bookingExchangeImageModal) {
+                closeExchangeImageViewer();
+            }
+        });
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && bookingExchangeImageModal && !bookingExchangeImageModal.classList.contains('hidden')) {
+                closeExchangeImageViewer();
             }
         });
 

@@ -5883,6 +5883,28 @@ body {
     font-size: 18px !important;
 }
 
+/* Keep the compact Prospect title selector readable after the global type scale. */
+.prospect-page .personal-step .personal-row-primary {
+    grid-template-columns: 88px minmax(0, 1.25fr) minmax(0, 1.25fr) minmax(0, 0.85fr) minmax(0, 1fr);
+}
+
+.prospect-page .personal-step .field-pill-title select {
+    min-width: 76px;
+    padding: 0 24px 0 12px;
+    font-size: 15px !important;
+    text-align: left;
+}
+
+@media (max-width: 760px) {
+    .prospect-page .personal-step .personal-row-primary {
+        grid-template-columns: 1fr;
+    }
+
+    .prospect-page .personal-step .field-pill-title {
+        max-width: 120px;
+    }
+}
+
 /* Prospect Sheet stepper size increase */
 .prospect-page .stepper {
     width: min(920px, calc(100% - 48px));
