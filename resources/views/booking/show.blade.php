@@ -461,6 +461,8 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
         </a>
     </header>
 
+    <h1 class="workflow-form-heading">Booking</h1>
+
     <div class="booking-stepper">
         @foreach([
         1 => 'Personal Details',

@@ -187,6 +187,8 @@
         <div class="top-icons-right"></div>
     </header>
 
+    <h1 class="workflow-form-heading">Prospect Sheet</h1>
+
     @if($showProspectSubmittedPopup)
         <div class="prospect-submit-popup" id="prospectSubmitPopup" role="dialog" aria-modal="true" aria-labelledby="prospectSubmitTitle">
             <div class="prospect-submit-popup-card">

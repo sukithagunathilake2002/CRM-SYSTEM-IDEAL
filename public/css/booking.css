@@ -42,6 +42,16 @@ body {
     height: auto;
 }
 
+.workflow-form-heading {
+    width: min(1120px, calc(100% - 24px));
+    margin: 14px auto 2px;
+    color: #111111;
+    font-size: 24px;
+    font-weight: 900;
+    line-height: 1.15;
+    text-align: center;
+}
+
 .booking-stepper {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));

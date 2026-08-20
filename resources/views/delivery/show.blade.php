@@ -280,6 +280,8 @@
         </a>
     </header>
 
+    <h1 class="workflow-form-heading">Delivery</h1>
+
     <div class="delivery-stepper" aria-label="Delivery workflow">
         @foreach([
             1 => 'Personal Detail',
