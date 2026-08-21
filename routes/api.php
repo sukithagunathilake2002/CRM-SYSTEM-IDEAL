@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\VehicleController;
+use App\Http\Controllers\Api\LeadTransferController;
 use App\Http\Controllers\Api\EnquiryController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\FollowUpController;
@@ -47,6 +48,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // Dashboard
     Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
     Route::get('/dashboard/district-data', [DashboardController::class, 'getDistrictData']);
+    Route::get('/dashboard/area-manager', [DashboardController::class, 'areaManager']);
+    Route::post('/dashboard/area-manager/sales-consultants', [DashboardController::class, 'registerSalesConsultant']);
+    Route::get('/lead-transfer/approvals', [LeadTransferController::class, 'approvals']);
+    Route::post('/lead-transfer/{transferRequest}/approve', [LeadTransferController::class, 'approve']);
+    Route::post('/lead-transfer/{transferRequest}/reject', [LeadTransferController::class, 'reject']);
     
     // Enquiries - Now supports all filters: booking, inquiry, delivery, etc.
     Route::get('/enquiries', [EnquiryController::class, 'list']);

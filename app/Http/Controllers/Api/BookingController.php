@@ -304,6 +304,13 @@ class BookingController extends Controller
             'booking_date' => ['nullable', 'date'],
             'amount_collected' => ['nullable', 'numeric'],
             'booking_receipts' => ['nullable', 'array'],
+            'purchase_order_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'blue_book_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'lot_no_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'car_pic_1_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'car_pic_2_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'exchange_extra_images' => ['nullable', 'array'],
+            'exchange_extra_images.*' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'booking_step' => ['nullable', 'integer', 'between:1,5'],
             'action_type' => ['nullable', 'string', 'in:next,save_exit,save,submit,exit'],
         ]);
@@ -392,6 +399,14 @@ class BookingController extends Controller
             'booking_date' => $validated['booking_date'] ?? $booking->booking_date ?? now()->toDateString(),
             'booking_receipts' => $validated['booking_receipts'] ?? $booking->booking_receipts ?? [],
             'amount_collected' => $validated['amount_collected'] ?? $booking->amount_collected ?? 0,
+            'purchase_order_image' => $booking->purchase_order_image,
+            'blue_book_image' => $booking->blue_book_image,
+            'lot_no_image' => $booking->lot_no_image,
+            'car_pic_1_image' => $booking->car_pic_1_image,
+            'car_pic_2_image' => $booking->car_pic_2_image,
+            'exchange_extra_images' => is_array($booking->exchange_extra_images)
+                ? $booking->exchange_extra_images
+                : [],
         ];
 
         // Handle finance details
@@ -435,6 +450,39 @@ class BookingController extends Controller
             $payload['exchange_expected_price'] = $validated['exchange_expected_price'] ?? null;
             $payload['exchange_quoted_price'] = $validated['exchange_quoted_price'] ?? null;
             $payload['exchange_price_difference'] = $validated['exchange_price_difference'] ?? null;
+        }
+
+        if ($request->hasFile('purchase_order_image')) {
+            $payload['purchase_order_image'] = $request->file('purchase_order_image')
+                ->store('booking/purchase-order', 'public');
+        }
+
+        foreach (['blue_book_image', 'lot_no_image', 'car_pic_1_image', 'car_pic_2_image'] as $imageField) {
+            if ($request->hasFile($imageField)) {
+                $payload[$imageField] = $request->file($imageField)
+                    ->store('booking/exchange', 'public');
+            }
+        }
+
+        if ($request->hasFile('exchange_extra_images')) {
+            $extraImages = $payload['exchange_extra_images'];
+            foreach ($request->file('exchange_extra_images') as $extraImage) {
+                if ($extraImage) {
+                    $extraImages[] = $extraImage->store('booking/exchange', 'public');
+                }
+            }
+            $payload['exchange_extra_images'] = $extraImages;
+        }
+
+        // Keep API submissions consistent with the web booking flow. Delivery
+        // is unlocked only when this timestamp is set by a complete submit.
+        $bookingComplete = $this->bookingPayloadIsComplete($payload);
+        if ($actionType === 'submit') {
+            $payload['booking_completed_at'] = $bookingComplete
+                ? ($booking->booking_completed_at ?? now())
+                : null;
+        } elseif ($actionType === 'save_exit' && !$bookingComplete && $booking->booking_completed_at === null) {
+            $payload['booking_completed_at'] = null;
         }
 
         // Save booking - this will store ALL fields, even null values
@@ -536,12 +584,88 @@ class BookingController extends Controller
             'booking_completed_at' => $booking->booking_completed_at,
         ];
 
+        if ($actionType === 'submit' && !$bookingComplete) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Please complete all required booking fields before opening Delivery.',
+            ], 422);
+        }
+
         return response()->json([
+            'success' => true,
             'message' => 'Booking saved successfully',
             'booking' => $booking,
             'current_step' => $currentStep,
             'is_edit_mode' => $isEditMode,
             'default_values' => $defaultValues,
         ]);
+    }
+
+    private function bookingPayloadIsComplete(array $payload): bool
+    {
+        $filled = fn(string $field): bool => trim((string) ($payload[$field] ?? '')) !== '';
+
+        foreach ([
+            'name',
+            'mobile_numbers',
+            'district',
+            'interested_model',
+            'interested_variant',
+            'interested_vehicle_color',
+            'expected_delivery_date',
+            'booking_date',
+        ] as $field) {
+            if (!$filled($field)) {
+                return false;
+            }
+        }
+
+        if (!$filled('address1') && !$filled('location')) {
+            return false;
+        }
+
+        if (($payload['customer_type'] ?? null) === 'corporate' && !$filled('corporate_name')) {
+            return false;
+        }
+
+        if (($payload['purchase_mode'] ?? null) === 'finance') {
+            if (!$filled('finance_form')) {
+                return false;
+            }
+
+            if (in_array($payload['finance_form'] ?? null, ['in_house', 'self'], true) && !$filled('finance_bank')) {
+                return false;
+            }
+
+            if (($payload['finance_form'] ?? null) === 'other' && !$filled('finance_other_details')) {
+                return false;
+            }
+        }
+
+        if (($payload['interested_in_exchange'] ?? null) === 'yes') {
+            foreach ([
+                'exchange_type',
+                'exchange_vehicle_brand',
+                'exchange_vehicle_model',
+                'exchange_manufacture_year',
+                'exchange_ownership',
+                'exchange_insurance_validity',
+                'exchange_color',
+                'exchange_mileage_km',
+                'exchange_registration_no',
+                'exchange_expected_price',
+                'exchange_quoted_price',
+            ] as $field) {
+                if (!$filled($field)) {
+                    return false;
+                }
+            }
+
+            if (($payload['exchange_type'] ?? null) === 'in_house' && !$filled('exchange_purchase_value')) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

@@ -88,7 +88,7 @@ class DeliveryController extends Controller
         $vehicle = $enquiry->vehicle;
 
         $currentStep = (int) request()->query('step', 1);
-        $currentStep = max(1, min(3, $currentStep));
+        $currentStep = max(1, min(6, $currentStep));
 
         return response()->json([
             'enquiry' => $enquiry,
@@ -204,12 +204,12 @@ class DeliveryController extends Controller
             'payment_credit_amount_pending' => ['nullable', 'numeric'],
             'payment_credit_permitted_by' => ['nullable', 'string', 'max:255'],
             'payment_credit_expected_date' => ['nullable', 'date'],
-            'delivery_step' => ['nullable', 'integer', 'between:1,3'],
+            'delivery_step' => ['nullable', 'integer', 'between:1,6'],
             'action_type' => ['nullable', 'string', 'in:save_exit,save_next,submit,exit'],
         ]);
 
         $currentStep = (int) ($validated['delivery_step'] ?? 1);
-        $currentStep = max(1, min(3, $currentStep));
+        $currentStep = max(1, min(6, $currentStep));
         $actionType = $validated['action_type'] ?? 'save_next';
 
         // Start with request data
@@ -277,6 +277,24 @@ class DeliveryController extends Controller
             'payment_credit_permitted_by' => $validated['payment_credit_permitted_by'] ?? null,
             'payment_credit_expected_date' => $validated['payment_credit_expected_date'] ?? null,
         ];
+
+        // Match web submissions so mobile-completed deliveries enter the
+        // Pending Delivery approval queue for the Area Manager.
+        if ($actionType === 'submit' && $currentStep === 6) {
+            $payload['submitted_by'] = $viewer?->id;
+            $payload['submitted_at'] = now();
+            $payload['approval_note'] = null;
+
+            if ($viewer?->role === User::ROLE_SALES_CONSULTANT) {
+                $payload['approval_status'] = Delivery::APPROVAL_PENDING;
+                $payload['approved_by'] = null;
+                $payload['approved_at'] = null;
+            } else {
+                $payload['approval_status'] = Delivery::APPROVAL_APPROVED;
+                $payload['approved_by'] = $viewer?->id;
+                $payload['approved_at'] = now();
+            }
+        }
 
         $delivery->fill($payload);
         $delivery->save();

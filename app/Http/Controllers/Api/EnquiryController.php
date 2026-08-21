@@ -51,7 +51,8 @@ class EnquiryController extends Controller
             'vehicle', 
             'user',
             'prospectSheet',
-            'booking'
+            'booking',
+            'delivery'
         ])->select('enquiries.*');
         
         $selectedLeadStatus = strtolower(trim((string) $request->query('lead_status', '')));
@@ -137,9 +138,11 @@ class EnquiryController extends Controller
             $enquiriesQuery->whereRaw("LOWER(COALESCE(followup_result, '')) = ?", [$selectedLeadResult]);
         }
 
+        // Keep mobile sidebar datasets and ordering identical to the web list.
         $enquiries = $enquiriesQuery
-            ->latest()
-            ->paginate(20);
+            ->orderBy('follow_date')
+            ->orderBy('follow_time')
+            ->get();
 
         return response()->json($enquiries);
     }
