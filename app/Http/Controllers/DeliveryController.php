@@ -65,6 +65,10 @@ class DeliveryController extends Controller
         $booking = $enquiry->booking;
         $currentStep = (int) old('delivery_step', request()->query('step', 1));
         $currentStep = max(1, min(6, $currentStep));
+        $firstTimeBuyerForNavigation = old('first_time_buyer', $delivery->first_time_buyer ?: $booking?->first_time_buyer ?: $prospect?->first_time_buyer);
+        if ($currentStep === 3 && $firstTimeBuyerForNavigation === 'yes') {
+            return redirect()->route('delivery.show', ['enquiry' => $enquiry->id, 'step' => 4]);
+        }
         $vehicleModels = Vehicle::query()
             ->select('model')
             ->distinct()
@@ -83,10 +87,7 @@ class DeliveryController extends Controller
             ->filter()
             ->values()
             ->all();
-        $bookingReceiptTotal = collect(is_array($booking?->booking_receipts) ? $booking->booking_receipts : [])
-            ->sum(fn($receipt): float => (float) ($receipt['receipt_amount'] ?? 0));
-        $bookingAmountCollected = (float) ($booking?->amount_collected ?? 0);
-        $bookingPaymentAmount = $bookingAmountCollected > 0 ? $bookingAmountCollected : $bookingReceiptTotal;
+        $bookingPaymentAmount = $this->bookingPaymentAmount($booking);
 
         $defaultValues = [
             'title' => $delivery->title ?: $booking?->title ?: $customer?->title,
@@ -142,7 +143,7 @@ class DeliveryController extends Controller
             'offer_total_cost' => $booking?->offer_total_cost ?? $prospect?->offer_total_cost,
             'offer_total_discount' => $booking?->offer_total_discount ?? $prospect?->offer_total_discount,
             'offer_final_price' => $booking?->offer_final_price ?? $prospect?->offer_final_price,
-            'payment_receipt_amount_booking' => $delivery->payment_receipt_amount_booking ?? $bookingPaymentAmount,
+            'payment_receipt_amount_booking' => $bookingPaymentAmount,
             'payment_pre_delivery_amount' => $delivery->payment_pre_delivery_amount,
             'payment_delivery_amount' => $delivery->payment_delivery_amount,
             'delivery_receipts' => is_array($delivery->delivery_receipts) ? $delivery->delivery_receipts : [],
@@ -184,7 +185,7 @@ class DeliveryController extends Controller
 
     public function store(Request $request, Enquiry $enquiry)
     {
-        $enquiry->load(['delivery', 'booking', 'prospectSheet']);
+        $enquiry->load(['delivery', 'booking', 'prospectSheet', 'vehicle']);
 
         if ($enquiry->isTerminalLead()) {
             return $this->redirectTerminalLead($enquiry);
@@ -263,6 +264,9 @@ class DeliveryController extends Controller
             'exchange_color' => ['nullable', 'string', 'max:255'],
             'exchange_mileage_km' => ['nullable', 'integer', 'min:0'],
             'exchange_registration_no' => ['nullable', 'string', 'max:50'],
+            'exchange_tyre_replacements_present' => ['nullable', 'in:1'],
+            'exchange_tyre_replacements' => ['nullable', 'array'],
+            'exchange_tyre_replacements.*' => ['nullable', Rule::in(['front_lhs', 'front_rhs', 'rear_lhs', 'rear_rhs'])],
             'exchange_expected_price' => ['nullable', 'numeric', 'min:0'],
             'exchange_quoted_price' => ['nullable', 'numeric', 'min:0'],
             'exchange_price_difference' => ['nullable', 'numeric'],
@@ -276,7 +280,6 @@ class DeliveryController extends Controller
             'offer_total_discount' => ['nullable', 'numeric', 'min:0'],
             'offer_final_price' => ['nullable', 'numeric', 'min:0'],
             'edit_offer_details' => ['nullable', 'in:0,1'],
-            'payment_receipt_amount_booking' => ['nullable', 'numeric', 'min:0'],
             'payment_pre_delivery_amount' => ['nullable', 'numeric', 'min:0'],
             'payment_delivery_amount' => ['nullable', 'numeric', 'min:0'],
             'delivery_receipts' => ['nullable', 'array'],
@@ -289,7 +292,12 @@ class DeliveryController extends Controller
             'selecting_brand_reasons' => ['nullable', 'array'],
             'selecting_brand_reasons.*' => ['nullable', Rule::in($this->selectingBrandReasonOptions())],
             'date_of_delivery' => ['nullable', 'date'],
-            'chassis_number' => ['nullable', 'string', 'max:255'],
+            'chassis_number' => [
+                'nullable',
+                Rule::requiredIf(fn() => (int) $request->input('delivery_step') === 6),
+                'string',
+                'max:255',
+            ],
             'pending_commitments' => ['nullable', 'string', 'max:1000'],
             'payment_finance_provider' => ['nullable', Rule::in(['In-House', 'Self', 'Other'])],
             'payment_finance_bank' => ['nullable', 'string', 'max:255', Rule::in($this->bankOptions())],
@@ -317,8 +325,16 @@ class DeliveryController extends Controller
         $currentStep = (int) ($validated['delivery_step'] ?? 1);
         $currentStep = max(1, min(6, $currentStep));
         $existingDelivery = $enquiry->delivery;
+        $bookingPaymentAmount = $this->bookingPaymentAmount($enquiry->booking);
         $deliveryReceipts = $this->normalizeDeliveryReceipts($validated['delivery_receipts'] ?? []);
         $deliveryReceiptTotal = collect($deliveryReceipts)->sum(fn(array $receipt): float => (float) ($receipt['receipt_amount'] ?? 0));
+        $paymentDeliveryAmount = !empty($deliveryReceipts)
+            ? $deliveryReceiptTotal
+            : (float) ($validated['payment_delivery_amount'] ?? $existingDelivery?->payment_delivery_amount ?? 0);
+        $paymentReceivedTotal = $bookingPaymentAmount
+            + (float) ($validated['payment_pre_delivery_amount'] ?? $existingDelivery?->payment_pre_delivery_amount ?? 0)
+            + $paymentDeliveryAmount;
+        $paymentPendingAmount = max(0, $this->currentOfferFinalPrice($enquiry) - $paymentReceivedTotal);
         $removeDocumentFields = collect(array_merge(self::DOCUMENT_FIELDS, self::EXCHANGE_IMAGE_FIELDS))
             ->map(fn($field) => 'remove_' . $field)
             ->all();
@@ -330,6 +346,8 @@ class DeliveryController extends Controller
                 'remove_extra_images',
                 'exchange_extra_images',
                 'remove_exchange_extra_images',
+                'exchange_tyre_replacements_present',
+                'exchange_tyre_replacements',
                 'test_drive_vehicle_model_other',
                 'test_drive_not_given_reason_other',
                 'offer_unit_price',
@@ -344,6 +362,10 @@ class DeliveryController extends Controller
                 'edit_offer_details',
             ], $removeDocumentFields))
             ->all();
+        $payload['payment_receipt_amount_booking'] = $bookingPaymentAmount;
+        if ($currentStep === 5) {
+            $payload['payment_pending_amount'] = $paymentPendingAmount;
+        }
         $payload['delivery_receipts'] = $deliveryReceipts;
         if ($currentStep === 6) {
             $payload['reference_taken'] = ($validated['reference_taken'] ?? '0') === '1';
@@ -358,7 +380,7 @@ class DeliveryController extends Controller
 
         if (array_key_exists('payment_finance_provider', $payload)) {
             $financeProvider = $payload['payment_finance_provider'] ?? null;
-            if ($financeProvider !== 'Self') {
+            if (!in_array($financeProvider, ['In-House', 'Self'], true)) {
                 $payload['payment_finance_bank'] = null;
                 $payload['payment_finance_disbursal_amount'] = null;
             }
@@ -546,6 +568,12 @@ class DeliveryController extends Controller
             $enquiry->booking->fill($bookingVehicleSync)->save();
         }
 
+        if (array_key_exists('exchange_tyre_replacements_present', $validated) && $enquiry->booking) {
+            $enquiry->booking->fill([
+                'exchange_tyre_replacements' => $validated['exchange_tyre_replacements'] ?? [],
+            ])->save();
+        }
+
         if (array_key_exists('interested_vehicle_color', $payload) && $enquiry->prospectSheet) {
             $enquiry->prospectSheet->fill([
                 'interested_vehicle_color' => $payload['interested_vehicle_color'],
@@ -685,9 +713,21 @@ class DeliveryController extends Controller
                 ->with('success', 'Offer details saved.');
         }
 
-        if ($actionType === 'save_next' && $currentStep < 6) {
+        if ($actionType === 'save_next' && $currentStep === 5 && $paymentPendingAmount > 0.009) {
             return redirect()
-                ->route('delivery.show', ['enquiry' => $enquiry->id, 'step' => $currentStep + 1])
+                ->route('delivery.show', ['enquiry' => $enquiry->id, 'step' => 5])
+                ->withErrors(['payment_pending_amount' => 'Pending Amount must be 0 before Save & Next.'])
+                ->with('delivery_pending_block_popup', true)
+                ->withInput();
+        }
+
+        if ($actionType === 'save_next' && $currentStep < 6) {
+            $nextStep = $currentStep === 2 && ($payload['first_time_buyer'] ?? null) === 'yes'
+                ? 4
+                : $currentStep + 1;
+
+            return redirect()
+                ->route('delivery.show', ['enquiry' => $enquiry->id, 'step' => $nextStep])
                 ->with('success', 'Delivery details saved.');
         }
 
@@ -864,6 +904,33 @@ class DeliveryController extends Controller
             })
             ->values()
             ->all();
+    }
+
+    private function bookingPaymentAmount(?Booking $booking): float
+    {
+        $receiptTotal = collect(is_array($booking?->booking_receipts) ? $booking->booking_receipts : [])
+            ->sum(fn($receipt): float => (float) ($receipt['receipt_amount'] ?? 0));
+        $amountCollected = (float) ($booking?->amount_collected ?? 0);
+
+        return $amountCollected > 0 ? $amountCollected : $receiptTotal;
+    }
+
+    private function currentOfferFinalPrice(Enquiry $enquiry): float
+    {
+        $booking = $enquiry->booking;
+        $prospect = $enquiry->prospectSheet;
+
+        $finalPrice = $booking?->offer_final_price ?? $prospect?->offer_final_price;
+        if ($finalPrice !== null) {
+            return max(0, (float) $finalPrice);
+        }
+
+        $unitPrice = (float) ($booking?->offer_unit_price ?? $prospect?->offer_unit_price ?? $enquiry->vehicle?->unit_price ?? 0);
+        $vatAmount = (float) ($booking?->offer_vat_amount ?? $prospect?->offer_vat_amount ?? $enquiry->vehicle?->vat_amount ?? 0);
+        $unitDiscount = (float) ($booking?->offer_unit_price_discount ?? $prospect?->offer_unit_price_discount ?? 0);
+        $vatDiscount = (float) ($booking?->offer_vat_discount ?? $prospect?->offer_vat_discount ?? 0);
+
+        return max(0, ($unitPrice + $vatAmount) - ($unitDiscount + $vatDiscount));
     }
 
     private function resolveTestDriveVehicleUsed(?string $selectedVehicle, ?string $otherVehicle): ?string

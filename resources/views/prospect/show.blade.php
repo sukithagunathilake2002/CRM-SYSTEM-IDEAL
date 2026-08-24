@@ -98,6 +98,11 @@
         $storedExchangeInsuranceValidity = $storedExchangeInsuranceValidity->format('Y-m-d');
     }
     $selectedExchangeInsuranceValidity = old('exchange_insurance_validity', $storedExchangeInsuranceValidity);
+    $selectedExchangeTyreReplacements = old('exchange_tyre_replacements', $prospect->exchange_tyre_replacements ?? []);
+    if (is_string($selectedExchangeTyreReplacements)) {
+        $selectedExchangeTyreReplacements = json_decode($selectedExchangeTyreReplacements, true) ?: [];
+    }
+    $selectedExchangeTyreReplacements = is_array($selectedExchangeTyreReplacements) ? $selectedExchangeTyreReplacements : [];
     $selectedExchangeMileageKm = old('exchange_mileage_km', $prospect->exchange_mileage_km);
     $exchangeVehicleLabel = trim(implode(' ', array_filter([$selectedExchangeBrand, $selectedExchangeModel])));
     if ($exchangeVehicleLabel === '') {
@@ -186,6 +191,8 @@
 
         <div class="top-icons-right"></div>
     </header>
+
+    <h1 class="workflow-form-heading">Prospect Sheet</h1>
 
     @if($showProspectSubmittedPopup)
         <div class="prospect-submit-popup" id="prospectSubmitPopup" role="dialog" aria-modal="true" aria-labelledby="prospectSubmitTitle">
@@ -646,17 +653,14 @@
 
                 <div class="exchange-tyre-row">
                     <label>Tyre Replacement</label>
-                    <label class="exchange-mini-switch">
-                        <input type="checkbox" checked>
-                        <i aria-hidden="true"></i>
-                    </label>
                 </div>
 
                 <div class="segmented exchange-tyre-segment segmented-4">
-                    <label><input type="checkbox"><span>Front LHS</span></label>
-                    <label><input type="checkbox" checked><span>Front RHS</span></label>
-                    <label><input type="checkbox"><span>Rear LHS</span></label>
-                    <label><input type="checkbox" checked><span>Rear RHS</span></label>
+                    <input type="hidden" name="exchange_tyre_replacements_present" value="1">
+                    <label><input type="checkbox" name="exchange_tyre_replacements[]" value="front_lhs" @checked(in_array('front_lhs', $selectedExchangeTyreReplacements, true))><span>Front LHS</span></label>
+                    <label><input type="checkbox" name="exchange_tyre_replacements[]" value="front_rhs" @checked(in_array('front_rhs', $selectedExchangeTyreReplacements, true))><span>Front RHS</span></label>
+                    <label><input type="checkbox" name="exchange_tyre_replacements[]" value="rear_lhs" @checked(in_array('rear_lhs', $selectedExchangeTyreReplacements, true))><span>Rear LHS</span></label>
+                    <label><input type="checkbox" name="exchange_tyre_replacements[]" value="rear_rhs" @checked(in_array('rear_rhs', $selectedExchangeTyreReplacements, true))><span>Rear RHS</span></label>
                 </div>
 
                 <div class="grid-2 exchange-input-grid">

@@ -716,7 +716,8 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
         
         $callEpds = (clone $dueFollowupQuery)
             ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%call%'])
-            ->orderBy('follow_date', 'asc')
+            ->orderBy('follow_date', 'desc')
+            ->orderBy('follow_time', 'asc')
             ->limit(10)
             ->get()
             ->map(function ($enquiry) {
@@ -739,7 +740,8 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
         
         $showroomEpds = (clone $dueFollowupQuery)
             ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%showroom%'])
-            ->orderBy('follow_date', 'asc')
+            ->orderBy('follow_date', 'desc')
+            ->orderBy('follow_time', 'asc')
             ->limit(10)
             ->get()
             ->map(function ($enquiry) {
@@ -762,7 +764,8 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
         
         $homeEpds = (clone $dueFollowupQuery)
             ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%home%'])
-            ->orderBy('follow_date', 'asc')
+            ->orderBy('follow_date', 'desc')
+            ->orderBy('follow_time', 'asc')
             ->limit(10)
             ->get()
             ->map(function ($enquiry) {

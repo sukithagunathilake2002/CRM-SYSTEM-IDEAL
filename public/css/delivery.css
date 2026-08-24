@@ -25,6 +25,16 @@
     display: block;
 }
 
+.workflow-form-heading {
+    width: min(1120px, calc(100% - 24px));
+    margin: 14px auto 2px;
+    color: #111111;
+    font-size: 24px;
+    font-weight: 900;
+    line-height: 1.15;
+    text-align: center;
+}
+
 .delivery-stepper {
     width: min(100%, 1180px);
     margin: 12px auto 14px;
@@ -734,8 +744,8 @@
 }
 
 .delivery-actions.no-back {
-    grid-template-columns: 1fr 180px 1fr 180px;
-    justify-content: stretch;
+    grid-template-columns: repeat(2, 180px);
+    justify-content: center;
     gap: 18px;
 }
 
@@ -746,11 +756,11 @@
 }
 
 .delivery-actions.no-back .save-exit {
-    grid-column: 2;
+    grid-column: auto;
 }
 
 .delivery-actions.no-back .save-next {
-    grid-column: 4;
+    grid-column: auto;
 }
 
 .delivery-action {
@@ -780,6 +790,12 @@
 
 .delivery-action.delivery-submit-action {
     background: #16a34a;
+}
+
+.delivery-action:disabled,
+.delivery-action.is-blocked {
+    cursor: not-allowed;
+    opacity: 0.55;
 }
 
 .delivery-offer-page-summary {
@@ -2209,6 +2225,14 @@ body.delivery-modal-open {
     font-weight: 800;
 }
 
+.delivery-submit-icon-warning {
+    background: #dc2626;
+}
+
+.delivery-submit-popup.hidden {
+    display: none;
+}
+
 .delivery-submit-popup-card h4 {
     margin: 0 0 6px;
     color: #0f172a;
@@ -2752,6 +2776,18 @@ html.theme-dark .delivery-summary strong {
     padding: 0 12px;
     font-size: 16px !important;
     font-weight: 600;
+}
+
+.delivery-page .delivery-pill select,
+.delivery-page .delivery-exchange-interested select,
+.delivery-page .delivery-payment-card select,
+.delivery-page .delivery-receipt-row select {
+    appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, #111111 50%), linear-gradient(135deg, #111111 50%, transparent 50%);
+    background-position: calc(100% - 18px) calc(50% - 3px), calc(100% - 12px) calc(50% - 3px);
+    background-repeat: no-repeat;
+    background-size: 6px 6px, 6px 6px;
+    padding-right: 36px;
 }
 
 .delivery-page .delivery-exchange-detail-fields [data-locked],

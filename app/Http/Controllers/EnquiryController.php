@@ -317,7 +317,7 @@ public function list(Request $request)
     }
 
     $enquiries = $enquiriesQuery
-        ->orderBy('follow_date')
+        ->orderBy('follow_date', 'desc')
         ->orderBy('follow_time')
         ->get();
 
@@ -362,7 +362,7 @@ public function listCallEpds(Request $request)
     }
 
     $enquiries = $enquiriesQuery
-        ->orderBy('follow_date')
+        ->orderBy('follow_date', 'desc')
         ->orderBy('follow_time')
         ->get();
 
@@ -385,7 +385,7 @@ public function listShowroomEpds(Request $request)
     }
 
     $enquiries = $enquiriesQuery
-        ->orderBy('follow_date')
+        ->orderBy('follow_date', 'desc')
         ->orderBy('follow_time')
         ->get();
 
@@ -408,7 +408,8 @@ public function listHomeEpds(Request $request)
     }
 
     $enquiries = $enquiriesQuery
-        ->latest()
+        ->orderBy('follow_date', 'desc')
+        ->orderBy('follow_time')
         ->get();
 
     return view('enquiries.index', compact('enquiries'));

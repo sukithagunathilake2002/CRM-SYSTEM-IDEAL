@@ -43,6 +43,10 @@ class BookingController extends Controller
         $defaultMobileString = implode(', ', $mobileNumbers);
         $currentStep = (int) old('booking_step', request()->query('step', 1));
         $currentStep = max(1, min(5, $currentStep));
+        $firstTimeBuyerForNavigation = old('first_time_buyer', $booking->first_time_buyer ?: $prospect?->first_time_buyer);
+        if ($currentStep === 3 && $firstTimeBuyerForNavigation === 'yes') {
+            return redirect()->route('booking.show', ['enquiry' => $enquiry->id, 'step' => 4]);
+        }
         $vehicleModels = Vehicle::query()
             ->select('model')
             ->distinct()
@@ -147,7 +151,7 @@ class BookingController extends Controller
                 'exchange_color' => $booking->exchange_color ?: $prospect?->exchange_color,
                 'exchange_mileage_km' => $booking->exchange_mileage_km ?: $prospect?->exchange_mileage_km,
                 'exchange_registration_no' => $booking->exchange_registration_no ?: $prospect?->exchange_registration_no,
-                'exchange_tyre_replacements' => $booking->exchange_tyre_replacements ?: [],
+                'exchange_tyre_replacements' => $booking->exchange_tyre_replacements ?: ($prospect?->exchange_tyre_replacements ?: []),
                 'exchange_expected_price' => $booking->exchange_expected_price ?? $prospect?->exchange_expected_price,
                 'exchange_quoted_price' => $booking->exchange_quoted_price ?? $prospect?->exchange_quoted_price,
                 'exchange_price_difference' => $booking->exchange_price_difference ?? $prospect?->exchange_price_difference,
@@ -291,6 +295,7 @@ class BookingController extends Controller
             'exchange_color' => ['nullable', 'string', 'max:255'],
             'exchange_mileage_km' => ['nullable', 'integer', 'min:0'],
             'exchange_registration_no' => ['nullable', 'string', 'max:50'],
+            'exchange_tyre_replacements_present' => ['nullable', 'in:1'],
             'exchange_tyre_replacements' => ['nullable', 'array'],
             'exchange_tyre_replacements.*' => ['nullable', Rule::in(['front_lhs', 'front_rhs', 'rear_lhs', 'rear_rhs'])],
             'exchange_expected_price' => ['nullable', 'numeric', 'min:0'],
@@ -483,7 +488,9 @@ class BookingController extends Controller
             $payload['exchange_color'] = $validated['exchange_color'] ?? null;
             $payload['exchange_mileage_km'] = $validated['exchange_mileage_km'] ?? null;
             $payload['exchange_registration_no'] = $validated['exchange_registration_no'] ?? null;
-            $payload['exchange_tyre_replacements'] = $validated['exchange_tyre_replacements'] ?? [];
+            $payload['exchange_tyre_replacements'] = array_key_exists('exchange_tyre_replacements_present', $validated)
+                ? ($validated['exchange_tyre_replacements'] ?? [])
+                : ($booking->exchange_tyre_replacements ?: []);
             $payload['exchange_expected_price'] = $validated['exchange_expected_price'] ?? null;
             $payload['exchange_quoted_price'] = $validated['exchange_quoted_price'] ?? null;
 
@@ -728,7 +735,9 @@ class BookingController extends Controller
                 ->with('success', 'Booking submitted successfully. Delivery is now enabled.');
         }
 
-        $nextStep = min(5, $currentStep + 1);
+        $nextStep = $currentStep === 2 && ($payload['first_time_buyer'] ?? null) === 'yes'
+            ? 4
+            : min(5, $currentStep + 1);
 
         return redirect()
             ->route('booking.show', ['enquiry' => $enquiry->id, 'step' => $nextStep])

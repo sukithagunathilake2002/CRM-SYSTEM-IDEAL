@@ -333,7 +333,7 @@ default => 'N/A',
 $money = fn($value) => $value === null ? 'N/A' : number_format((float) $value, 2);
 
 $backUrl = $currentStep > 1
-? route('booking.show', ['enquiry' => $enquiry->id, 'step' => $currentStep - 1])
+? route('booking.show', ['enquiry' => $enquiry->id, 'step' => ($currentStep === 4 && $selectedFirstTimeBuyer === 'yes') ? 2 : $currentStep - 1])
 : route('prospect.show', ['enquiry' => $enquiry->id, 'step' => 4]);
 $showExchangeDetails = $selectedInterestedExchange === 'yes' && in_array($selectedExchangeType, ['in_house', 'outhouse'], true);
 $selectedOfferUnitPrice = old('offer_unit_price', $defaultValues['offer_unit_price']);
@@ -460,6 +460,8 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
             <img src="{{ asset('icons/logo.png') }}" alt="Ideal Motors" class="brand-logo">
         </a>
     </header>
+
+    <h1 class="workflow-form-heading">Booking</h1>
 
     <div class="booking-stepper">
         @foreach([
@@ -1010,13 +1012,10 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
 
                         <div class="exchange-tyre-row">
                             <label>Tyre Replacement</label>
-                            <label class="exchange-image-switch">
-                                <input type="checkbox" checked>
-                                <span></span>
-                            </label>
                         </div>
 
                         <div class="segment-row four exchange-tyre-segment">
+                            <input type="hidden" name="exchange_tyre_replacements_present" value="1">
                             <label><input type="checkbox" name="exchange_tyre_replacements[]" value="front_lhs" @checked(in_array('front_lhs', $selectedExchangeTyreReplacements, true))><span>Front LHS</span></label>
                             <label><input type="checkbox" name="exchange_tyre_replacements[]" value="front_rhs" @checked(in_array('front_rhs', $selectedExchangeTyreReplacements, true))><span>Front RHS</span></label>
                             <label><input type="checkbox" name="exchange_tyre_replacements[]" value="rear_lhs" @checked(in_array('rear_lhs', $selectedExchangeTyreReplacements, true))><span>Rear LHS</span></label>

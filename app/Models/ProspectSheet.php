@@ -36,6 +36,7 @@ class ProspectSheet extends Model
         'exchange_color',
         'exchange_mileage_km',
         'exchange_registration_no',
+        'exchange_tyre_replacements',
         'exchange_expected_price',
         'exchange_quoted_price',
         'exchange_price_difference',
@@ -75,6 +76,7 @@ class ProspectSheet extends Model
 
     protected $casts = [
         'exchange_extra_images' => 'array',
+        'exchange_tyre_replacements' => 'array',
         'offer_unit_price' => 'decimal:2',
         'offer_unit_price_discount' => 'decimal:2',
         'offer_unit_price_free' => 'boolean',
@@ -88,4 +90,3 @@ class ProspectSheet extends Model
         'reschedule_followup' => 'boolean',
     ];
 }
-
