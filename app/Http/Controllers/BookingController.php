@@ -103,16 +103,16 @@ class BookingController extends Controller
             'currentStep' => $currentStep,
             'vehicleColorOptions' => $this->vehicleColorOptions($booking->interested_vehicle_color ?: $prospect?->interested_vehicle_color),
             'defaultValues' => [
-                'title' => $booking->title ?: $customer?->title,
-                'name' => $booking->name ?: $customer?->name,
+                'title' => $customer?->title ?: $booking->title,
+                'name' => $customer?->name ?: $booking->name,
                 'contact_type' => $booking->contact_type ?: 'Mobile',
-                'email' => $booking->email ?: $customer?->email,
-                'mobile_numbers' => $booking->mobile_numbers ?: $defaultMobileString,
-                'district' => $booking->district ?: $customer?->district,
-                'location' => $booking->location ?: $customer?->location,
-                'state' => $booking->state ?: $customer?->state,
-                'address1' => $booking->address1 ?: $customer?->address1,
-                'address2' => $booking->address2 ?: $customer?->address2,
+                'email' => $customer?->email ?: $booking->email,
+                'mobile_numbers' => $defaultMobileString !== '' ? $defaultMobileString : $booking->mobile_numbers,
+                'district' => $customer?->district ?: $booking->district,
+                'location' => $customer?->location ?: $booking->location,
+                'state' => $customer?->state ?: $booking->state,
+                'address1' => $customer?->address1 ?: $booking->address1,
+                'address2' => $customer?->address2 ?: $booking->address2,
                 'customer_type' => $booking->customer_type ?: $prospect?->customer_type,
                 'corporate_name' => $booking->corporate_name ?: $prospect?->corporate_name,
                 'profession' => $booking->profession ?: $prospect?->profession,
@@ -333,6 +333,7 @@ class BookingController extends Controller
             'booking_receipts.*.payment_mode' => ['nullable', Rule::in($this->bookingReceiptPaymentModes())],
             'booking_receipts.*.receipt_type' => ['nullable', Rule::in(['Booking'])],
             'edit_offer_details' => ['nullable', 'in:0,1'],
+            'offer_details_dirty' => ['nullable', 'in:0,1'],
             'purchase_order_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'remove_purchase_order_image' => ['nullable', 'in:0,1'],
             'booking_step' => ['nullable', 'integer', 'between:1,5'],
@@ -505,6 +506,12 @@ class BookingController extends Controller
             } else {
                 $payload['exchange_price_difference'] = $validated['exchange_price_difference'] ?? null;
             }
+        } else {
+            $payload['exchange_type'] = null;
+            $payload['exchange_purchase_value'] = null;
+            $payload['exchange_ownership'] = null;
+            $payload['exchange_insurance_validity'] = null;
+            $payload['exchange_tyre_replacements'] = [];
         }
 
         $pricingVehicle = $this->resolvePricingVehicle(
@@ -513,7 +520,8 @@ class BookingController extends Controller
             $payload['interested_variant'] ?? $enquiry->vehicle?->variant,
             $enquiry->vehicle
         );
-        $isEditingOffer = ($validated['edit_offer_details'] ?? '0') === '1';
+        $isEditingOffer = ($validated['edit_offer_details'] ?? '0') === '1'
+            || ($validated['offer_details_dirty'] ?? '0') === '1';
         $offerSource = function (string $field, $fallback = 0) use ($booking, $prospect, $pricingVehicle) {
             $vehicleField = match ($field) {
                 'offer_unit_price' => 'unit_price',
@@ -691,17 +699,31 @@ class BookingController extends Controller
             $payload['booking_completed_at'] = null;
         }
 
-        Booking::updateOrCreate(
-            ['enquiry_id' => $enquiry->id],
-            $payload
-        );
-
         if ($customer && !$sameAsCustomer) {
+            $bookingMobileNumbers = collect(explode(',', (string) ($payload['mobile_numbers'] ?? '')))
+                ->map(fn($mobile) => trim($mobile))
+                ->filter()
+                ->values()
+                ->all();
+
             $customer->fill([
                 'title' => $payload['title'],
                 'name' => $payload['name'],
+                'email' => $payload['email'],
+                'mobile_numbers' => $bookingMobileNumbers,
+                'district' => $payload['district'],
+                'location' => $payload['location'],
+                'state' => $payload['state'],
+                'address1' => $payload['address1'],
+                'address2' => $payload['address2'],
             ])->save();
         }
+
+        $savedBooking = Booking::updateOrCreate(
+            ['enquiry_id' => $enquiry->id],
+            $payload
+        );
+        $this->syncSharedWorkflowDataFromBooking($enquiry, $savedBooking);
 
         $exchangeErrors = $this->missingExchangeRequiredErrors($payload);
         if (!empty($exchangeErrors) && (($actionType === 'next' && $currentStep === 3) || $actionType === 'submit')) {
@@ -841,6 +863,89 @@ class BookingController extends Controller
         return redirect()
             ->route('enquiries.list', $enquiry->terminalLeadRouteParameters())
             ->with('success', $enquiry->terminalLeadLabel() . ' lead is finalized. Booking is not available.');
+    }
+
+    private function syncSharedWorkflowDataFromBooking(Enquiry $enquiry, Booking $booking): void
+    {
+        $enquiry->loadMissing(['prospectSheet', 'delivery']);
+
+        $payload = $booking->only([
+            'title',
+            'name',
+            'contact_type',
+            'email',
+            'mobile_numbers',
+            'district',
+            'location',
+            'state',
+            'address1',
+            'address2',
+            'customer_type',
+            'corporate_name',
+            'profession',
+            'date_of_birth',
+            'interested_model',
+            'interested_engine',
+            'interested_variant',
+            'interested_vehicle_color',
+            'quote_taken',
+            'quote_date',
+            'test_drive_given',
+            'test_drive_date',
+            'test_drive_vehicle_model',
+            'test_drive_to_whom',
+            'test_drive_not_given_reason',
+            'purchase_mode',
+            'finance_form',
+            'interested_in_competition',
+            'competition_brand',
+            'competition_model',
+            'competition_model_year',
+            'first_time_buyer',
+            'existing_vehicle_brand',
+            'existing_vehicle_model',
+            'existing_vehicle_year',
+            'interested_in_exchange',
+            'exchange_type',
+            'exchange_purchase_value',
+            'exchange_vehicle_brand',
+            'exchange_vehicle_model',
+            'exchange_manufacture_year',
+            'exchange_ownership',
+            'exchange_insurance_validity',
+            'exchange_color',
+            'exchange_mileage_km',
+            'exchange_registration_no',
+            'exchange_tyre_replacements',
+            'exchange_expected_price',
+            'exchange_quoted_price',
+            'exchange_price_difference',
+            'offer_unit_price',
+            'offer_unit_price_discount',
+            'offer_unit_price_free',
+            'offer_vat_amount',
+            'offer_vat_discount',
+            'offer_vat_free',
+            'offer_total_cost',
+            'offer_total_discount',
+            'offer_final_price',
+            'offer_remark',
+        ]);
+
+        $this->fillExistingWorkflowRecord($enquiry->prospectSheet, $payload);
+        $this->fillExistingWorkflowRecord($enquiry->delivery, $payload);
+    }
+
+    private function fillExistingWorkflowRecord($record, array $payload): void
+    {
+        if (!$record) {
+            return;
+        }
+
+        $record->fill(array_intersect_key($payload, array_flip($record->getFillable())));
+        if ($record->isDirty()) {
+            $record->save();
+        }
     }
 
     private function resolvePricingVehicle(?string $model, ?string $engine, ?string $variant, ?Vehicle $fallback = null): ?Vehicle

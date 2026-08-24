@@ -256,7 +256,10 @@ class ProspectSheetController extends Controller
             $enquiry->save();
         }
 
-        $rescheduleFollowup = ($validated['reschedule_followup'] ?? '0') === '1';
+        $hasRescheduleFollowupFields = !empty($validated['follow_type'])
+            && !empty($validated['follow_date'])
+            && !empty($validated['follow_time']);
+        $rescheduleFollowup = ($validated['reschedule_followup'] ?? '0') === '1' && $hasRescheduleFollowupFields;
         if ($rescheduleFollowup) {
             $enquiry->follow_type = $validated['follow_type'];
             $enquiry->follow_date = $validated['follow_date'];
@@ -536,7 +539,7 @@ class ProspectSheetController extends Controller
 
         $savedCurrentStep = max((int) ($existingProspect->current_step ?? 0), $currentStep);
 
-        ProspectSheet::updateOrCreate(
+        $savedProspect = ProspectSheet::updateOrCreate(
             ['enquiry_id' => $enquiry->id],
             [
                 'customer_type' => $validated['customer_type'],
@@ -595,6 +598,7 @@ class ProspectSheetController extends Controller
                 'current_step' => $savedCurrentStep,
             ]
         );
+        $this->syncSharedWorkflowDataFromProspect($enquiry, $savedProspect, $customer);
 
         if (($validated['exit_after_save'] ?? '0') === '1') {
             $routeParameters = $savedCurrentStep >= 5 ? [] : ['registration' => 'pending'];
@@ -633,6 +637,88 @@ class ProspectSheetController extends Controller
         return redirect()
             ->route('enquiries.list', $enquiry->terminalLeadRouteParameters())
             ->with('success', $enquiry->terminalLeadLabel() . ' lead is finalized. Prospect registration is not available.');
+    }
+
+    private function syncSharedWorkflowDataFromProspect(Enquiry $enquiry, ProspectSheet $prospect, $customer): void
+    {
+        $enquiry->loadMissing(['booking', 'delivery']);
+
+        $customerPayload = $customer?->only([
+            'title',
+            'name',
+            'email',
+            'mobile_numbers',
+            'district',
+            'location',
+            'state',
+            'address1',
+            'address2',
+        ]) ?? [];
+        if (array_key_exists('mobile_numbers', $customerPayload) && is_array($customerPayload['mobile_numbers'])) {
+            $customerPayload['mobile_numbers'] = implode(', ', $customerPayload['mobile_numbers']);
+        }
+
+        $payload = array_merge($customerPayload, $prospect->only([
+            'customer_type',
+            'corporate_name',
+            'profession',
+            'date_of_birth',
+            'interested_vehicle_color',
+            'source_of_information',
+            'quote_taken',
+            'quote_date',
+            'test_drive_given',
+            'test_drive_date',
+            'test_drive_vehicle_model',
+            'test_drive_to_whom',
+            'test_drive_not_given_reason',
+            'purchase_mode',
+            'interested_in_competition',
+            'competition_brand',
+            'competition_model',
+            'first_time_buyer',
+            'existing_vehicle_brand',
+            'existing_vehicle_model',
+            'existing_vehicle_year',
+            'interested_in_exchange',
+            'exchange_vehicle_brand',
+            'exchange_vehicle_model',
+            'exchange_manufacture_year',
+            'exchange_ownership',
+            'exchange_insurance_validity',
+            'exchange_color',
+            'exchange_mileage_km',
+            'exchange_registration_no',
+            'exchange_tyre_replacements',
+            'exchange_expected_price',
+            'exchange_quoted_price',
+            'exchange_price_difference',
+            'offer_unit_price',
+            'offer_unit_price_discount',
+            'offer_unit_price_free',
+            'offer_vat_amount',
+            'offer_vat_discount',
+            'offer_vat_free',
+            'offer_total_cost',
+            'offer_total_discount',
+            'offer_final_price',
+            'offer_remark',
+        ]));
+
+        $this->fillExistingWorkflowRecord($enquiry->booking, $payload);
+        $this->fillExistingWorkflowRecord($enquiry->delivery, $payload);
+    }
+
+    private function fillExistingWorkflowRecord($record, array $payload): void
+    {
+        if (!$record) {
+            return;
+        }
+
+        $record->fill(array_intersect_key($payload, array_flip($record->getFillable())));
+        if ($record->isDirty()) {
+            $record->save();
+        }
     }
 
     private function vehicleColorOptions(?string $selectedColor = null): array

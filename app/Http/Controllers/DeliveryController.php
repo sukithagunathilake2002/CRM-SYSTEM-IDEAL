@@ -88,52 +88,61 @@ class DeliveryController extends Controller
             ->values()
             ->all();
         $bookingPaymentAmount = $this->bookingPaymentAmount($booking);
+        $firstFilled = function (...$values) {
+            foreach ($values as $value) {
+                if ($value !== null && $value !== '') {
+                    return $value;
+                }
+            }
+
+            return null;
+        };
 
         $defaultValues = [
-            'title' => $delivery->title ?: $booking?->title ?: $customer?->title,
-            'name' => $delivery->name ?: $booking?->name ?: $customer?->name,
-            'contact_type' => $delivery->contact_type ?: $booking?->contact_type ?: 'Mobile',
-            'email' => $delivery->email ?: $booking?->email ?: $customer?->email,
-            'mobile_numbers' => $delivery->mobile_numbers ?: $booking?->mobile_numbers ?: implode(', ', $mobileNumbers),
-            'district' => $delivery->district ?: $booking?->district ?: $customer?->district,
-            'location' => $delivery->location ?: $booking?->location ?: $customer?->location,
-            'state' => $delivery->state ?: $booking?->state ?: $customer?->state,
-            'address1' => $delivery->address1 ?: $booking?->address1 ?: $customer?->address1,
-            'address2' => $delivery->address2 ?: $booking?->address2 ?: $customer?->address2,
-            'customer_type' => $delivery->customer_type ?: $booking?->customer_type ?: $prospect?->customer_type ?: 'individual',
-            'corporate_name' => $delivery->corporate_name ?: $prospect?->corporate_name,
-            'profession' => $delivery->profession ?: $booking?->profession ?: $prospect?->profession ?: 'self_employed',
-            'interested_model' => $delivery->interested_model ?: $booking?->interested_model ?: $enquiry->vehicle?->model,
-            'interested_engine' => $delivery->interested_engine ?: $booking?->interested_engine ?: $enquiry->vehicle?->engine_type,
-            'interested_variant' => $delivery->interested_variant ?: $booking?->interested_variant ?: $enquiry->vehicle?->variant,
-            'interested_vehicle_color' => $delivery->interested_vehicle_color ?: $booking?->interested_vehicle_color ?: $prospect?->interested_vehicle_color,
-            'quote_taken' => $delivery->quote_taken ?: $booking?->quote_taken ?: $prospect?->quote_taken,
-            'quote_date' => $delivery->quote_date ?: $booking?->quote_date ?: $prospect?->quote_date,
-            'test_drive_given' => $delivery->test_drive_given ?: $booking?->test_drive_given ?: $prospect?->test_drive_given,
-            'test_drive_date' => $delivery->test_drive_date ?: $booking?->test_drive_date ?: $prospect?->test_drive_date,
-            'test_drive_vehicle_model' => $delivery->test_drive_vehicle_model ?: $booking?->test_drive_vehicle_model ?: $prospect?->test_drive_vehicle_model,
-            'test_drive_to_whom' => $delivery->test_drive_to_whom ?: $booking?->test_drive_to_whom ?: $prospect?->test_drive_to_whom,
-            'test_drive_not_given_reason' => $delivery->test_drive_not_given_reason ?: $booking?->test_drive_not_given_reason ?: $prospect?->test_drive_not_given_reason,
-            'purchase_mode' => $delivery->purchase_mode ?: $booking?->purchase_mode ?: $prospect?->purchase_mode,
-            'finance_form' => $delivery->finance_form ?: $booking?->finance_form,
-            'interested_in_competition' => $delivery->interested_in_competition ?: $booking?->interested_in_competition ?: $prospect?->interested_in_competition,
-            'competition_brand' => $delivery->competition_brand ?: $booking?->competition_brand ?: $prospect?->competition_brand,
-            'competition_model' => $delivery->competition_model ?: $booking?->competition_model ?: $prospect?->competition_model,
-            'first_time_buyer' => $delivery->first_time_buyer ?: $booking?->first_time_buyer ?: $prospect?->first_time_buyer,
-            'existing_vehicle_brand' => $delivery->existing_vehicle_brand ?: $booking?->existing_vehicle_brand ?: $prospect?->existing_vehicle_brand,
-            'existing_vehicle_model' => $delivery->existing_vehicle_model ?: $booking?->existing_vehicle_model ?: $prospect?->existing_vehicle_model,
-            'existing_vehicle_year' => $delivery->existing_vehicle_year ?: $booking?->existing_vehicle_year ?: $prospect?->existing_vehicle_year,
-            'interested_in_exchange' => $delivery->interested_in_exchange ?: $booking?->interested_in_exchange ?: $prospect?->interested_in_exchange,
-            'exchange_type' => $delivery->exchange_type ?: $booking?->exchange_type ?: 'in_house',
-            'exchange_vehicle_brand' => $delivery->exchange_vehicle_brand ?: $booking?->exchange_vehicle_brand ?: $prospect?->exchange_vehicle_brand,
-            'exchange_vehicle_model' => $delivery->exchange_vehicle_model ?: $booking?->exchange_vehicle_model ?: $prospect?->exchange_vehicle_model,
-            'exchange_manufacture_year' => $delivery->exchange_manufacture_year ?: $booking?->exchange_manufacture_year ?: $prospect?->exchange_manufacture_year,
-            'exchange_color' => $delivery->exchange_color ?: $booking?->exchange_color ?: $prospect?->exchange_color,
-            'exchange_mileage_km' => $delivery->exchange_mileage_km ?: $booking?->exchange_mileage_km ?: $prospect?->exchange_mileage_km,
-            'exchange_registration_no' => $delivery->exchange_registration_no ?: $booking?->exchange_registration_no ?: $prospect?->exchange_registration_no,
-            'exchange_expected_price' => $delivery->exchange_expected_price ?: $booking?->exchange_expected_price ?: $prospect?->exchange_expected_price,
-            'exchange_quoted_price' => $delivery->exchange_quoted_price ?: $booking?->exchange_quoted_price ?: $prospect?->exchange_quoted_price,
-            'exchange_price_difference' => $delivery->exchange_price_difference ?: $booking?->exchange_price_difference ?: $prospect?->exchange_price_difference,
+            'title' => $firstFilled($customer?->title, $booking?->title, $delivery->title),
+            'name' => $firstFilled($customer?->name, $booking?->name, $delivery->name),
+            'contact_type' => $firstFilled($booking?->contact_type, $delivery->contact_type, 'Mobile'),
+            'email' => $firstFilled($customer?->email, $booking?->email, $delivery->email),
+            'mobile_numbers' => $firstFilled(implode(', ', $mobileNumbers), $booking?->mobile_numbers, $delivery->mobile_numbers),
+            'district' => $firstFilled($customer?->district, $booking?->district, $delivery->district),
+            'location' => $firstFilled($customer?->location, $booking?->location, $delivery->location),
+            'state' => $firstFilled($customer?->state, $booking?->state, $delivery->state),
+            'address1' => $firstFilled($customer?->address1, $booking?->address1, $delivery->address1),
+            'address2' => $firstFilled($customer?->address2, $booking?->address2, $delivery->address2),
+            'customer_type' => $firstFilled($booking?->customer_type, $prospect?->customer_type, $delivery->customer_type, 'individual'),
+            'corporate_name' => $firstFilled($booking?->corporate_name, $prospect?->corporate_name, $delivery->corporate_name),
+            'profession' => $firstFilled($booking?->profession, $prospect?->profession, $delivery->profession, 'self_employed'),
+            'interested_model' => $firstFilled($booking?->interested_model, $delivery->interested_model, $enquiry->vehicle?->model),
+            'interested_engine' => $firstFilled($booking?->interested_engine, $delivery->interested_engine, $enquiry->vehicle?->engine_type),
+            'interested_variant' => $firstFilled($booking?->interested_variant, $delivery->interested_variant, $enquiry->vehicle?->variant),
+            'interested_vehicle_color' => $firstFilled($booking?->interested_vehicle_color, $prospect?->interested_vehicle_color, $delivery->interested_vehicle_color),
+            'quote_taken' => $firstFilled($booking?->quote_taken, $prospect?->quote_taken, $delivery->quote_taken),
+            'quote_date' => $firstFilled($booking?->quote_date, $prospect?->quote_date, $delivery->quote_date),
+            'test_drive_given' => $firstFilled($booking?->test_drive_given, $prospect?->test_drive_given, $delivery->test_drive_given),
+            'test_drive_date' => $firstFilled($booking?->test_drive_date, $prospect?->test_drive_date, $delivery->test_drive_date),
+            'test_drive_vehicle_model' => $firstFilled($booking?->test_drive_vehicle_model, $prospect?->test_drive_vehicle_model, $delivery->test_drive_vehicle_model),
+            'test_drive_to_whom' => $firstFilled($booking?->test_drive_to_whom, $prospect?->test_drive_to_whom, $delivery->test_drive_to_whom),
+            'test_drive_not_given_reason' => $firstFilled($booking?->test_drive_not_given_reason, $prospect?->test_drive_not_given_reason, $delivery->test_drive_not_given_reason),
+            'purchase_mode' => $firstFilled($booking?->purchase_mode, $prospect?->purchase_mode, $delivery->purchase_mode),
+            'finance_form' => $firstFilled($booking?->finance_form, $delivery->finance_form),
+            'interested_in_competition' => $firstFilled($booking?->interested_in_competition, $prospect?->interested_in_competition, $delivery->interested_in_competition),
+            'competition_brand' => $firstFilled($booking?->competition_brand, $prospect?->competition_brand, $delivery->competition_brand),
+            'competition_model' => $firstFilled($booking?->competition_model, $prospect?->competition_model, $delivery->competition_model),
+            'first_time_buyer' => $firstFilled($booking?->first_time_buyer, $prospect?->first_time_buyer, $delivery->first_time_buyer),
+            'existing_vehicle_brand' => $firstFilled($booking?->existing_vehicle_brand, $prospect?->existing_vehicle_brand, $delivery->existing_vehicle_brand),
+            'existing_vehicle_model' => $firstFilled($booking?->existing_vehicle_model, $prospect?->existing_vehicle_model, $delivery->existing_vehicle_model),
+            'existing_vehicle_year' => $firstFilled($booking?->existing_vehicle_year, $prospect?->existing_vehicle_year, $delivery->existing_vehicle_year),
+            'interested_in_exchange' => $firstFilled($booking?->interested_in_exchange, $prospect?->interested_in_exchange, $delivery->interested_in_exchange),
+            'exchange_type' => $firstFilled($booking?->exchange_type, $delivery->exchange_type, 'in_house'),
+            'exchange_vehicle_brand' => $firstFilled($booking?->exchange_vehicle_brand, $prospect?->exchange_vehicle_brand, $delivery->exchange_vehicle_brand),
+            'exchange_vehicle_model' => $firstFilled($booking?->exchange_vehicle_model, $prospect?->exchange_vehicle_model, $delivery->exchange_vehicle_model),
+            'exchange_manufacture_year' => $firstFilled($booking?->exchange_manufacture_year, $prospect?->exchange_manufacture_year, $delivery->exchange_manufacture_year),
+            'exchange_color' => $firstFilled($booking?->exchange_color, $prospect?->exchange_color, $delivery->exchange_color),
+            'exchange_mileage_km' => $firstFilled($booking?->exchange_mileage_km, $prospect?->exchange_mileage_km, $delivery->exchange_mileage_km),
+            'exchange_registration_no' => $firstFilled($booking?->exchange_registration_no, $prospect?->exchange_registration_no, $delivery->exchange_registration_no),
+            'exchange_expected_price' => $firstFilled($booking?->exchange_expected_price, $prospect?->exchange_expected_price, $delivery->exchange_expected_price),
+            'exchange_quoted_price' => $firstFilled($booking?->exchange_quoted_price, $prospect?->exchange_quoted_price, $delivery->exchange_quoted_price),
+            'exchange_price_difference' => $firstFilled($booking?->exchange_price_difference, $prospect?->exchange_price_difference, $delivery->exchange_price_difference),
             'offer_unit_price' => $booking?->offer_unit_price ?? $prospect?->offer_unit_price ?? $enquiry->vehicle?->unit_price,
             'offer_unit_price_discount' => $booking?->offer_unit_price_discount ?? $prospect?->offer_unit_price_discount ?? 0,
             'offer_unit_price_free' => (bool) (($booking?->offer_unit_price_free ?? null) ?? $prospect?->offer_unit_price_free),
@@ -258,9 +267,12 @@ class DeliveryController extends Controller
             'existing_vehicle_year' => ['nullable', 'integer', 'between:1950,2100'],
             'interested_in_exchange' => ['nullable', Rule::in(['yes', 'no'])],
             'exchange_type' => ['nullable', Rule::in(['in_house', 'outhouse'])],
+            'exchange_purchase_value' => ['nullable', 'numeric', 'min:0'],
             'exchange_vehicle_brand' => ['nullable', 'string', 'max:255'],
             'exchange_vehicle_model' => ['nullable', 'string', 'max:255'],
             'exchange_manufacture_year' => ['nullable', 'integer', 'between:1950,2100'],
+            'exchange_ownership' => ['nullable', 'string', 'max:50'],
+            'exchange_insurance_validity' => ['nullable', 'date'],
             'exchange_color' => ['nullable', 'string', 'max:255'],
             'exchange_mileage_km' => ['nullable', 'integer', 'min:0'],
             'exchange_registration_no' => ['nullable', 'string', 'max:50'],
@@ -346,6 +358,9 @@ class DeliveryController extends Controller
                 'remove_extra_images',
                 'exchange_extra_images',
                 'remove_exchange_extra_images',
+                'exchange_purchase_value',
+                'exchange_ownership',
+                'exchange_insurance_validity',
                 'exchange_tyre_replacements_present',
                 'exchange_tyre_replacements',
                 'test_drive_vehicle_model_other',
@@ -555,6 +570,22 @@ class DeliveryController extends Controller
             ['enquiry_id' => $enquiry->id],
             $payload
         );
+        $sharedWorkflowPayload = array_merge(
+            $payload,
+            collect($validated)
+                ->only(['exchange_purchase_value', 'exchange_ownership', 'exchange_insurance_validity'])
+                ->all()
+        );
+        if (array_key_exists('exchange_tyre_replacements_present', $validated)) {
+            $sharedWorkflowPayload['exchange_tyre_replacements'] = $validated['exchange_tyre_replacements'] ?? [];
+        }
+        if (($sharedWorkflowPayload['interested_in_exchange'] ?? null) !== 'yes') {
+            $sharedWorkflowPayload['exchange_purchase_value'] = null;
+            $sharedWorkflowPayload['exchange_ownership'] = null;
+            $sharedWorkflowPayload['exchange_insurance_validity'] = null;
+            $sharedWorkflowPayload['exchange_tyre_replacements'] = [];
+        }
+        $this->syncSharedWorkflowDataFromDelivery($enquiry, $sharedWorkflowPayload);
 
         $bookingVehicleSync = [];
         if (array_key_exists('interested_model', $payload)) {
@@ -904,6 +935,43 @@ class DeliveryController extends Controller
             })
             ->values()
             ->all();
+    }
+
+    private function syncSharedWorkflowDataFromDelivery(Enquiry $enquiry, array $payload): void
+    {
+        $enquiry->loadMissing(['customer', 'booking', 'prospectSheet']);
+
+        $customerPayload = [];
+        foreach (['title', 'name', 'email', 'district', 'location', 'state', 'address1', 'address2'] as $field) {
+            if (array_key_exists($field, $payload)) {
+                $customerPayload[$field] = $payload[$field];
+            }
+        }
+        if (array_key_exists('mobile_numbers', $payload)) {
+            $customerPayload['mobile_numbers'] = collect(explode(',', (string) $payload['mobile_numbers']))
+                ->map(fn($mobile) => trim($mobile))
+                ->filter()
+                ->values()
+                ->all();
+        }
+        if (!empty($customerPayload) && $enquiry->customer) {
+            $enquiry->customer->fill($customerPayload)->save();
+        }
+
+        $this->fillExistingWorkflowRecord($enquiry->booking, $payload);
+        $this->fillExistingWorkflowRecord($enquiry->prospectSheet, $payload);
+    }
+
+    private function fillExistingWorkflowRecord($record, array $payload): void
+    {
+        if (!$record) {
+            return;
+        }
+
+        $record->fill(array_intersect_key($payload, array_flip($record->getFillable())));
+        if ($record->isDirty()) {
+            $record->save();
+        }
     }
 
     private function bookingPaymentAmount(?Booking $booking): float

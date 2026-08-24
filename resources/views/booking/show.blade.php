@@ -223,11 +223,13 @@ $selectedMobileNumbers = collect(explode(',', (string) $selectedMobile))
 if ($selectedMobileNumbers->isEmpty()) {
 $selectedMobileNumbers = collect(['']);
 }
+$isFirstBookingSheet = !$booking->exists;
 $selectedInterestedModel = old('interested_model', $defaultValues['interested_model']);
 $selectedInterestedEngine = old('interested_engine', $defaultValues['interested_engine']);
 $selectedInterestedVariant = old('interested_variant', $defaultValues['interested_variant']);
 $selectedVehicleColor = old('interested_vehicle_color', $defaultValues['interested_vehicle_color']);
-$isBuyingVehicleEdit = old('edit_buying_vehicle') === '1';
+$isPersonalEdit = (string) old('booking_same_as_customer', $isFirstBookingSheet ? '0' : '1') === '0';
+$isBuyingVehicleEdit = (string) old('edit_buying_vehicle', $isFirstBookingSheet ? '1' : '0') === '1';
 $selectedQuote = old('quote_taken', $defaultValues['quote_taken']);
 $selectedQuoteDate = old('quote_date', $defaultValues['quote_date']);
 $selectedTestDrive = old('test_drive_given', $defaultValues['test_drive_given']);
@@ -314,10 +316,11 @@ $existingExtraExchangeImages = collect($defaultValues['exchange_extra_images'] ?
 ->map(fn($path) => trim((string) $path))
 ->filter()
 ->values();
+$showExtraExchangeImages = $existingExtraExchangeImages->isNotEmpty();
 $extraImageTileCount = max(3, $existingExtraExchangeImages->count());
 $exchangeNeedsVehicleInput = $selectedInterestedExchange === 'yes'
 && (trim((string) $selectedExchangeBrand) === '' || trim((string) $selectedExchangeModel) === '');
-$isExchangeEdit = old('edit_exchange_details') === '1' || $exchangeNeedsVehicleInput;
+$isExchangeEdit = (string) old('edit_exchange_details', $isFirstBookingSheet ? '1' : '0') === '1';
 $exchangeTypeLabel = match ($selectedExchangeType) {
 'in_house' => 'In-House',
 'outhouse' => 'Out-House',
@@ -336,6 +339,7 @@ $backUrl = $currentStep > 1
 ? route('booking.show', ['enquiry' => $enquiry->id, 'step' => ($currentStep === 4 && $selectedFirstTimeBuyer === 'yes') ? 2 : $currentStep - 1])
 : route('prospect.show', ['enquiry' => $enquiry->id, 'step' => 4]);
 $showExchangeDetails = $selectedInterestedExchange === 'yes' && in_array($selectedExchangeType, ['in_house', 'outhouse'], true);
+$isExchangeDetailsOpen = $showExchangeDetails && $isExchangeEdit;
 $selectedOfferUnitPrice = old('offer_unit_price', $defaultValues['offer_unit_price']);
 $selectedOfferUnitPriceDiscount = old('offer_unit_price_discount', $defaultValues['offer_unit_price_discount']);
 $selectedOfferUnitPriceFree = old('offer_unit_price_free', (int) ($defaultValues['offer_unit_price_free'] ?? 0)) == 1;
@@ -347,7 +351,7 @@ $selectedOfferTotalDiscount = old('offer_total_discount', $defaultValues['offer_
 $selectedOfferFinalPrice = old('offer_final_price', $defaultValues['offer_final_price']);
 $selectedOfferRemark = old('offer_remark', $defaultValues['offer_remark'] ?? '');
 $hasOfferRemark = trim((string) $selectedOfferRemark) !== '';
-$isOfferEdit = old('edit_offer_details') === '1';
+$isOfferEdit = (string) old('edit_offer_details', $isFirstBookingSheet ? '1' : '0') === '1';
 $dateInputValue = function ($value, $fallback = null): string {
 $raw = $value ?: $fallback;
 if (empty($raw)) {
@@ -552,17 +556,20 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
             <input type="hidden" name="booking_step" value="{{ $currentStep }}">
             <input type="hidden" name="action_type_fallback" id="bookingActionTypeFallback" value="{{ $currentStep === 5 ? 'submit' : 'next' }}">
 
-            <section class="booking-section personal-section {{ $currentStep === 1 ? 'active' : '' }}">
+            <div class="personal-edit-button-row personal-edit-button-row-outside {{ $currentStep === 1 ? 'active' : '' }}">
+                <input type="hidden" id="bookingSameAsCustomer" name="booking_same_as_customer" value="{{ $isPersonalEdit ? '0' : '1' }}">
+                <label class="booking-personal-edit-check">
+                    <input type="checkbox" id="sameAsToggle" @checked($isPersonalEdit) aria-controls="personalEditCard" aria-expanded="{{ $isPersonalEdit ? 'true' : 'false' }}">
+                    <span>Edit</span>
+                </label>
+            </div>
+
+            <section id="personalEditCard" class="booking-section personal-section {{ $currentStep === 1 ? 'active' : '' }}" @if(!$isPersonalEdit) hidden @endif>
                 <div class="section-head-inline personal-head">
                     <h3 class="section-heading">Personal Details</h3>
-                    <label class="inline-edit-check">
-                        <input type="checkbox" id="sameAsToggle" @checked(!$sameAsCustomer)>
-                        <span>Edit</span>
-                    </label>
-                    <input type="hidden" id="bookingSameAsCustomer" name="booking_same_as_customer" value="{{ $sameAsCustomer ? '1' : '0' }}">
                 </div>
 
-                <div id="editBlock" class="personal-edit-block">
+                <div id="editBlock" class="personal-edit-block {{ $isPersonalEdit ? '' : 'hidden' }}" @if(!$isPersonalEdit) hidden @endif>
                     <div class="row personal-row-top">
                         <div class="field-title">
                             <label>Title</label>
@@ -661,34 +668,33 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
                         <label><input type="radio" name="profession" value="other" data-personal-editable @checked($selectedProfession==='other' )><span>Other</span></label>
                         <label><input type="radio" name="profession" value="not_asked" data-personal-editable @checked($selectedProfession==='not_asked' )><span>I Did Not Ask</span></label>
                     </div>
-                </div>
+                    <div class="purchase-order-box personal-purchase-order">
+                        <label for="purchase_order_image">Purchase Order</label>
+                        <input type="hidden" id="remove_purchase_order_image" name="remove_purchase_order_image" value="0">
+                        <div
+                            class="purchase-order-upload-tile {{ !empty($booking->purchase_order_image) ? 'has-preview' : '' }}"
+                            id="purchaseOrderTile"
+                            data-existing-src="{{ !empty($booking->purchase_order_image) ? asset('storage/' . $booking->purchase_order_image) : '' }}">
+                            <label class="purchase-order-upload-pill" for="purchase_order_image">
+                                <span aria-hidden="true"></span>
+                                <strong>Purchase Order</strong>
+                                <img
+                                    id="purchaseOrderPreview"
+                                    class="purchase-order-preview"
+                                    alt="Purchase Order preview"
+                                    src="{{ !empty($booking->purchase_order_image) ? asset('storage/' . $booking->purchase_order_image) : '' }}"
+                                    @if(empty($booking->purchase_order_image)) hidden @endif
+                                >
+                            </label>
+                            <button type="button" class="purchase-order-remove" id="purchaseOrderRemove" aria-label="Remove purchase order image">&times;</button>
+                            <input id="purchase_order_image" type="file" name="purchase_order_image" accept=".jpg,.jpeg,.png,.webp">
+                        </div>
 
-                <div class="purchase-order-box personal-purchase-order">
-                    <label for="purchase_order_image">Purchase Order</label>
-                    <input type="hidden" id="remove_purchase_order_image" name="remove_purchase_order_image" value="0">
-                    <div
-                        class="purchase-order-upload-tile {{ !empty($booking->purchase_order_image) ? 'has-preview' : '' }}"
-                        id="purchaseOrderTile"
-                        data-existing-src="{{ !empty($booking->purchase_order_image) ? asset('storage/' . $booking->purchase_order_image) : '' }}">
-                        <label class="purchase-order-upload-pill" for="purchase_order_image">
-                            <span aria-hidden="true"></span>
-                            <strong>Purchase Order</strong>
-                            <img
-                                id="purchaseOrderPreview"
-                                class="purchase-order-preview"
-                                alt="Purchase Order preview"
-                                src="{{ !empty($booking->purchase_order_image) ? asset('storage/' . $booking->purchase_order_image) : '' }}"
-                                @if(empty($booking->purchase_order_image)) hidden @endif
-                            >
-                        </label>
-                        <button type="button" class="purchase-order-remove" id="purchaseOrderRemove" aria-label="Remove purchase order image">&times;</button>
-                        <input id="purchase_order_image" type="file" name="purchase_order_image" accept=".jpg,.jpeg,.png,.webp">
-                    </div>
-
-                    <div class="purchase-order-actions">
-                        <button type="button" id="purchaseOrderAdd">Add</button>
-                        <button type="button" id="purchaseOrderView" @disabled(empty($booking->purchase_order_image))>View</button>
-                        <button type="button" id="purchaseOrderClear" @disabled(empty($booking->purchase_order_image))>Clear</button>
+                        <div class="purchase-order-actions">
+                            <button type="button" id="purchaseOrderAdd">Add</button>
+                            <button type="button" id="purchaseOrderView" @disabled(empty($booking->purchase_order_image))>View</button>
+                            <button type="button" id="purchaseOrderClear" @disabled(empty($booking->purchase_order_image))>Clear</button>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -708,19 +714,17 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
                     <div class="buying-summary-row{{ $buyingSummaryRowClass($purchaseModeLabel) }}"><span>Mode of Purchase</span><strong id="buyingSummaryPurchaseMode">{{ $purchaseModeLabel }}</strong></div>
                 </div>
 
-                <div class="buying-edit-switch-row">
-                    <label class="booking-toggle-label">
-                        <span>Edit Buying Details</span>
-                        <input type="hidden" name="edit_buying_vehicle" value="0">
-                        <input type="checkbox" id="toggleBuyingVehicleEdit" name="edit_buying_vehicle" value="1" @checked($isBuyingVehicleEdit || $currentStep===2)>
-                        <i aria-hidden="true"></i>
+                <div class="buying-edit-button-row">
+                    <input type="hidden" name="edit_buying_vehicle" value="0">
+                    <label class="booking-buying-edit-check" id="bookingBuyingEditButton">
+                        <input type="checkbox" id="toggleBuyingVehicleEdit" name="edit_buying_vehicle" value="1" @checked($isBuyingVehicleEdit) aria-controls="buyingEditCard" aria-expanded="{{ $isBuyingVehicleEdit ? 'true' : 'false' }}">
+                        <span>Edit</span>
                     </label>
                 </div>
 
-                <div class="buying-edit-card">
+                <div class="buying-edit-card {{ $isBuyingVehicleEdit ? '' : 'hidden' }}" id="buyingEditCard">
                     <div class="buying-card-head">
                         <h3 class="section-heading">Interested In</h3>
-                        <span class="buying-card-edit-mark">Edit</span>
                     </div>
 
                     <div id="vehicleEditFields" class="buying-vehicle-fields">
@@ -943,17 +947,20 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
                     <label><input type="radio" name="interested_in_exchange" value="no" @checked($selectedInterestedExchange==='no' )><span>No</span></label>
                 </div>
 
-                <div id="exchangeDetailsWrap" class="exchange-detail-wrap {{ $showExchangeDetails ? '' : 'hidden' }}">
-                    <div id="exchangeEditFields" class="exchange-edit-fields {{ $showExchangeDetails ? '' : 'hidden' }}">
+                <div class="exchange-edit-button-row exchange-edit-button-row-outside {{ $showExchangeDetails ? 'active' : '' }}" id="exchangeEditButtonRow">
+                    <input type="hidden" name="edit_exchange_details" value="0">
+                    <label class="booking-exchange-edit-check">
+                        <input type="checkbox" id="toggleExchangeEdit" name="edit_exchange_details" value="1" @checked($isExchangeDetailsOpen) aria-controls="exchangeDetailsWrap" aria-expanded="{{ $isExchangeDetailsOpen ? 'true' : 'false' }}">
+                        <span>Edit</span>
+                    </label>
+                </div>
+
+                <div id="exchangeDetailsWrap" class="exchange-detail-wrap {{ $isExchangeDetailsOpen ? '' : 'hidden' }}" @if(!$isExchangeDetailsOpen) hidden @endif>
+                    <div id="exchangeEditFields" class="exchange-edit-fields {{ $isExchangeDetailsOpen ? '' : 'hidden' }}" @if(!$isExchangeDetailsOpen) hidden @endif>
                         <div class="row exchange-interested-row">
                             <label>Exchange Details</label>
                             <div class="vehicle-pill-display exchange-vehicle-pill">
                                 <span>{{ strtoupper($exchangeVehicleLine) }}</span>
-                                <label class="inline-edit-check">
-                                    <input type="hidden" name="edit_exchange_details" value="0">
-                                    <input type="checkbox" id="toggleExchangeEdit" name="edit_exchange_details" value="1" @checked($isExchangeEdit)>
-                                    <span>Edit</span>
-                                </label>
                             </div>
                         </div>
 
@@ -1092,12 +1099,12 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
                                 <div class="exchange-more-head">
                                     <label>Add more images</label>
                                     <label class="exchange-image-switch">
-                                        <input type="checkbox" id="bookingAddMoreImagesToggle" checked>
+                                        <input type="checkbox" id="bookingAddMoreImagesToggle" @checked($showExtraExchangeImages)>
                                         <span></span>
                                     </label>
                                 </div>
 
-                                <div id="bookingExtraImageGrid" class="exchange-upload-grid exchange-upload-grid-extra">
+                                <div id="bookingExtraImageGrid" class="exchange-upload-grid exchange-upload-grid-extra {{ $showExtraExchangeImages ? '' : 'hidden' }}" @if(!$showExtraExchangeImages) hidden @endif>
                                     @for($extraIndex = 0; $extraIndex < $extraImageTileCount; $extraIndex++)
                                         @php
                                         $extraLabel='Car picture ' . ($extraIndex + 3);
@@ -1139,6 +1146,7 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
         <label class="inline-edit-check offer-edit-toggle">
             <strong>Edit</strong>
             <input type="hidden" name="edit_offer_details" value="0">
+            <input type="hidden" name="offer_details_dirty" id="offerDetailsDirty" value="{{ old('offer_details_dirty', '0') }}">
             <input type="checkbox" id="toggleOfferEdit" name="edit_offer_details" value="1" @checked($isOfferEdit)>
             <span></span>
         </label>
@@ -1464,6 +1472,7 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
     (function() {
         const toggle = document.getElementById('sameAsToggle');
         const bookingForm = document.getElementById('bookingForm');
+        const personalEditCard = document.getElementById('personalEditCard');
         const editBlock = document.getElementById('editBlock');
         const bookingSameAsCustomerInput = document.getElementById('bookingSameAsCustomer');
         const personalEditableInputs = document.querySelectorAll('[data-personal-editable]');
@@ -1531,10 +1540,12 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
         const existingVehicleWrap = document.getElementById('existingVehicleWrap');
         const existingVehicleBrandSelect = document.getElementById('existing_vehicle_brand');
         const existingVehicleModelSelect = document.getElementById('existing_vehicle_model');
+        const buyingEditButton = document.getElementById('bookingBuyingEditButton');
         const exchangeTypeRow = document.getElementById('exchangeTypeRow');
         const exchangePurchaseRow = document.getElementById('exchangePurchaseRow');
         const exchangePurchaseValueInput = document.getElementById('exchangePurchaseValueInput');
         const exchangeDetailsWrap = document.getElementById('exchangeDetailsWrap');
+        const exchangeEditButtonRow = document.getElementById('exchangeEditButtonRow');
         const toggleExchangeEdit = document.getElementById('toggleExchangeEdit');
         const exchangeEditFields = document.getElementById('exchangeEditFields');
         const exchangeBrandModelRow = document.getElementById('exchangeBrandModelRow');
@@ -1599,6 +1610,7 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
         const offerRemarksToggle = document.getElementById('offerRemarksToggle');
         const offerRemarksText = document.getElementById('offerRemarksText');
         const offerEditSaveBtn = document.getElementById('offerEditSaveBtn');
+        const offerDetailsDirty = document.getElementById('offerDetailsDirty');
         const bookingStepInput = document.querySelector('input[name="booking_step"]');
         const bookingActionTypeFallback = document.getElementById('bookingActionTypeFallback');
         const actionRow = document.getElementById('actionRow');
@@ -1610,7 +1622,13 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
             if (!toggle || !editBlock) return;
             const editable = toggle.checked;
 
+            if (personalEditCard) {
+                personalEditCard.hidden = !editable;
+            }
+            editBlock.classList.toggle('hidden', !editable);
+            editBlock.hidden = !editable;
             editBlock.classList.toggle('read-only', !editable);
+            toggle.setAttribute('aria-expanded', editable ? 'true' : 'false');
             if (bookingSameAsCustomerInput) {
                 bookingSameAsCustomerInput.value = editable ? '0' : '1';
             }
@@ -1771,8 +1789,11 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
         }
 
         function syncVehicleEditState() {
-            if (!toggleBuyingVehicleEdit || !vehicleEditFields) return;
-            vehicleEditFields.classList.toggle('hidden', !toggleBuyingVehicleEdit.checked);
+            const buyingEditCard = document.getElementById('buyingEditCard');
+            const editable = Boolean(toggleBuyingVehicleEdit?.checked);
+            vehicleEditFields?.classList.toggle('hidden', !editable);
+            buyingEditCard?.classList.toggle('hidden', !editable);
+            toggleBuyingVehicleEdit?.setAttribute('aria-expanded', editable ? 'true' : 'false');
         }
 
         function syncVehiclePill() {
@@ -2220,12 +2241,9 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
             if (exchangeDetailsWrap) {
                 const showExchangeDetails = picked('interested_in_exchange') === 'yes' &&
                     ['in_house', 'outhouse'].includes(picked('exchange_type'));
-                exchangeDetailsWrap.classList.toggle('hidden', !showExchangeDetails);
-
-                // Show full exchange input fields when Yes + (In-House/Outhouse),
-                // regardless of Edit checkbox state.
-                if (exchangeEditFields) {
-                    exchangeEditFields.classList.toggle('hidden', !showExchangeDetails);
+                exchangeEditButtonRow?.classList.toggle('active', showExchangeDetails);
+                if (!showExchangeDetails && toggleExchangeEdit) {
+                    toggleExchangeEdit.checked = false;
                 }
                 syncExchangeEditState();
             }
@@ -2236,12 +2254,18 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
 
         function syncExchangeEditState() {
             if (!exchangeDetailsWrap || !exchangeEditFields) return;
-            const showExchangeDetails = !exchangeDetailsWrap.classList.contains('hidden');
-            exchangeEditFields.classList.toggle('hidden', !showExchangeDetails);
+            const showExchangeDetails = picked('interested_in_exchange') === 'yes' &&
+                ['in_house', 'outhouse'].includes(picked('exchange_type'));
+            const editable = showExchangeDetails && Boolean(toggleExchangeEdit?.checked);
+            exchangeDetailsWrap.classList.toggle('hidden', !editable);
+            exchangeDetailsWrap.hidden = !editable;
+            exchangeEditFields.classList.toggle('hidden', !editable);
+            exchangeEditFields.hidden = !editable;
+            toggleExchangeEdit?.setAttribute('aria-expanded', editable ? 'true' : 'false');
             if (exchangeBrandModelRow) {
                 const requiresInput = exchangeBrandModelRow.dataset.requiresInput === '1' ||
                     !((exchangeBrandSelect?.value || '').trim() && (exchangeModelSelect?.value || exchangeModelSelect?.dataset.selectedModel || '').trim());
-                exchangeBrandModelRow.classList.toggle('hidden', !(showExchangeDetails && (requiresInput || (toggleExchangeEdit && toggleExchangeEdit.checked))));
+                exchangeBrandModelRow.classList.toggle('hidden', !(editable && (requiresInput || (toggleExchangeEdit && toggleExchangeEdit.checked))));
             }
         }
 
@@ -2556,7 +2580,9 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
 
         function syncBookingExtraImageBody() {
             if (!bookingAddMoreImagesToggle || !bookingExtraImageGrid) return;
-            bookingExtraImageGrid.classList.toggle('hidden', !bookingAddMoreImagesToggle.checked);
+            const showExtraImages = bookingAddMoreImagesToggle.checked;
+            bookingExtraImageGrid.classList.toggle('hidden', !showExtraImages);
+            bookingExtraImageGrid.hidden = !showExtraImages;
         }
 
         function syncExchangeNoActionMode() {
@@ -2607,6 +2633,12 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
                     el.readOnly = !editable;
                 }
             });
+        }
+
+        function markOfferDetailsDirty() {
+            if (offerDetailsDirty) {
+                offerDetailsDirty.value = '1';
+            }
         }
 
         function syncOfferRemarksState() {
@@ -2730,6 +2762,11 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
             toggleBuyingVehicleEdit.addEventListener('change', syncVehicleEditState);
             syncVehicleEditState();
         }
+        toggleBuyingVehicleEdit?.addEventListener('change', () => {
+            if (toggleBuyingVehicleEdit.checked) {
+                document.getElementById('interested_model')?.focus();
+            }
+        });
 
         if (interestedModelInput) {
             interestedModelInput.addEventListener('change', async function() {
@@ -3082,13 +3119,19 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
 
         [offerUnitPriceInput, offerUnitPriceDiscountInput, offerVatAmountInput, offerVatDiscountInput].forEach((el) => {
             if (el) {
-                el.addEventListener('input', syncOfferTotals);
+                el.addEventListener('input', () => {
+                    markOfferDetailsDirty();
+                    syncOfferTotals();
+                });
             }
         });
 
         [offerUnitPriceFreeInput, offerVatFreeInput].forEach((el) => {
             if (el) {
-                el.addEventListener('change', syncOfferTotals);
+                el.addEventListener('change', () => {
+                    markOfferDetailsDirty();
+                    syncOfferTotals();
+                });
             }
         });
 
@@ -3099,6 +3142,7 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
 
         if (offerEditSaveBtn) {
             offerEditSaveBtn.addEventListener('click', () => {
+                markOfferDetailsDirty();
                 syncOfferTotals();
                 if (toggleOfferEdit) {
                     toggleOfferEdit.checked = false;
