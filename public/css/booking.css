@@ -921,7 +921,12 @@ select {
 .booking-page .buying-section .buying-select,
 .booking-page .buying-section .vehicle-color-select,
 .booking-page .buying-section select {
-    appearance: auto;
+    appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, #111111 50%), linear-gradient(135deg, #111111 50%, transparent 50%);
+    background-position: calc(100% - 18px) calc(50% - 3px), calc(100% - 12px) calc(50% - 3px);
+    background-repeat: no-repeat;
+    background-size: 6px 6px, 6px 6px;
+    padding-right: 36px;
 }
 
 .booking-page .buying-vehicle-pill-line {

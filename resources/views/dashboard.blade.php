@@ -92,7 +92,7 @@ $viewerId = (int) ($user?->id ?? 0);
         ->nonTerminalLead()
         ->whereDate('follow_date', '<=', $todaySriLanka)
         ->whereRaw("LOWER(COALESCE(followup_status, 'pending')) NOT IN (?, ?)", ['done', 'not_done'])
-        ->orderBy('follow_date')
+        ->orderBy('follow_date', 'desc')
         ->orderBy('follow_time')
         ->limit(8)
         ->get();

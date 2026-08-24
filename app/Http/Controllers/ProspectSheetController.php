@@ -146,6 +146,9 @@ class ProspectSheetController extends Controller
             'exchange_color' => ['nullable', 'string', 'max:255', Rule::requiredIf(fn() => $requiresStep(3) && $request->input('interested_in_exchange') === 'yes')],
             'exchange_mileage_km' => ['nullable', 'integer', 'min:0', Rule::requiredIf(fn() => $requiresStep(3) && $request->input('interested_in_exchange') === 'yes')],
             'exchange_registration_no' => ['nullable', 'string', 'max:50', Rule::requiredIf(fn() => $requiresStep(3) && $request->input('interested_in_exchange') === 'yes')],
+            'exchange_tyre_replacements_present' => ['nullable', 'in:1'],
+            'exchange_tyre_replacements' => ['nullable', 'array'],
+            'exchange_tyre_replacements.*' => ['nullable', Rule::in(['front_lhs', 'front_rhs', 'rear_lhs', 'rear_rhs'])],
             'exchange_expected_price' => ['nullable', 'numeric', 'min:0', Rule::requiredIf(fn() => $requiresStep(3) && $request->input('interested_in_exchange') === 'yes')],
             'exchange_quoted_price' => ['nullable', 'numeric', 'min:0', Rule::requiredIf(fn() => $requiresStep(3) && $request->input('interested_in_exchange') === 'yes')],
             'exchange_price_difference' => ['nullable', 'numeric'],
@@ -326,6 +329,7 @@ class ProspectSheetController extends Controller
         $exchangeColor = $existingProspect->exchange_color;
         $exchangeMileageKm = $existingProspect->exchange_mileage_km;
         $exchangeRegistrationNo = $existingProspect->exchange_registration_no;
+        $exchangeTyreReplacements = is_array($existingProspect->exchange_tyre_replacements) ? $existingProspect->exchange_tyre_replacements : [];
         $exchangeExpectedPrice = $existingProspect->exchange_expected_price;
         $exchangeQuotedPrice = $existingProspect->exchange_quoted_price;
         $exchangePriceDifference = $existingProspect->exchange_price_difference;
@@ -346,6 +350,9 @@ class ProspectSheetController extends Controller
                 $exchangeColor = $pick('exchange_color');
                 $exchangeMileageKm = $pick('exchange_mileage_km');
                 $exchangeRegistrationNo = $pick('exchange_registration_no');
+                $exchangeTyreReplacements = array_key_exists('exchange_tyre_replacements_present', $validated)
+                    ? ($validated['exchange_tyre_replacements'] ?? [])
+                    : $exchangeTyreReplacements;
                 $exchangeExpectedPrice = $pick('exchange_expected_price');
                 $exchangeQuotedPrice = $pick('exchange_quoted_price');
 
@@ -363,6 +370,7 @@ class ProspectSheetController extends Controller
                 $exchangeColor = null;
                 $exchangeMileageKm = null;
                 $exchangeRegistrationNo = null;
+                $exchangeTyreReplacements = [];
                 $exchangeExpectedPrice = null;
                 $exchangeQuotedPrice = null;
                 $exchangePriceDifference = null;
@@ -554,6 +562,7 @@ class ProspectSheetController extends Controller
                 'exchange_color' => $exchangeColor,
                 'exchange_mileage_km' => $exchangeMileageKm,
                 'exchange_registration_no' => $exchangeRegistrationNo,
+                'exchange_tyre_replacements' => $exchangeTyreReplacements,
                 'exchange_expected_price' => $exchangeExpectedPrice,
                 'exchange_quoted_price' => $exchangeQuotedPrice,
                 'exchange_price_difference' => $exchangePriceDifference,

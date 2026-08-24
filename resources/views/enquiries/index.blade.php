@@ -195,7 +195,7 @@
                 data-owner-role-label="{{ $ownerRoleLabel }}"
                 data-lead-status="{{ $leadStatus }}"
                 data-search="{{ strtolower($searchKeywords) }}"
-                data-date="{{ optional($e->created_at)->timestamp ?? 0 }}"
+                data-date="{{ $e->follow_date ? \Carbon\Carbon::parse($e->follow_date)->timestamp : 0 }}"
             >
                 <div class="epr-card-top">
                     <div class="lead-flags">

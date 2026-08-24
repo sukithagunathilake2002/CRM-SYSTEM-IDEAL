@@ -98,7 +98,7 @@
     $selectedOfferTotalCost = $selectedOfferTotalCost ?? ($offerUnitValue + $offerVatValue);
     $selectedOfferTotalDiscount = $selectedOfferTotalDiscount ?? ($offerUnitDiscountValue + $offerVatDiscountValue);
     $selectedOfferFinalPrice = $selectedOfferFinalPrice ?? max(0, (float) $selectedOfferTotalCost - (float) $selectedOfferTotalDiscount);
-    $selectedPaymentReceiptBooking = old('payment_receipt_amount_booking', $defaultValues['payment_receipt_amount_booking']);
+    $selectedPaymentReceiptBooking = $defaultValues['payment_receipt_amount_booking'];
     $selectedPaymentPreDelivery = old('payment_pre_delivery_amount', $defaultValues['payment_pre_delivery_amount']);
     $selectedPaymentDelivery = old('payment_delivery_amount', $defaultValues['payment_delivery_amount']);
     $deliveryReceiptPaymentModes = $deliveryReceiptPaymentModes ?? ['Cash', 'Cheque', 'Bank Transfer', 'Credit/Debit Card'];
@@ -137,6 +137,9 @@
     $selectedDateOfDelivery = old('date_of_delivery', $defaultValues['date_of_delivery']);
     $selectedChassisNumber = old('chassis_number', $defaultValues['chassis_number']);
     $selectedPendingCommitments = old('pending_commitments', $defaultValues['pending_commitments']);
+    $deliveryBackStep = $currentStep === 4 && $selectedFirstTimeBuyer === 'yes'
+        ? 2
+        : $currentStep - 1;
     $paymentReceivedTotal = (float) ($selectedPaymentReceiptBooking ?? 0)
         + (float) ($selectedPaymentPreDelivery ?? 0)
         + (float) ($selectedPaymentDelivery ?? 0);
@@ -772,6 +775,7 @@
                     </div>
 
                     <div class="delivery-segment delivery-exchange-tyre-segment">
+                        <input type="hidden" name="exchange_tyre_replacements_present" value="1">
                         <label><input type="checkbox" name="exchange_tyre_replacements[]" value="front_lhs" @checked(in_array('front_lhs', $selectedExchangeTyreReplacements, true))><span>Front LHS</span></label>
                         <label><input type="checkbox" name="exchange_tyre_replacements[]" value="front_rhs" @checked(in_array('front_rhs', $selectedExchangeTyreReplacements, true))><span>Front RHS</span></label>
                         <label><input type="checkbox" name="exchange_tyre_replacements[]" value="rear_lhs" @checked(in_array('rear_lhs', $selectedExchangeTyreReplacements, true))><span>Rear LHS</span></label>
@@ -979,7 +983,7 @@
                     <div class="delivery-payment-grid">
                         <label>
                             <span>Booking Amount Paid</span>
-                            <input type="number" step="0.01" min="0" name="payment_receipt_amount_booking" id="paymentReceiptBooking" value="{{ $selectedPaymentReceiptBooking }}">
+                            <input type="number" step="0.01" min="0" name="payment_receipt_amount_booking" id="paymentReceiptBooking" value="{{ $selectedPaymentReceiptBooking }}" readonly>
                         </label>
                         <label>
                             <span>Pre Delivery</span>
@@ -1201,7 +1205,7 @@
                         </label>
                         <label>
                             <span>Chassis Number</span>
-                            <input type="text" name="chassis_number" value="{{ $selectedChassisNumber }}" placeholder="Chassis Number">
+                            <input type="text" name="chassis_number" value="{{ $selectedChassisNumber }}" placeholder="Chassis Number" required>
                         </label>
                         <label>
                             <span>Pending Commitments</span>
@@ -1214,7 +1218,7 @@
 
             <div class="delivery-actions {{ $currentStep === 1 ? 'no-back' : '' }} {{ $currentStep === 6 ? 'delivery-final-actions' : '' }}">
                 @if($currentStep > 1)
-                    <a href="{{ route('delivery.show', ['enquiry' => $enquiry->id, 'step' => $currentStep - 1]) }}" class="delivery-action back">Back</a>
+                    <a href="{{ route('delivery.show', ['enquiry' => $enquiry->id, 'step' => $deliveryBackStep]) }}" class="delivery-action back">Back</a>
                 @endif
                 @if($currentStep !== 6)
                     <button type="submit" name="action_type" value="save_exit" class="delivery-action save-exit">Save &amp; Exit</button>
@@ -1222,12 +1226,23 @@
                 @if($currentStep === 6)
                     <button type="submit" name="action_type" value="submit" class="delivery-action save-next delivery-submit-action">Deliver Now</button>
                 @else
-                    <button type="submit" name="action_type" value="save_next" class="delivery-action save-next">Save &amp; Next</button>
+                    <button type="submit" name="action_type" value="save_next" class="delivery-action save-next" id="deliverySaveNextButton" @if($currentStep === 5) data-requires-pending-zero="1" title="Pending Amount must be 0 before Save & Next" aria-disabled="{{ (float) ($selectedPaymentPendingAmount ?? 0) > 0 ? 'true' : 'false' }}" @endif>Save &amp; Next</button>
                 @endif
             </div>
         </form>
     </main>
 </div>
+
+@if($currentStep === 5 || session('delivery_pending_block_popup'))
+    <div class="delivery-submit-popup {{ session('delivery_pending_block_popup') ? '' : 'hidden' }}" id="deliveryPendingBlockPopup" role="dialog" aria-modal="true" aria-labelledby="deliveryPendingBlockTitle" aria-hidden="{{ session('delivery_pending_block_popup') ? 'false' : 'true' }}" @if(!session('delivery_pending_block_popup')) hidden @endif>
+        <div class="delivery-submit-popup-card">
+            <div class="delivery-submit-icon delivery-submit-icon-warning" aria-hidden="true">!</div>
+            <h4 id="deliveryPendingBlockTitle">Pending Amount Required</h4>
+            <p>Until Pending Amount is 0, you cannot go ahead.</p>
+            <button type="button" class="delivery-submit-popup-btn" id="deliveryPendingBlockOk">OK</button>
+        </div>
+    </div>
+@endif
 
 @if(session('delivery_submitted_popup'))
     <div class="delivery-submit-popup" id="deliverySubmitPopup" role="dialog" aria-modal="true" aria-labelledby="deliverySubmitTitle">
@@ -1475,6 +1490,9 @@
     const paymentDelivery = document.getElementById('paymentDelivery');
     const paymentPendingDisplay = document.getElementById('paymentPendingDisplay');
     const paymentPendingAmount = document.getElementById('paymentPendingAmount');
+    const deliverySaveNextButton = document.getElementById('deliverySaveNextButton');
+    const deliveryPendingBlockPopup = document.getElementById('deliveryPendingBlockPopup');
+    const deliveryPendingBlockOk = document.getElementById('deliveryPendingBlockOk');
     const paymentSummaryBookingAmount = document.getElementById('paymentSummaryBookingAmount');
     const paymentSummaryPendingAmount = document.getElementById('paymentSummaryPendingAmount');
     const paymentFinanceProvider = document.getElementById('paymentFinanceProvider');
@@ -1624,11 +1642,59 @@
         }
         paymentPendingDisplay.textContent = Math.round(pending).toLocaleString('en-US');
         paymentPendingAmount.value = pending.toFixed(2);
+
+        if (deliverySaveNextButton?.dataset.requiresPendingZero === '1') {
+            const canSaveNext = pending <= 0.009;
+            deliverySaveNextButton.dataset.pendingBlocked = canSaveNext ? '0' : '1';
+            deliverySaveNextButton.setAttribute('aria-disabled', canSaveNext ? 'false' : 'true');
+            deliverySaveNextButton.classList.toggle('is-blocked', !canSaveNext);
+            deliverySaveNextButton.title = canSaveNext ? '' : 'Pending Amount must be 0 before Save & Next';
+        }
     };
+
+    const openPendingBlockPopup = () => {
+        if (!deliveryPendingBlockPopup) return;
+
+        deliveryPendingBlockPopup.hidden = false;
+        deliveryPendingBlockPopup.classList.remove('hidden');
+        deliveryPendingBlockPopup.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('delivery-modal-open');
+        deliveryPendingBlockOk?.focus();
+    };
+
+    const closePendingBlockPopup = () => {
+        if (!deliveryPendingBlockPopup) return;
+
+        deliveryPendingBlockPopup.hidden = true;
+        deliveryPendingBlockPopup.classList.add('hidden');
+        deliveryPendingBlockPopup.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('delivery-modal-open');
+        deliverySaveNextButton?.focus();
+    };
+
+    deliverySaveNextButton?.addEventListener('click', (event) => {
+        if (deliverySaveNextButton.dataset.requiresPendingZero === '1' && deliverySaveNextButton.dataset.pendingBlocked === '1') {
+            event.preventDefault();
+            event.stopPropagation();
+            openPendingBlockPopup();
+        }
+    });
+
+    deliveryPendingBlockOk?.addEventListener('click', closePendingBlockPopup);
+    deliveryPendingBlockPopup?.addEventListener('click', (event) => {
+        if (event.target === deliveryPendingBlockPopup) {
+            closePendingBlockPopup();
+        }
+    });
+    if (deliveryPendingBlockPopup && !deliveryPendingBlockPopup.hidden) {
+        document.body.classList.add('delivery-modal-open');
+        deliveryPendingBlockOk?.focus();
+    }
 
     [paymentReceiptBooking, paymentPreDelivery, paymentDelivery].forEach((field) => {
         field?.addEventListener('input', syncPaymentPendingAmount);
     });
+    syncPaymentPendingAmount();
     deliveryReceiptOpen?.addEventListener('click', openDeliveryReceiptModal);
     deliveryReceiptRows?.addEventListener('input', (event) => {
         if (event.target instanceof Element && event.target.matches('[data-delivery-receipt-amount]')) {
@@ -1684,7 +1750,7 @@
         if (paymentFinanceProviderDisplay) {
             paymentFinanceProviderDisplay.value = selectedFinance;
         }
-        const showSelf = selectedFinance === 'Self';
+        const showSelf = ['In-House', 'Self'].includes(selectedFinance);
         const showOther = selectedFinance === 'Other';
         paymentFinanceSelfFields?.classList.toggle('hidden', !showSelf);
         paymentFinanceOtherFields?.classList.toggle('hidden', !showOther);
