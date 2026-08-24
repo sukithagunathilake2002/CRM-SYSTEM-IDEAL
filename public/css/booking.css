@@ -5490,6 +5490,71 @@ select:focus {
     cursor: pointer;
 }
 
+.booking-image-viewer {
+    position: fixed;
+    inset: 0;
+    z-index: 2200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    background: rgba(15, 23, 42, 0.68);
+}
+
+.booking-image-viewer-card {
+    width: min(920px, 100%);
+    max-height: calc(100vh - 36px);
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    overflow: hidden;
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.32);
+}
+
+.booking-image-viewer-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.booking-image-viewer-head h4 {
+    margin: 0;
+    color: #111827;
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.booking-image-viewer-close {
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: 50%;
+    background: #eef1f6;
+    color: #111827;
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.booking-image-viewer-body {
+    min-height: 260px;
+    display: grid;
+    place-items: center;
+    padding: 14px;
+    background: #0f172a;
+}
+
+.booking-image-viewer-body img {
+    display: block;
+    max-width: 100%;
+    max-height: calc(100vh - 132px);
+    object-fit: contain;
+}
+
 .booking-receipt-rows {
     display: grid;
     gap: 10px;
@@ -5916,8 +5981,8 @@ select:focus {
 .booking-page.booking-step-3 .exchange-summary {
     grid-template-columns: 1fr !important;
     gap: 0 !important;
-    width: min(980px, 100%) !important;
-    padding: 14px 20px !important;
+    width: min(760px, 100%) !important;
+    padding: 12px 18px !important;
 }
 
 .booking-page.booking-step-3 .exchange-summary-row,
@@ -5928,10 +5993,10 @@ select:focus {
 }
 
 .booking-page.booking-step-3 .exchange-summary-row {
-    grid-template-columns: minmax(220px, 34%) minmax(0, 1fr) !important;
-    gap: 18px !important;
-    min-height: 34px !important;
-    padding: 4px 0 !important;
+    grid-template-columns: minmax(180px, 220px) minmax(0, 1fr) !important;
+    gap: 10px !important;
+    min-height: 28px !important;
+    padding: 2px 0 !important;
 }
 
 .booking-page.booking-step-3 .exchange-summary-row span {

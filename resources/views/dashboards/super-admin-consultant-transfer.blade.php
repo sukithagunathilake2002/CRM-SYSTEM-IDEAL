@@ -1,14 +1,16 @@
 @extends('layouts.portal')
 
+@section('bodyClass', 'consultant-transfer-page')
+
 @section('content')
-<section class="card auth-card narrow">
+<section class="card consultant-transfer-card">
     <h1>Transfer Sales Consultant Data</h1>
     <p>Use filters to move selected leads from one Sales Consultant to another.</p>
 
-    <form method="POST" action="{{ route('dashboard.super_admin.consultant_transfer.run') }}" class="form-grid">
+    <form method="POST" action="{{ route('dashboard.super_admin.consultant_transfer.run') }}" class="form-grid consultant-transfer-form">
         @csrf
 
-        <label>
+        <label class="consultant-transfer-field consultant-transfer-field-wide">
             Source Sales Consultant
             <select name="source_consultant_id" required>
                 <option value="">Select source consultant</option>
@@ -23,7 +25,7 @@
             </select>
         </label>
 
-        <label>
+        <label class="consultant-transfer-field consultant-transfer-field-wide">
             Target Sales Consultant
             <select name="target_consultant_id" required>
                 <option value="">Select target consultant</option>
@@ -35,17 +37,17 @@
             </select>
         </label>
 
-        <label>
+        <label class="consultant-transfer-field">
             From Date
             <input type="date" name="from_date" value="{{ old('from_date') }}">
         </label>
 
-        <label>
+        <label class="consultant-transfer-field">
             To Date
             <input type="date" name="to_date" value="{{ old('to_date') }}">
         </label>
 
-        <label>
+        <label class="consultant-transfer-field">
             Lead Result
             <select name="lead_result">
                 <option value="">All</option>
@@ -55,7 +57,7 @@
             </select>
         </label>
 
-        <label>
+        <label class="consultant-transfer-field">
             Lead Temperature
             <select name="lead_temperature">
                 <option value="">All</option>
@@ -65,7 +67,7 @@
             </select>
         </label>
 
-        <label>
+        <label class="consultant-transfer-field">
             Followup Type
             <select name="follow_type">
                 <option value="">All</option>
@@ -75,7 +77,7 @@
             </select>
         </label>
 
-        <label>
+        <label class="consultant-transfer-field">
             Followup Status
             <select name="followup_status">
                 <option value="">All</option>

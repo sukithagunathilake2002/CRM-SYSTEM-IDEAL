@@ -549,19 +549,6 @@
             </div>
 
             <div class="delivery-buying-grid">
-                <label class="delivery-pill delivery-wide">
-                    <span>Interested In</span>
-                    <select name="interested_model" data-buying-lockable>
-                        <option value="">Select Model</option>
-                        @foreach($vehicleModels as $modelOption)
-                            <option value="{{ $modelOption }}" @selected($selectedInterestedModel === $modelOption)>{{ $modelOption }}</option>
-                        @endforeach
-                        @if(!empty($selectedInterestedModel) && !$vehicleModels->contains($selectedInterestedModel))
-                            <option value="{{ $selectedInterestedModel }}" selected>{{ $selectedInterestedModel }}</option>
-                        @endif
-                    </select>
-                </label>
-
                 <label class="delivery-pill">
                     <span>Color</span>
                     <select name="interested_vehicle_color" data-buying-lockable>
@@ -780,10 +767,6 @@
 
                     <div class="delivery-exchange-tyre-row">
                         <span>Tyre Replacement</span>
-                        <label class="delivery-exchange-image-switch">
-                            <input type="checkbox" checked>
-                            <span></span>
-                        </label>
                     </div>
 
                     <div class="delivery-segment delivery-exchange-tyre-segment">

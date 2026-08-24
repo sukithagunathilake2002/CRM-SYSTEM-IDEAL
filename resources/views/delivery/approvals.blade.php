@@ -33,6 +33,10 @@
                     @php
                         $customerName = trim((string) (($delivery->enquiry?->customer?->title ? $delivery->enquiry->customer->title . '. ' : '') . ($delivery->enquiry?->customer?->name ?? $delivery->name ?? 'Customer')));
                         $vehicleName = trim((string) (($delivery->enquiry?->vehicle?->model ?? $delivery->interested_model ?? '') . ' ' . ($delivery->enquiry?->vehicle?->variant ?? $delivery->interested_variant ?? '')));
+                        $mobileNumbers = $delivery->enquiry?->customer?->mobile_numbers ?? $delivery->mobile_numbers ?? '';
+                        $mobileDisplay = is_array($mobileNumbers)
+                            ? collect($mobileNumbers)->map(fn($mobile) => trim((string) $mobile))->filter()->implode(', ')
+                            : trim((string) $mobileNumbers);
                         $status = (string) ($delivery->approval_status ?? \App\Models\Delivery::APPROVAL_DRAFT);
                         $statusLabel = ucfirst($status);
                         $statusClass = 'delivery-status-' . $status;
@@ -40,7 +44,7 @@
                     <tr>
                         <td>
                             <strong>#{{ $delivery->enquiry_id }} - {{ $customerName }}</strong>
-                            <span>{{ $delivery->enquiry?->customer?->mobile_numbers ?? $delivery->mobile_numbers ?? '' }}</span>
+                            <span>{{ $mobileDisplay }}</span>
                         </td>
                         <td>{{ $vehicleName !== '' ? $vehicleName : '-' }}</td>
                         <td>

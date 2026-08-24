@@ -476,6 +476,22 @@ class DashboardController extends Controller
         return view('dashboards.analytics', compact('analytics'));
     }
 
+    public function deliveryAnalytics(Request $request): View|RedirectResponse
+    {
+        $user = $request->user();
+
+        if (!in_array($user?->role, [User::ROLE_SUPER_ADMIN, User::ROLE_HEAD_OF_SALES], true)) {
+            return redirect()->route('dashboard.home');
+        }
+
+        $deliveryAnalytics = $this->buildDeliveryAnalytics($user, $request);
+        $backRoute = $user->role === User::ROLE_SUPER_ADMIN
+            ? route('dashboard.super_admin')
+            : route('dashboard.head_of_sales');
+
+        return view('dashboards.delivery-analytics', compact('deliveryAnalytics', 'backRoute'));
+    }
+
     public function followupSummary(Request $request): View|RedirectResponse
     {
         $user = $request->user();
@@ -1771,6 +1787,338 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
             'area_manager' => User::query()->where('role', User::ROLE_AREA_MANAGER)->count(),
             'sales_consultant' => User::query()->where('role', User::ROLE_SALES_CONSULTANT)->count(),
         ];
+    }
+
+    private function buildDeliveryAnalytics(User $viewer, Request $request): array
+    {
+        $fromDate = $this->parseFilterDate((string) $request->query('delivery_from_date', ''), true);
+        $toDate = $this->parseFilterDate((string) $request->query('delivery_to_date', ''), false);
+        if ($fromDate && $toDate && $fromDate->greaterThan($toDate)) {
+            [$fromDate, $toDate] = [$toDate->copy()->startOfDay(), $fromDate->copy()->endOfDay()];
+        }
+
+        $hasDateRange = $fromDate !== null || $toDate !== null;
+        $accessibleUserIds = $this->resolveAccessibleUserIds($viewer);
+
+        $empty = [
+            'has_date_range' => $hasDateRange,
+            'filters' => [
+                'from_date' => $fromDate ? $fromDate->toDateString() : '',
+                'to_date' => $toDate ? $toDate->toDateString() : '',
+            ],
+            'total_deliveries' => 0,
+            'total_enquiries' => 0,
+            'overall_conversion_ratio' => 0,
+            'tabs' => [],
+        ];
+
+        if (!$hasDateRange || empty($accessibleUserIds)) {
+            return $empty;
+        }
+
+        $users = User::query()
+            ->with('manager.manager')
+            ->whereIn('id', $accessibleUserIds)
+            ->get(['id', 'name', 'role', 'manager_id'])
+            ->keyBy('id');
+
+        $deliveriesQuery = Delivery::query()
+            ->with([
+                'enquiry:id,user_id,customer_id,vehicle_id,lead_source,source_of_information,created_at',
+                'enquiry.user:id,name,role,manager_id',
+                'enquiry.user.manager:id,name,role,manager_id',
+                'enquiry.customer:id,district,location,state',
+                'enquiry.vehicle:id,model,engine_type,variant',
+                'enquiry.prospectSheet:id,enquiry_id,source_of_information,first_time_buyer,interested_in_exchange',
+            ])
+            ->whereHas('enquiry', function ($query) use ($accessibleUserIds): void {
+                $query->whereIn('user_id', $accessibleUserIds);
+            })
+            ->whereNotNull('date_of_delivery');
+
+        if ($fromDate !== null) {
+            $deliveriesQuery->where('date_of_delivery', '>=', $fromDate->toDateString());
+        }
+
+        if ($toDate !== null) {
+            $deliveriesQuery->where('date_of_delivery', '<=', $toDate->toDateString());
+        }
+
+        $enquiriesQuery = Enquiry::query()
+            ->with([
+                'user:id,name,role,manager_id',
+                'user.manager:id,name,role,manager_id',
+                'customer:id,district,location,state',
+                'vehicle:id,model,engine_type,variant',
+                'prospectSheet:id,enquiry_id,source_of_information,first_time_buyer,interested_in_exchange',
+            ])
+            ->whereIn('user_id', $accessibleUserIds);
+
+        if ($fromDate !== null) {
+            $enquiriesQuery->where('created_at', '>=', $fromDate);
+        }
+
+        if ($toDate !== null) {
+            $enquiriesQuery->where('created_at', '<=', $toDate);
+        }
+
+        $deliveries = $deliveriesQuery->get();
+        $enquiries = $enquiriesQuery->get();
+        $totalDeliveries = $deliveries->count();
+        $totalEnquiries = $enquiries->count();
+
+        $tabs = [
+            'month' => [
+                'label' => 'Month Wise Delivery',
+                'title' => 'Month Wise Delivery',
+                'rows' => $this->buildDeliveryAnalyticsRows(
+                    $deliveries,
+                    $enquiries,
+                    fn(Delivery $delivery): string => $this->monthLabel($delivery->date_of_delivery),
+                    fn(Enquiry $enquiry): string => $this->monthLabel($enquiry->created_at),
+                    $totalDeliveries
+                ),
+            ],
+            'area_manager' => [
+                'label' => 'Dealer Wise Delivery',
+                'title' => 'Area Manager Wise Delivery',
+                'rows' => $this->buildDeliveryAnalyticsRows(
+                    $deliveries,
+                    $enquiries,
+                    fn(Delivery $delivery): string => $this->areaManagerLabel($delivery->enquiry?->user, $users),
+                    fn(Enquiry $enquiry): string => $this->areaManagerLabel($enquiry->user, $users),
+                    $totalDeliveries
+                ),
+            ],
+            'sales_consultant' => [
+                'label' => 'SC Wise Delivery',
+                'title' => 'Sales Consultant Wise Delivery',
+                'rows' => $this->buildDeliveryAnalyticsRows(
+                    $deliveries,
+                    $enquiries,
+                    fn(Delivery $delivery): string => $delivery->enquiry?->user?->name ?: 'Unassigned',
+                    fn(Enquiry $enquiry): string => $enquiry->user?->name ?: 'Unassigned',
+                    $totalDeliveries
+                ),
+            ],
+            'model' => [
+                'label' => 'Model Wise Delivery',
+                'title' => 'Model Wise Delivery',
+                'rows' => $this->buildDeliveryAnalyticsRows(
+                    $deliveries,
+                    $enquiries,
+                    fn(Delivery $delivery): string => $this->deliveryModelLabel($delivery),
+                    fn(Enquiry $enquiry): string => $this->enquiryModelLabel($enquiry),
+                    $totalDeliveries
+                ),
+            ],
+            'source' => [
+                'label' => 'Source Wise',
+                'title' => 'Source Wise Delivery',
+                'rows' => $this->buildDeliveryAnalyticsRows(
+                    $deliveries,
+                    $enquiries,
+                    fn(Delivery $delivery): string => $this->cleanAnalyticsLabel($delivery->enquiry?->lead_source),
+                    fn(Enquiry $enquiry): string => $this->cleanAnalyticsLabel($enquiry->lead_source),
+                    $totalDeliveries
+                ),
+            ],
+            'source_information' => [
+                'label' => 'Source of Information',
+                'title' => 'Source of Information Delivery',
+                'rows' => $this->buildDeliveryAnalyticsRows(
+                    $deliveries,
+                    $enquiries,
+                    fn(Delivery $delivery): string => $this->cleanAnalyticsLabel($delivery->enquiry?->prospectSheet?->source_of_information ?? $delivery->enquiry?->source_of_information),
+                    fn(Enquiry $enquiry): string => $this->cleanAnalyticsLabel($enquiry->prospectSheet?->source_of_information ?? $enquiry->source_of_information),
+                    $totalDeliveries
+                ),
+            ],
+            'city' => [
+                'label' => 'City Wise',
+                'title' => 'City Wise Delivery',
+                'rows' => $this->buildDeliveryAnalyticsRows(
+                    $deliveries,
+                    $enquiries,
+                    fn(Delivery $delivery): string => $this->cleanAnalyticsLabel($delivery->enquiry?->customer?->location ?? $delivery->enquiry?->customer?->district),
+                    fn(Enquiry $enquiry): string => $this->cleanAnalyticsLabel($enquiry->customer?->location ?? $enquiry->customer?->district),
+                    $totalDeliveries
+                ),
+            ],
+            'fuel' => [
+                'label' => 'Fuel',
+                'title' => 'Fuel Wise Delivery',
+                'rows' => $this->buildDeliveryAnalyticsRows(
+                    $deliveries,
+                    $enquiries,
+                    fn(Delivery $delivery): string => $this->cleanAnalyticsLabel($delivery->interested_engine ?? $delivery->enquiry?->vehicle?->engine_type),
+                    fn(Enquiry $enquiry): string => $this->cleanAnalyticsLabel($enquiry->vehicle?->engine_type),
+                    $totalDeliveries
+                ),
+            ],
+            'first_time_buyer' => [
+                'label' => 'First Time Buyer',
+                'title' => 'First Time Buyer Delivery',
+                'rows' => $this->buildDeliveryAnalyticsRows(
+                    $deliveries,
+                    $enquiries,
+                    fn(Delivery $delivery): string => $this->yesNoAnalyticsLabel($delivery->first_time_buyer ?? $delivery->enquiry?->prospectSheet?->first_time_buyer),
+                    fn(Enquiry $enquiry): string => $this->yesNoAnalyticsLabel($enquiry->prospectSheet?->first_time_buyer),
+                    $totalDeliveries
+                ),
+            ],
+            'exchange_buyer' => [
+                'label' => 'Exchange Buyer',
+                'title' => 'Exchange Buyer Delivery',
+                'rows' => $this->buildDeliveryAnalyticsRows(
+                    $deliveries,
+                    $enquiries,
+                    fn(Delivery $delivery): string => $this->yesNoAnalyticsLabel($delivery->interested_in_exchange ?? $delivery->enquiry?->prospectSheet?->interested_in_exchange),
+                    fn(Enquiry $enquiry): string => $this->yesNoAnalyticsLabel($enquiry->prospectSheet?->interested_in_exchange),
+                    $totalDeliveries
+                ),
+            ],
+            'selecting_brand' => [
+                'label' => 'Reason-Selecting Brand',
+                'title' => 'Reason Selecting Brand Delivery',
+                'rows' => $this->buildDeliveryAnalyticsRows(
+                    $deliveries,
+                    $enquiries,
+                    fn(Delivery $delivery): string => $this->selectingBrandLabel($delivery->selecting_brand_reasons),
+                    fn(Enquiry $enquiry): string => 'N/A',
+                    $totalDeliveries
+                ),
+            ],
+        ];
+
+        return array_merge($empty, [
+            'total_deliveries' => $totalDeliveries,
+            'total_enquiries' => $totalEnquiries,
+            'overall_conversion_ratio' => $this->analyticsRatio($totalDeliveries, $totalEnquiries),
+            'tabs' => $tabs,
+        ]);
+    }
+
+    private function buildDeliveryAnalyticsRows(Collection $deliveries, Collection $enquiries, callable $deliveryKey, callable $enquiryKey, int $totalDeliveries): array
+    {
+        $deliveredByKey = [];
+        foreach ($deliveries as $delivery) {
+            $label = $this->cleanAnalyticsLabel($deliveryKey($delivery));
+            $deliveredByKey[$label] = ($deliveredByKey[$label] ?? 0) + 1;
+        }
+
+        $enquiriesByKey = [];
+        foreach ($enquiries as $enquiry) {
+            $label = $this->cleanAnalyticsLabel($enquiryKey($enquiry));
+            $enquiriesByKey[$label] = ($enquiriesByKey[$label] ?? 0) + 1;
+        }
+
+        $labels = array_values(array_unique(array_merge(array_keys($deliveredByKey), array_keys($enquiriesByKey))));
+        $rows = [];
+        foreach ($labels as $label) {
+            $deliveriesCount = (int) ($deliveredByKey[$label] ?? 0);
+            $enquiriesCount = (int) ($enquiriesByKey[$label] ?? 0);
+            if ($deliveriesCount === 0 && $enquiriesCount === 0) {
+                continue;
+            }
+
+            $rows[] = [
+                'label' => $label,
+                'deliveries' => $deliveriesCount,
+                'enquiries' => $enquiriesCount,
+                'conversion_ratio' => $this->analyticsRatio($deliveriesCount, $enquiriesCount),
+                'contribution' => $this->analyticsRatio($deliveriesCount, $totalDeliveries),
+            ];
+        }
+
+        usort($rows, function (array $left, array $right): int {
+            if ($left['deliveries'] === $right['deliveries']) {
+                return strcmp($left['label'], $right['label']);
+            }
+
+            return $right['deliveries'] <=> $left['deliveries'];
+        });
+
+        return $rows;
+    }
+
+    private function analyticsRatio(int $numerator, int $denominator): float
+    {
+        if ($denominator <= 0) {
+            return 0;
+        }
+
+        return round(($numerator / $denominator) * 100, 2);
+    }
+
+    private function cleanAnalyticsLabel($value): string
+    {
+        $label = trim((string) $value);
+        return $label !== '' ? $label : 'N/A';
+    }
+
+    private function yesNoAnalyticsLabel($value): string
+    {
+        $normalized = strtolower(trim((string) $value));
+        return match ($normalized) {
+            'yes', '1', 'true' => 'Yes',
+            'no', '0', 'false' => 'No',
+            default => 'N/A',
+        };
+    }
+
+    private function selectingBrandLabel($value): string
+    {
+        $values = is_array($value) ? $value : [];
+        $label = collect($values)
+            ->map(fn($item): string => trim((string) $item))
+            ->filter()
+            ->implode(', ');
+
+        return $label !== '' ? $label : 'N/A';
+    }
+
+    private function monthLabel($value): string
+    {
+        try {
+            return Carbon::parse((string) $value)->format('M Y');
+        } catch (\Throwable $exception) {
+            return 'N/A';
+        }
+    }
+
+    private function deliveryModelLabel(Delivery $delivery): string
+    {
+        return $this->cleanAnalyticsLabel($delivery->interested_model ?? $delivery->enquiry?->vehicle?->model);
+    }
+
+    private function enquiryModelLabel(Enquiry $enquiry): string
+    {
+        return $this->cleanAnalyticsLabel($enquiry->vehicle?->model);
+    }
+
+    private function areaManagerLabel(?User $owner, Collection $users): string
+    {
+        if (!$owner instanceof User) {
+            return 'Unassigned';
+        }
+
+        if ($owner->role === User::ROLE_AREA_MANAGER) {
+            return $owner->name;
+        }
+
+        if ($owner->role === User::ROLE_SALES_CONSULTANT) {
+            $manager = $owner->manager_id ? $users->get((int) $owner->manager_id) : $owner->manager;
+            if ($manager instanceof User && $manager->role === User::ROLE_AREA_MANAGER) {
+                return $manager->name;
+            }
+        }
+
+        if ($owner->role === User::ROLE_HEAD_OF_SALES) {
+            return $owner->name;
+        }
+
+        return 'Unassigned';
     }
 
     private function buildAnalytics(User $viewer, Request $request): array

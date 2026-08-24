@@ -1,6 +1,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&family=Playfair+Display:wght@400&display=swap");
 
 :root {
+    --portal-topbar-height: 64px;
     --page-bg: #f5f7fc;
     --surface: #f8fafc;
     --surface-card: #ffffff;
@@ -46,6 +47,8 @@ body {
 body.login-page {
     background: #070707 url("../icons/login.png") center center / cover no-repeat fixed;
     color: #ffffff;
+    height: 100vh;
+    overflow: hidden;
 }
 
 @keyframes portalFadeUp {
@@ -81,6 +84,8 @@ html.theme-dark body {
 html.theme-dark body.login-page {
     background: #070707 url("../icons/login.png") center center / cover no-repeat fixed;
     color: #ffffff;
+    height: 100vh;
+    overflow: hidden;
 }
 
 .theme-toggle-btn {
@@ -116,6 +121,7 @@ html.theme-dark .theme-toggle-btn {
 
 .portal-shell {
     min-height: 100vh;
+    padding-top: var(--portal-topbar-height);
 }
 
 .portal-topbar {
@@ -654,11 +660,16 @@ body.login-page .portal-main {
     max-width: none;
     margin: 0;
     padding: 0;
+    height: 100vh;
+    overflow: hidden;
 }
 
 body.login-page .portal-shell {
     width: 100%;
+    height: 100vh;
     min-height: 100vh;
+    padding-top: 0;
+    overflow: hidden;
 }
 
 body.login-page .portal-flash {
@@ -680,19 +691,32 @@ body.login-page .portal-flash {
 }
 
 .login-ui {
+    position: relative;
+    isolation: isolate;
+    height: 100vh;
     min-height: 100vh;
+    overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
     width: 100%;
     padding: 32px 16px;
-    background:
-        linear-gradient(rgba(0, 0, 0, 0.64), rgba(0, 0, 0, 0.64)),
-        url("../icons/login.png") center center / cover no-repeat;
+    background: url("../icons/login.png") center center / cover no-repeat;
     font-family: "Rubik", "Segoe UI", Tahoma, Arial, sans-serif;
 }
 
+.login-ui::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background: rgba(0, 0, 0, 0.68);
+    pointer-events: none;
+}
+
 .login-ui-left {
+    position: relative;
+    z-index: 1;
     width: min(100%, 400px);
     margin: 0 auto;
     padding: 0;
@@ -1486,6 +1510,72 @@ html.theme-dark .analytics-filter-form select {
     font-size: 13px;
 }
 
+body.consultant-transfer-page .portal-main {
+    max-width: 920px;
+}
+
+.consultant-transfer-card {
+    width: 100%;
+    max-width: 860px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: clamp(18px, 3vw, 28px);
+    overflow: hidden;
+}
+
+.consultant-transfer-card h1 {
+    margin-bottom: 8px;
+    color: #111827;
+    font-size: clamp(24px, 3vw, 32px);
+    line-height: 1.15;
+}
+
+.consultant-transfer-card p {
+    max-width: 620px;
+    margin: 0 0 18px;
+    color: #475569;
+    line-height: 1.45;
+}
+
+.consultant-transfer-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 16px;
+}
+
+.consultant-transfer-field,
+.consultant-transfer-form .btn-primary,
+.consultant-transfer-card .helper-links {
+    grid-column: 1 / -1;
+}
+
+.consultant-transfer-field:not(.consultant-transfer-field-wide) {
+    grid-column: span 1;
+}
+
+.consultant-transfer-field select,
+.consultant-transfer-field input {
+    width: 100%;
+    min-width: 0;
+}
+
+.consultant-transfer-field select {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.consultant-transfer-form .btn-primary {
+    width: 100%;
+    margin-top: 4px;
+}
+
+html.theme-dark .consultant-transfer-card h1 {
+    color: #f7fbff;
+}
+
+html.theme-dark .consultant-transfer-card p {
+    color: #cbd5e1;
+}
+
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1968,6 +2058,281 @@ html.theme-dark .hierarchy-metric-btn {
     font: inherit;
 }
 
+.delivery-dashboard-entry {
+    display: flex;
+    justify-content: center;
+    margin: -6px 0 18px;
+}
+
+.hierarchy-metric-btn.delivery {
+    background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
+    color: #ffffff;
+    border-color: #0f766e;
+}
+
+.delivery-page-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.delivery-page-head h1,
+.delivery-page-head p,
+.delivery-date-page-card h2,
+.delivery-empty-card h2,
+.delivery-empty-card p {
+    margin: 0;
+}
+
+.delivery-page-head p,
+.delivery-empty-card p {
+    margin-top: 4px;
+    color: #64748b;
+    font-size: 13px;
+}
+
+.delivery-date-page-card {
+    display: grid;
+    gap: 14px;
+}
+
+.delivery-date-page-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(220px, 1fr)) auto;
+    gap: 12px;
+    align-items: end;
+}
+
+.delivery-date-page-form label {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+    color: #526b8f;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.delivery-date-page-form input[type="date"] {
+    width: 100%;
+    height: 38px;
+    border: 1px solid #c6cbd7;
+    border-radius: 6px;
+    padding: 0 10px;
+    background: #ffffff;
+}
+
+.delivery-date-page-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.delivery-date-modal[hidden] {
+    display: none;
+}
+
+.delivery-date-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+}
+
+.delivery-date-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.62);
+}
+
+.delivery-date-dialog {
+    position: relative;
+    width: min(600px, 100%);
+    max-height: min(86vh, 520px);
+    overflow: auto;
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 0 24px 50px rgba(15, 23, 42, 0.34);
+}
+
+.delivery-date-dialog-head {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 56px;
+    padding: 12px 52px;
+    background: #10758a;
+    color: #ffffff;
+}
+
+.delivery-date-dialog-head h2 {
+    margin: 0;
+    color: inherit;
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.delivery-date-close {
+    position: absolute;
+    top: 14px;
+    right: 18px;
+    width: 18px;
+    height: 18px;
+    border: 0;
+    border-radius: 4px;
+    background: #dc2626;
+    color: #ffffff;
+    font-size: 17px;
+    line-height: 18px;
+    cursor: pointer;
+}
+
+.delivery-date-form {
+    display: grid;
+    gap: 12px;
+    padding: 22px 16px 28px;
+}
+
+.delivery-date-form label {
+    display: grid;
+    gap: 6px;
+    color: #526b8f;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.delivery-date-form input[type="date"] {
+    width: 100%;
+    height: 36px;
+    border: 1px solid #c6cbd7;
+    border-radius: 2px;
+    padding: 0 10px;
+    background: #ffffff;
+}
+
+.delivery-date-clear {
+    justify-self: end;
+    min-height: 24px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: #38bdf8;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.delivery-generate-btn {
+    justify-self: start;
+    min-height: 28px;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+body.delivery-modal-open {
+    overflow: hidden;
+}
+
+.delivery-analytics-card {
+    overflow: hidden;
+}
+
+.delivery-analytics-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 10px;
+}
+
+.delivery-analytics-head h2,
+.delivery-analytics-head p {
+    margin: 0;
+}
+
+.delivery-analytics-head p {
+    color: #64748b;
+    font-size: 13px;
+}
+
+.delivery-conversion-note {
+    margin: 0 -18px 12px;
+    padding: 5px 12px;
+    background: #e0f2fe;
+    color: #dc2626;
+    text-align: center;
+    font-size: 13px;
+}
+
+.delivery-kpi-grid {
+    margin-bottom: 12px;
+}
+
+.delivery-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    margin: 0 0 4px;
+}
+
+.delivery-tab {
+    min-height: 44px;
+    border: 1px solid #ffffff;
+    border-radius: 4px 4px 0 0;
+    padding: 8px 14px;
+    background: #2f7db8;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.delivery-tab.active {
+    background: #ffffff;
+    color: #334155;
+    border-color: #d5dce8;
+    border-bottom-color: #ffffff;
+}
+
+.delivery-chart-wrap {
+    border: 1px solid #dbe3ef;
+    border-radius: 8px;
+    padding: 8px 10px 14px;
+    background: #ffffff;
+}
+
+.delivery-chart-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 6px;
+    color: #526b8f;
+}
+
+.delivery-chart-title-row h3 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.delivery-chart-title-row span {
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.delivery-chart-wrap canvas {
+    width: 100% !important;
+    height: 310px !important;
+}
+
+.delivery-table-wrap {
+    margin-top: 12px;
+}
+
 html.theme-dark .delivery-approval-summary-card,
 html.theme-dark .delivery-approvals-card {
     background: #0f172a;
@@ -1982,6 +2347,41 @@ html.theme-dark .delivery-reject-form input {
     background: #111827;
     border-color: #334155;
     color: #e5e7eb;
+}
+
+html.theme-dark .delivery-date-dialog,
+html.theme-dark .delivery-chart-wrap,
+html.theme-dark .delivery-tab.active {
+    background: #0f172a;
+    color: #e5e7eb;
+}
+
+html.theme-dark .delivery-date-form label,
+html.theme-dark .delivery-analytics-head p,
+html.theme-dark .delivery-chart-title-row {
+    color: #cbd5e1;
+}
+
+html.theme-dark .delivery-date-form input[type="date"] {
+    background: #111827;
+    color: #e5e7eb;
+    border-color: #475569;
+}
+
+html.theme-dark .delivery-date-page-form label,
+html.theme-dark .delivery-page-head p,
+html.theme-dark .delivery-empty-card p {
+    color: #cbd5e1;
+}
+
+html.theme-dark .delivery-date-page-form input[type="date"] {
+    background: #111827;
+    color: #e5e7eb;
+    border-color: #475569;
+}
+
+html.theme-dark .delivery-chart-wrap {
+    border-color: #334155;
 }
 
 .consultant-pending-head {
@@ -3950,6 +4350,14 @@ html.theme-dark .analytics-table tbody tr:nth-child(odd) {
         grid-template-columns: 1fr;
     }
 
+    .consultant-transfer-form {
+        grid-template-columns: 1fr;
+    }
+
+    .consultant-transfer-field:not(.consultant-transfer-field-wide) {
+        grid-column: 1 / -1;
+    }
+
     .analytics-filter-actions {
         align-items: center;
         gap: 8px;
@@ -4113,6 +4521,36 @@ html.theme-dark .analytics-table tbody tr:nth-child(odd) {
 
     .district-lead-map {
         min-height: 420px;
+    }
+
+    .delivery-page-head,
+    .delivery-analytics-head,
+    .delivery-chart-title-row {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .delivery-date-page-form {
+        grid-template-columns: 1fr;
+    }
+
+    .delivery-date-page-actions,
+    .delivery-date-page-actions .btn-link,
+    .delivery-date-page-actions .btn-primary {
+        width: 100%;
+    }
+
+    .delivery-date-page-actions .btn-link,
+    .delivery-date-page-actions .btn-primary {
+        justify-content: center;
+    }
+
+    .delivery-tab {
+        flex: 1 1 150px;
+    }
+
+    .delivery-chart-wrap canvas {
+        height: 260px !important;
     }
 }
 
@@ -4370,7 +4808,10 @@ html.theme-dark .login-ui-right::before {
 
 .portal-topbar,
 body.login-page .portal-topbar {
-    position: relative !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
     z-index: 1500 !important;
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important;
@@ -4388,14 +4829,17 @@ body.login-page .portal-topbar {
 }
 
 .portal-sidebar {
-    top: 64px !important;
+    top: var(--portal-topbar-height) !important;
     bottom: 0 !important;
-    height: calc(100vh - 64px) !important;
+    height: calc(100vh - var(--portal-topbar-height)) !important;
     z-index: 1400 !important;
 }
 
 .portal-sidebar-overlay {
-    top: 64px !important;
+    top: var(--portal-topbar-height) !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
     z-index: 1300 !important;
 }
 
@@ -4518,6 +4962,10 @@ html.theme-dark .portal-brand {
 }
 
 @media (max-width: 760px) {
+    :root {
+        --portal-topbar-height: 54px;
+    }
+
     .portal-topbar,
     body.login-page .portal-topbar {
         min-height: 54px !important;
@@ -4574,4 +5022,34 @@ html.theme-dark .portal-brand {
         width: 15px !important;
         height: 15px !important;
     }
+}
+
+html:has(body.login-page) {
+    height: 100%;
+    overflow: hidden !important;
+}
+
+body.login-page {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden !important;
+}
+
+body.login-page .portal-topbar {
+    display: none !important;
+}
+
+body.login-page .portal-shell,
+body.login-page .portal-main,
+body.login-page .login-ui {
+    width: 100%;
+    height: 100dvh;
+    min-height: 100dvh;
+    max-height: 100dvh;
+    margin: 0;
+    padding-top: 0;
+    overflow: hidden !important;
 }
