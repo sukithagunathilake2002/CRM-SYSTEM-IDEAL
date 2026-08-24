@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Enquiry;
+use App\Models\FollowupAttempt;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -153,8 +154,10 @@ class FollowUpController extends Controller
             'followup_remove_picture_2' => ['nullable', 'boolean'],
         ]);
 
+        $attemptedType = $enquiry->follow_type;
+        $attemptedAt = now();
         $enquiry->followup_status = $validated['followup_status'];
-        $enquiry->followup_marked_at = now();
+        $enquiry->followup_marked_at = $attemptedAt;
 
         if ($validated['followup_status'] === 'done') {
             if ($isHomeVisit) {
@@ -196,6 +199,8 @@ class FollowUpController extends Controller
                 $enquiry->follow_type = $validated['followup_next_type'] ?? $enquiry->follow_type;
                 $enquiry->follow_date = $validated['followup_next_date'] ?? $enquiry->follow_date;
                 $enquiry->follow_time = $validated['followup_next_time'] ?? $enquiry->follow_time;
+                $enquiry->followup_status = 'pending';
+                $enquiry->status = 'OPEN';
             } elseif (($validated['followup_result'] ?? null) === 'lost') {
                 $lostReasons = array_values(array_unique(array_filter((array) ($validated['followup_lost_reject_reasons'] ?? []))));
                 $enquiry->followup_lost_to = $validated['followup_lost_to'] ?? null;
@@ -217,9 +222,28 @@ class FollowUpController extends Controller
             $enquiry->followup_visit_date = null;
             $enquiry->followup_met_whom = null;
             $enquiry->followup_not_done_reason = $validated['followup_not_done_reason'] ?? null;
+            $enquiry->followup_next_type = $validated['followup_next_type'] ?? null;
+            $enquiry->followup_next_date = $validated['followup_next_date'] ?? null;
+            $enquiry->followup_next_time = $validated['followup_next_time'] ?? null;
+            $enquiry->follow_type = $validated['followup_next_type'] ?? $enquiry->follow_type;
+            $enquiry->follow_date = $validated['followup_next_date'] ?? $enquiry->follow_date;
+            $enquiry->follow_time = $validated['followup_next_time'] ?? $enquiry->follow_time;
+            $enquiry->followup_status = 'pending';
+            $enquiry->status = 'OPEN';
         }
 
         $enquiry->save();
+
+        FollowupAttempt::query()->create([
+            'enquiry_id' => (int) $enquiry->id,
+            'user_id' => $viewer->id,
+            'follow_type' => $attemptedType,
+            'followup_status' => $validated['followup_status'],
+            'not_done_reason' => $validated['followup_status'] === 'not_done'
+                ? ($validated['followup_not_done_reason'] ?? null)
+                : null,
+            'attempted_at' => $attemptedAt,
+        ]);
 
         return response()->json([
             'message' => 'Followup status updated successfully',

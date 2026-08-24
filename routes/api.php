@@ -50,6 +50,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/dashboard/district-data', [DashboardController::class, 'getDistrictData']);
     Route::get('/dashboard/area-manager', [DashboardController::class, 'areaManager']);
     Route::post('/dashboard/area-manager/sales-consultants', [DashboardController::class, 'registerSalesConsultant']);
+    Route::get('/lead-transfer/request', [LeadTransferController::class, 'requestData']);
+    Route::post('/lead-transfer/request', [LeadTransferController::class, 'store']);
     Route::get('/lead-transfer/approvals', [LeadTransferController::class, 'approvals']);
     Route::post('/lead-transfer/{transferRequest}/approve', [LeadTransferController::class, 'approve']);
     Route::post('/lead-transfer/{transferRequest}/reject', [LeadTransferController::class, 'reject']);
