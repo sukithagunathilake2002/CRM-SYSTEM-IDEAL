@@ -411,10 +411,10 @@
                 <label class="delivery-pill delivery-contact-no-field">
                     <span>Contact No</span>
                     <input type="hidden" name="contact_type" value="{{ $selectedContactType }}">
-                    <input type="text" name="mobile_numbers" value="{{ $selectedMobile }}" data-lockable>
+                    <input type="hidden" name="mobile_numbers" id="deliveryMobileNumbersValue" value="{{ $selectedMobile }}">
+                    <div class="delivery-contact-list" id="deliveryContactList"></div>
+                    <button type="button" class="delivery-contact-add-btn" aria-label="Add contact number">+</button>
                 </label>
-
-                <button type="button" class="delivery-contact-add-btn" aria-label="Add contact number">+</button>
 
                 <label class="delivery-pill delivery-district-field">
                     <span>District</span>
@@ -1307,21 +1307,106 @@
 <script>
 (() => {
     const editToggle = document.getElementById('deliveryEditToggle');
-    const lockableFields = Array.from(document.querySelectorAll('[data-lockable]'));
+    const deliveryContactAddButton = document.querySelector('.delivery-contact-add-btn');
+    const deliveryContactList = document.getElementById('deliveryContactList');
+    const deliveryMobileNumbersValue = document.getElementById('deliveryMobileNumbersValue');
+
+    const deliveryContactValues = () => Array.from(deliveryContactList?.querySelectorAll('[data-delivery-contact-input]') || [])
+        .map((field) => field.value.trim())
+        .filter(Boolean);
+
+    const syncDeliveryContactValue = () => {
+        if (deliveryMobileNumbersValue) {
+            deliveryMobileNumbersValue.value = deliveryContactValues().join(', ');
+        }
+    };
+
+    const syncDeliveryContactControls = () => {
+        const editable = Boolean(editToggle?.checked);
+        const rows = Array.from(deliveryContactList?.querySelectorAll('.delivery-contact-row') || []);
+
+        rows.forEach((row) => {
+            const input = row.querySelector('[data-delivery-contact-input]');
+            const remove = row.querySelector('.delivery-contact-remove');
+
+            if (input) {
+                input.readOnly = !editable;
+                input.classList.toggle('delivery-locked', !editable);
+            }
+            if (remove) {
+                remove.disabled = !editable || rows.length <= 1;
+            }
+        });
+
+        if (deliveryContactAddButton) {
+            deliveryContactAddButton.disabled = !editable;
+        }
+    };
+
+    const addDeliveryContactRow = (value = '') => {
+        if (!deliveryContactList) return;
+
+        const row = document.createElement('div');
+        row.className = 'delivery-contact-row';
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = value;
+        input.placeholder = 'Contact No';
+        input.setAttribute('data-delivery-contact-input', '');
+        input.addEventListener('input', syncDeliveryContactValue);
+
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'delivery-contact-remove';
+        remove.setAttribute('aria-label', 'Remove contact number');
+        remove.textContent = 'x';
+        remove.addEventListener('click', () => {
+            const rows = deliveryContactList.querySelectorAll('.delivery-contact-row');
+            if (rows.length <= 1) {
+                input.value = '';
+            } else {
+                row.remove();
+            }
+            syncDeliveryContactValue();
+            syncDeliveryContactControls();
+        });
+
+        row.append(input, remove);
+        deliveryContactList.appendChild(row);
+        syncDeliveryContactControls();
+    };
+
+    if (deliveryContactList && deliveryMobileNumbersValue) {
+        const initialContacts = deliveryMobileNumbersValue.value
+            .split(',')
+            .map((mobile) => mobile.trim())
+            .filter(Boolean);
+
+        (initialContacts.length ? initialContacts : ['']).forEach((mobile) => addDeliveryContactRow(mobile));
+        syncDeliveryContactValue();
+    }
 
     const syncLockable = () => {
-        lockableFields.forEach((field) => {
+        document.querySelectorAll('[data-lockable]').forEach((field) => {
             field.classList.toggle('delivery-locked', !editToggle.checked);
             if (field.tagName.toLowerCase() === 'input') {
                 field.readOnly = !editToggle.checked;
             }
         });
+        syncDeliveryContactControls();
     };
 
     if (editToggle) {
         editToggle.addEventListener('change', syncLockable);
         syncLockable();
     }
+
+    deliveryContactAddButton?.addEventListener('click', () => {
+        addDeliveryContactRow();
+        syncDeliveryContactValue();
+        deliveryContactList?.querySelector('.delivery-contact-row:last-child input')?.focus();
+    });
 
     const buyingEditToggle = document.getElementById('deliveryBuyingEditToggle');
     const buyingLockableFields = Array.from(document.querySelectorAll('[data-buying-lockable]'));
