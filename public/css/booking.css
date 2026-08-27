@@ -6086,6 +6086,47 @@ select:focus {
     --exchange-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 7h10l-2.5-2.5L16 3l5 5-5 5-1.5-1.5L17 9H7zm10 10H7l2.5 2.5L8 21l-5-5 5-5 1.5 1.5L7 15h10z'/%3E%3C/svg%3E");
 }
 
+.booking-page.booking-step-3 .exchange-summary-brand {
+    --exchange-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 7h16v13H4zM7 4h10v3H7zm2 6h6v2H9zm0 4h9v2H9z'/%3E%3C/svg%3E");
+}
+
+.booking-page.booking-step-3 .exchange-summary-model {
+    --exchange-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 12l2.2-5h9.6L19 12l2 1.2V19h-3v-2H6v2H3v-5.8zM8.4 9l-1.2 3h9.6l-1.2-3z'/%3E%3Ccircle cx='7.5' cy='15' r='1.6'/%3E%3Ccircle cx='16.5' cy='15' r='1.6'/%3E%3C/svg%3E");
+}
+
+.booking-page.booking-step-3 .exchange-summary-year {
+    --exchange-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 4h14v17H5zM7 2h2v4H7zm8 0h2v4h-2zM7 9h10v2H7zm0 4h4v2H7z'/%3E%3C/svg%3E");
+}
+
+.booking-page.booking-step-3 .exchange-summary-ownership {
+    --exchange-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='9' cy='7' r='3'/%3E%3Cpath d='M3.5 20c.8-4 2.6-6 5.5-6 1.4 0 2.5.4 3.4 1.2L11 16.7l2.1 2.1 5.4-5.6 1.6 1.5-7 7.1-4.3-4.2 1.4-1.4c-.4-.1-.8-.2-1.2-.2-1.9 0-3.1 1.3-3.8 4z'/%3E%3C/svg%3E");
+}
+
+.booking-page.booking-step-3 .exchange-summary-insurance {
+    --exchange-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 2l8 3v6c0 5-3 8.5-8 11-5-2.5-8-6-8-11V5zm-1.1 13.3l6-6-1.5-1.5-4.5 4.5-2.3-2.2-1.5 1.5z'/%3E%3C/svg%3E");
+}
+
+.booking-page.booking-step-3 .exchange-summary-color {
+    --exchange-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 3c4.5 4 7 7.3 7 10.2A7 7 0 0 1 5 13.2C5 10.3 7.5 7 12 3zm-3.5 11.3A3.5 3.5 0 0 0 12 18v-7z'/%3E%3C/svg%3E");
+}
+
+.booking-page.booking-step-3 .exchange-summary-mileage {
+    --exchange-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 4a9 9 0 0 1 9 9c0 2.2-.8 4.2-2.1 5.8H5.1A9 9 0 0 1 12 4zm0 3a6 6 0 0 0-5.9 7.1h3.2l3.8-5.1 1.6 1.2-2.9 3.9H18A6 6 0 0 0 12 7z'/%3E%3C/svg%3E");
+}
+
+.booking-page.booking-step-3 .exchange-summary-registration {
+    --exchange-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='3' y='5' width='18' height='14' rx='2'/%3E%3Ccircle cx='8' cy='10' r='2' fill='white'/%3E%3Cpath d='M6 16c.5-2 1.2-3 2-3s1.5 1 2 3zm7-7h5v2h-5zm0 4h4v2h-4z' fill='white'/%3E%3C/svg%3E");
+}
+
+.booking-page.booking-step-3 .exchange-summary-expected,
+.booking-page.booking-step-3 .exchange-summary-quoted {
+    --exchange-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 6h18v12H3zm3 4a2 2 0 0 0 2-2h8a2 2 0 0 0 2 2v4a2 2 0 0 0-2 2H8a2 2 0 0 0-2-2zm6 5a3 3 0 1 0 0-6 3 3 0 0 0 0 6z'/%3E%3C/svg%3E");
+}
+
+.booking-page.booking-step-3 .exchange-summary-difference {
+    --exchange-summary-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 4h2v3h6v2h-2.8l3.3 6H21c-.4 2.3-2 4-4.5 4S12.4 17.3 12 15h1.5l3.3-6H13v11h3v2H8v-2h3V9H7.2l3.3 6H12c-.4 2.3-2 4-4.5 4S3.4 17.3 3 15h1.5l3.3-6H5V7h6zm-4 11h3L8.5 12.3zm7 0h5l-2.5-4.7z'/%3E%3C/svg%3E");
+}
+
 @media (max-width: 760px) {
     .booking-page.booking-step-3 .exchange-summary {
         grid-template-columns: 1fr !important;
@@ -6185,4 +6226,31 @@ select:focus {
 
 .booking-page.booking-step-3 .exchange-section #bookingExtraImageGrid[hidden] {
     display: none !important;
+}
+
+/* Keep uploaded image names readable over thumbnails. */
+.booking-page.booking-step-3 .exchange-section .exchange-upload-tile.has-preview .exchange-upload-title {
+    display: block !important;
+    position: absolute !important;
+    top: 7px !important;
+    left: 7px !important;
+    right: 7px !important;
+    z-index: 5 !important;
+    max-width: calc(100% - 14px) !important;
+    min-height: 22px !important;
+    padding: 5px 8px !important;
+    border-radius: 6px !important;
+    background: rgba(17, 24, 39, 0.92) !important;
+    color: #ffffff !important;
+    font-size: 11px !important;
+    font-weight: 900 !important;
+    line-height: 1.15 !important;
+    text-align: center !important;
+    text-transform: none !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    text-shadow: none !important;
+    pointer-events: none !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25) !important;
 }

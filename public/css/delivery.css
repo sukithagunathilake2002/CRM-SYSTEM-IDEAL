@@ -2511,7 +2511,7 @@ html.theme-dark .delivery-summary strong {
 /* Delivery personal details requested row layout */
 .delivery-page .delivery-grid {
     grid-template-columns:
-        64px
+        78px
         minmax(190px, 1.35fr)
         minmax(210px, 1.55fr)
         minmax(150px, 1fr)
@@ -2523,6 +2523,15 @@ html.theme-dark .delivery-summary strong {
 
 .delivery-page .delivery-grid .delivery-title {
     grid-column: 1;
+}
+
+.delivery-page .delivery-grid .delivery-title select {
+    height: 34px;
+    min-width: 78px;
+    padding: 0 28px 0 12px !important;
+    font-size: 14px !important;
+    line-height: 34px;
+    background-position: calc(100% - 16px) calc(50% - 3px), calc(100% - 10px) calc(50% - 3px);
 }
 
 .delivery-page .delivery-grid .delivery-name-field {
@@ -2538,15 +2547,14 @@ html.theme-dark .delivery-summary strong {
 }
 
 .delivery-page .delivery-grid .delivery-contact-no-field {
-    grid-column: 5;
+    grid-column: 5 / -1;
 }
 
 .delivery-page .delivery-grid .delivery-contact-add-btn {
-    grid-column: 6;
     width: 18px;
     height: 18px;
-    align-self: end;
-    margin-bottom: 8px;
+    justify-self: start;
+    margin-top: 2px;
     border: 0;
     border-radius: 50%;
     background: #050505;
@@ -2558,6 +2566,52 @@ html.theme-dark .delivery-summary strong {
     line-height: 1;
     font-weight: 900;
     cursor: pointer;
+}
+
+.delivery-page .delivery-grid .delivery-contact-add-btn:disabled {
+    cursor: default;
+    opacity: .45;
+}
+
+.delivery-page .delivery-grid .delivery-contact-list {
+    display: grid;
+    gap: 6px;
+}
+
+.delivery-page .delivery-grid .delivery-contact-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 22px;
+    gap: 6px;
+    align-items: center;
+}
+
+.delivery-page .delivery-grid .delivery-contact-row input {
+    min-width: 0;
+    width: 100%;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: nowrap;
+}
+
+.delivery-page .delivery-grid .delivery-contact-remove {
+    width: 20px;
+    height: 20px;
+    border: 0;
+    border-radius: 50%;
+    background: #ef2a22;
+    color: #ffffff;
+    display: inline-grid;
+    place-items: center;
+    padding: 0;
+    font-size: 12px;
+    line-height: 1;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.delivery-page .delivery-grid .delivery-contact-remove:disabled {
+    cursor: default;
+    opacity: .3;
 }
 
 .delivery-page .delivery-grid .delivery-district-field,
@@ -2572,14 +2626,6 @@ html.theme-dark .delivery-summary strong {
 
 .delivery-page .delivery-grid .delivery-wide {
     grid-column: 1 / -1;
-}
-
-.delivery-page .delivery-grid .delivery-contact-no-field input[name="mobile_numbers"] {
-    min-width: 0;
-    width: 100%;
-    overflow: visible;
-    text-overflow: clip;
-    white-space: nowrap;
 }
 
 @media (max-width: 1120px) {
@@ -2900,4 +2946,31 @@ html.theme-dark .delivery-summary strong {
         grid-template-columns: 14px minmax(90px, 1fr) 8px minmax(0, 1fr);
         gap: 6px;
     }
+}
+
+/* Keep uploaded image names readable over thumbnails. */
+.delivery-doc-tile.has-image span[data-image-label],
+.delivery-extra-tile.has-image span[data-image-label] {
+    position: absolute;
+    top: 7px;
+    left: 7px;
+    right: 7px;
+    z-index: 5;
+    max-width: calc(100% - 14px);
+    min-height: 21px;
+    padding: 5px 8px;
+    border-radius: 6px;
+    background: rgba(17, 24, 39, 0.92);
+    color: #ffffff;
+    font-size: 11px !important;
+    font-weight: 900;
+    line-height: 1.1;
+    text-align: center;
+    text-transform: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: none;
+    pointer-events: none;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 }
