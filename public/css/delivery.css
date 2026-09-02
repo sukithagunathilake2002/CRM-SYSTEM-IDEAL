@@ -488,26 +488,12 @@
 
 .delivery-corporate.hidden,
 .delivery-conditional.hidden,
+.delivery-personal-edit-panel.hidden,
+.delivery-buying-edit-panel.hidden,
+.delivery-exchange-edit-panel.hidden,
 .delivery-exchange-wrap.hidden,
 .delivery-receipt-modal.hidden {
     display: none;
-}
-
-.delivery-exchange-edit-inline {
-    min-height: 34px;
-    display: inline-flex;
-    align-items: end;
-    justify-content: flex-end;
-    gap: 8px;
-    color: #e00d0d;
-    font-size: 12px;
-    font-weight: 800;
-}
-
-.delivery-exchange-edit-inline input {
-    width: 14px;
-    height: 14px;
-    accent-color: #e00d0d;
 }
 
 .delivery-exchange-wrap {
@@ -2009,25 +1995,25 @@
     box-sizing: border-box;
 }
 
-.delivery-form-review .delivery-actions {
+.delivery-actions.delivery-final-actions {
     margin-top: 28px;
     grid-template-columns: 150px 190px 190px;
     padding: 0 34px;
 }
 
-.delivery-form-review .delivery-actions.delivery-final-actions {
+.delivery-actions.delivery-final-actions {
     grid-template-columns: minmax(160px, 220px) minmax(180px, 250px);
     justify-content: center;
     gap: 28px;
     padding: 0;
 }
 
-.delivery-form-review .delivery-final-actions .delivery-action.back::before,
-.delivery-form-review .delivery-final-actions .delivery-action.save-next::after {
+.delivery-final-actions .delivery-action.back::before,
+.delivery-final-actions .delivery-action.save-next::after {
     display: none;
 }
 
-.delivery-form-review .delivery-action {
+.delivery-final-actions .delivery-action {
     min-height: 44px;
     border-radius: 999px;
     font-size: 15px;
@@ -2035,8 +2021,8 @@
     gap: 10px;
 }
 
-.delivery-form-review .delivery-action.back::before,
-.delivery-form-review .delivery-action.save-next::after {
+.delivery-final-actions .delivery-action.back::before,
+.delivery-final-actions .delivery-action.save-next::after {
     content: "";
     width: 14px;
     height: 14px;
@@ -2044,15 +2030,15 @@
     border-bottom: 4px solid #ffffff;
 }
 
-.delivery-form-review .delivery-action.back::before {
+.delivery-final-actions .delivery-action.back::before {
     transform: rotate(45deg);
 }
 
-.delivery-form-review .delivery-action.save-next::after {
+.delivery-final-actions .delivery-action.save-next::after {
     transform: rotate(225deg);
 }
 
-.delivery-form-review .delivery-action.delivery-submit-action::after {
+.delivery-final-actions .delivery-action.delivery-submit-action::after {
     display: none;
 }
 
@@ -2373,7 +2359,7 @@ html.theme-dark .delivery-summary strong {
         grid-column: auto;
     }
 
-    .delivery-form-review .delivery-actions.delivery-final-actions {
+    .delivery-actions.delivery-final-actions {
         grid-template-columns: 1fr;
     }
 
@@ -2420,13 +2406,13 @@ html.theme-dark .delivery-summary strong {
         height: 18px;
     }
 
-    .delivery-form-review .delivery-actions {
+    .delivery-actions.delivery-final-actions {
         margin-top: 48px;
         grid-template-columns: 1fr;
         padding: 0;
     }
 
-    .delivery-form-review .delivery-action {
+    .delivery-final-actions .delivery-action {
         min-height: 52px;
         font-size: 20px;
     }
@@ -2484,7 +2470,6 @@ html.theme-dark .delivery-summary strong {
 .delivery-page form .delivery-segment span,
 .delivery-page form .delivery-question p,
 .delivery-page form .delivery-more p,
-.delivery-page form .delivery-exchange-edit-inline,
 .delivery-page form .delivery-exchange-interested span,
 .delivery-page form .delivery-offer-card-head,
 .delivery-page form .delivery-offer-card-label,
@@ -2776,25 +2761,6 @@ html.theme-dark .delivery-summary strong {
     text-transform: uppercase;
 }
 
-.delivery-page .delivery-exchange-edit-inline {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    margin: 0;
-    color: #e00000;
-    font-size: 16px !important;
-    font-weight: 800;
-    line-height: 1;
-    white-space: nowrap;
-}
-
-.delivery-page .delivery-exchange-edit-inline input {
-    width: 14px;
-    height: 14px;
-    margin: 0;
-    accent-color: #e00000;
-}
-
 .delivery-page .delivery-exchange-brand-model-row,
 .delivery-page .delivery-exchange-two-col {
     display: grid;
@@ -2829,11 +2795,20 @@ html.theme-dark .delivery-summary strong {
 .delivery-page .delivery-payment-card select,
 .delivery-page .delivery-receipt-row select {
     appearance: none;
-    background-image: linear-gradient(45deg, transparent 50%, #111111 50%), linear-gradient(135deg, #111111 50%, transparent 50%);
-    background-position: calc(100% - 18px) calc(50% - 3px), calc(100% - 12px) calc(50% - 3px);
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='18' height='18' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 9l6 6 6-6' stroke='%23111111' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-position: calc(100% - 12px) 50%;
     background-repeat: no-repeat;
-    background-size: 6px 6px, 6px 6px;
+    background-size: 18px 18px;
     padding-right: 36px;
+}
+
+.delivery-page .delivery-exchange-detail-fields .delivery-pill select {
+    background-image: url("data:image/svg+xml,%3Csvg width='18' height='18' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 9l6 6 6-6' stroke='%23111111' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+    background-position: calc(100% - 12px) 50% !important;
+    background-repeat: no-repeat !important;
+    background-size: 18px 18px !important;
+    padding-right: 42px !important;
 }
 
 .delivery-page .delivery-exchange-detail-fields [data-locked],
