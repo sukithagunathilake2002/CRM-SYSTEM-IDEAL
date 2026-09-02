@@ -20,13 +20,18 @@ class EnquiryController extends Controller
     public function create(Request $request)
     {
         $viewer = $request->user();
-        $models = Vehicle::select('model')->distinct()->orderBy('model')->get();
+        $models = Vehicle::visibleTo($viewer)
+            ->select('model')
+            ->distinct()
+            ->orderBy('model')
+            ->get();
         $districtOptions = $viewer instanceof User
             ? $viewer->resolvePermittedDistricts()
             : User::DISTRICT_OPTIONS;
         $sourceInfoMap = $this->sourceInformationOptions();
         $selectedVehiclesForForm = $this->selectedVehiclesForForm(
-            $request->old('selected_vehicle_ids', [])
+            $request->old('selected_vehicle_ids', []),
+            $viewer
         );
 
         return view('new-enquiry', compact('models', 'districtOptions', 'sourceInfoMap', 'selectedVehiclesForForm'));
@@ -35,9 +40,10 @@ class EnquiryController extends Controller
     /**
      * Fetch Engine Types for selected Model
      */
-    public function getEngines($model)
+    public function getEngines(Request $request, $model)
     {
-        return Vehicle::where('model', $model)
+        return Vehicle::visibleTo($request->user())
+            ->where('model', $model)
             ->select('engine_type')
             ->distinct()
             ->get();
@@ -46,11 +52,12 @@ class EnquiryController extends Controller
     /**
      * Fetch Variants for selected Model + Engine
      */
-    public function getVariants($model, $engine)
+    public function getVariants(Request $request, $model, $engine)
     {
-        return Vehicle::where('model', $model)
+        return Vehicle::visibleTo($request->user())
+            ->where('model', $model)
             ->where('engine_type', $engine)
-            ->select('id', 'variant', 'unit_price', 'vat_amount')
+            ->select('id', 'variant', 'colors', 'unit_price', 'vat_amount')
             ->orderBy('variant')
             ->get();
     }
@@ -156,10 +163,16 @@ class EnquiryController extends Controller
             ->values()
             ->all();
 
-        $selectedVehicles = Vehicle::query()
+        $selectedVehicles = Vehicle::visibleTo($viewer)
             ->whereIn('id', $selectedVehicleIds)
             ->get()
             ->keyBy('id');
+
+        if ($selectedVehicles->count() !== count($selectedVehicleIds)) {
+            return back()
+                ->withErrors(['selected_vehicle_ids' => 'Please select only permitted vehicle models.'])
+                ->withInput();
+        }
 
         $selectedVehiclePayload = collect($selectedVehicleIds)
             ->map(fn(int $id) => $selectedVehicles->get($id))
@@ -279,6 +292,7 @@ public function list(Request $request)
         $accessibleUserIds = $this->resolveAccessibleUserIds($viewer);
         $enquiriesQuery->whereIn('user_id', $accessibleUserIds);
     }
+    $this->applyVehicleVisibility($enquiriesQuery, $viewer);
 
     if ($selectedDeliveryApprovalView !== null) {
         $enquiriesQuery->whereHas('delivery', function ($query) use ($selectedDeliveryApprovalView): void {
@@ -360,6 +374,7 @@ public function listCallEpds(Request $request)
         $accessibleUserIds = $this->resolveAccessibleUserIds($viewer);
         $enquiriesQuery->whereIn('user_id', $accessibleUserIds);
     }
+    $this->applyVehicleVisibility($enquiriesQuery, $viewer);
 
     $enquiries = $enquiriesQuery
         ->orderBy('follow_date', 'desc')
@@ -383,6 +398,7 @@ public function listShowroomEpds(Request $request)
         $accessibleUserIds = $this->resolveAccessibleUserIds($viewer);
         $enquiriesQuery->whereIn('user_id', $accessibleUserIds);
     }
+    $this->applyVehicleVisibility($enquiriesQuery, $viewer);
 
     $enquiries = $enquiriesQuery
         ->orderBy('follow_date', 'desc')
@@ -406,6 +422,7 @@ public function listHomeEpds(Request $request)
         $accessibleUserIds = $this->resolveAccessibleUserIds($viewer);
         $enquiriesQuery->whereIn('user_id', $accessibleUserIds);
     }
+    $this->applyVehicleVisibility($enquiriesQuery, $viewer);
 
     $enquiries = $enquiriesQuery
         ->orderBy('follow_date', 'desc')
@@ -456,6 +473,15 @@ public function listHomeEpds(Request $request)
         ];
     }
 
+    private function applyVehicleVisibility($query, ?User $viewer): void
+    {
+        if (!$viewer || $viewer->role === User::ROLE_SUPER_ADMIN) {
+            return;
+        }
+
+        $query->whereIn('vehicle_id', Vehicle::visibleTo($viewer)->select('id'));
+    }
+
     private function resolveSourceInformation(?string $selectedSourceInformation, ?string $otherSourceInformation): ?string
     {
         $selectedSourceInformation = trim((string) $selectedSourceInformation);
@@ -468,7 +494,7 @@ public function listHomeEpds(Request $request)
         return $selectedSourceInformation !== '' ? $selectedSourceInformation : null;
     }
 
-    private function selectedVehiclesForForm(mixed $vehicleIds): array
+    private function selectedVehiclesForForm(mixed $vehicleIds, ?User $viewer = null): array
     {
         $ids = collect(is_array($vehicleIds) ? $vehicleIds : [])
             ->map(fn($id): int => (int) $id)
@@ -481,7 +507,7 @@ public function listHomeEpds(Request $request)
             return [];
         }
 
-        $vehicles = Vehicle::query()
+        $vehicles = Vehicle::visibleTo($viewer)
             ->whereIn('id', $ids)
             ->get()
             ->keyBy('id');

@@ -9,6 +9,7 @@ use App\Http\Controllers\EnquiryController;
 use App\Http\Controllers\FollowUpController;
 use App\Http\Controllers\LeadTransferRequestController;
 use App\Http\Controllers\ProspectSheetController;
+use App\Http\Controllers\VehicleController;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
@@ -108,6 +109,22 @@ Route::middleware('auth')->group(function () {
     Route::put('/dashboard/super-admin/users/{managedUser}', [DashboardController::class, 'updateUser'])
         ->middleware('role:' . User::ROLE_SUPER_ADMIN)
         ->name('dashboard.super_admin.users.update');
+
+    Route::get('/dashboard/super-admin/vehicles', [VehicleController::class, 'index'])
+        ->middleware('role:' . User::ROLE_SUPER_ADMIN)
+        ->name('vehicles.index');
+
+    Route::post('/dashboard/super-admin/vehicles', [VehicleController::class, 'store'])
+        ->middleware('role:' . User::ROLE_SUPER_ADMIN)
+        ->name('vehicles.store');
+
+    Route::put('/dashboard/super-admin/vehicles/{vehicle}', [VehicleController::class, 'update'])
+        ->middleware('role:' . User::ROLE_SUPER_ADMIN)
+        ->name('vehicles.update');
+
+    Route::delete('/dashboard/super-admin/vehicles/{vehicle}', [VehicleController::class, 'destroy'])
+        ->middleware('role:' . User::ROLE_SUPER_ADMIN)
+        ->name('vehicles.destroy');
 
     Route::get('/lead-transfer/request', [LeadTransferRequestController::class, 'create'])
         ->middleware('role:' . User::ROLE_SALES_CONSULTANT)

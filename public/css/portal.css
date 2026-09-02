@@ -1892,6 +1892,15 @@ html.theme-dark .manage-users-group {
     background: #6d28d9;
 }
 
+.hierarchy-metric-btn.vehicle {
+    background: #0891b2;
+}
+
+.hierarchy-metric-btn.vehicle:hover,
+.hierarchy-metric-btn.vehicle:focus-visible {
+    background: #0e7490;
+}
+
 html.theme-dark .hierarchy-metric-btn {
     box-shadow: 0 8px 18px rgba(1, 7, 22, 0.34);
 }

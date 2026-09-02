@@ -436,7 +436,7 @@
             </div>
 
             <label class="buying-color-label">Select Color</label>
-            <select name="interested_vehicle_color" id="interested_vehicle_color">
+            <select name="interested_vehicle_color" id="interested_vehicle_color" data-selected-color="{{ $selectedInterestedColor }}">
                 <option value="">Select Color</option>
                 @foreach($vehicleColorOptions as $colorOption)
                     <option value="{{ $colorOption }}" @selected($selectedInterestedColor === $colorOption)>{{ $colorOption }}</option>

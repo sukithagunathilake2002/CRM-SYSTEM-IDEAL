@@ -763,7 +763,7 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
 
                     <div class="row buying-color-row">
                         <label class="required-field-label" for="bookingVehicleColor">Color *</label>
-                        <select id="bookingVehicleColor" name="interested_vehicle_color" class="vehicle-color-select">
+                        <select id="bookingVehicleColor" name="interested_vehicle_color" class="vehicle-color-select" data-selected-color="{{ $selectedVehicleColor }}">
                             <option value="">Select Color</option>
                             @foreach($vehicleColorOptions as $colorOption)
                             <option value="{{ $colorOption }}" @selected($selectedVehicleColor===$colorOption)>{{ $colorOption }}</option>
@@ -1523,6 +1523,7 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
         const interestedModelInput = document.getElementById('interested_model');
         const interestedEngineInput = document.getElementById('interested_engine');
         const interestedVariantInput = document.getElementById('interested_variant');
+        const interestedColorInput = document.getElementById('bookingVehicleColor');
         const quoteDateWrap = document.getElementById('quoteDateWrap');
         const testDriveYesWrap = document.getElementById('testDriveYesWrap');
         const testDriveNoWrap = document.getElementById('testDriveNoWrap');
@@ -1976,11 +1977,38 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
             selectEl.replaceChildren(...options);
         }
 
+        function selectedVehicleColors() {
+            if (!interestedVariantInput) {
+                return [];
+            }
+
+            const selectedPrices = vehiclePriceMap[interestedVariantInput.value || ''];
+            return Array.isArray(selectedPrices?.colors)
+                ? selectedPrices.colors.map((color) => String(color || '').trim()).filter(Boolean)
+                : [];
+        }
+
+        function syncVehicleColorOptions(selectedColor) {
+            if (!interestedColorInput) {
+                return;
+            }
+
+            const colors = selectedVehicleColors();
+            const activeColor = selectedColor ?? interestedColorInput.dataset.selectedColor ?? interestedColorInput.value ?? '';
+            const selectedColorForVehicle = colors.includes(activeColor) ? activeColor : '';
+
+            setSelectOptions(interestedColorInput, colors, 'Select Color', selectedColorForVehicle);
+            interestedColorInput.dataset.selectedColor = '';
+            syncBuyingDetailsSummary();
+        }
+
         async function loadEngines(model, selectedEngine) {
             if (!interestedEngineInput || !interestedVariantInput) return;
             if (!model) {
                 setSelectOptions(interestedEngineInput, [], 'Select Engine Type', '');
                 setSelectOptions(interestedVariantInput, [], 'Select Variant', '');
+                Object.keys(vehiclePriceMap).forEach((key) => delete vehiclePriceMap[key]);
+                syncVehicleColorOptions('');
                 syncVehiclePill();
                 return;
             }
@@ -2001,6 +2029,8 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
             if (!interestedVariantInput) return;
             if (!model || !engine) {
                 setSelectOptions(interestedVariantInput, [], 'Select Variant', '');
+                Object.keys(vehiclePriceMap).forEach((key) => delete vehiclePriceMap[key]);
+                syncVehicleColorOptions('');
                 syncVehiclePill();
                 return;
             }
@@ -2018,11 +2048,15 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
                     vehiclePriceMap[item.variant] = {
                         unitPrice: parseFloat(item.unit_price || '0') || 0,
                         vatAmount: parseFloat(item.vat_amount || '0') || 0,
+                        colors: Array.isArray(item.colors) ? item.colors : [],
                     };
                 });
                 setSelectOptions(interestedVariantInput, variants, 'Select Variant', selectedVariant || '');
+                syncVehicleColorOptions(selectedVariant ? undefined : '');
             } catch (e) {
                 setSelectOptions(interestedVariantInput, [], 'Select Variant', selectedVariant || '');
+                Object.keys(vehiclePriceMap).forEach((key) => delete vehiclePriceMap[key]);
+                syncVehicleColorOptions('');
             }
 
             syncVehiclePill();
@@ -2787,6 +2821,7 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
         if (interestedVariantInput) {
             interestedVariantInput.addEventListener('change', () => {
                 applySelectedVehiclePrice(true);
+                syncVehicleColorOptions('');
                 syncVehiclePill();
             });
         }
@@ -2797,6 +2832,7 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
                     interestedModelInput.value = '';
                 }
                 await loadEngines('', '');
+                syncVehicleColorOptions('');
                 syncVehiclePill();
             });
         }

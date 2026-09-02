@@ -221,6 +221,29 @@ class Enquiry extends Model
             ->implode(', ');
     }
 
+    public function isVisibleTo(?User $viewer): bool
+    {
+        if (!$viewer) {
+            return false;
+        }
+
+        if ($viewer->role === User::ROLE_SUPER_ADMIN) {
+            return true;
+        }
+
+        if ($this->user_id !== null && !in_array((int) $this->user_id, $viewer->accessibleUserIds(), true)) {
+            return false;
+        }
+
+        if ($this->vehicle_id === null) {
+            return true;
+        }
+
+        return Vehicle::visibleTo($viewer)
+            ->whereKey($this->vehicle_id)
+            ->exists();
+    }
+
     // Each enquiry belongs to one customer
     public function customer()
     {

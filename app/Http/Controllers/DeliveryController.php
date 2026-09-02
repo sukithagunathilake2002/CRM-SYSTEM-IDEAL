@@ -39,6 +39,7 @@ class DeliveryController extends Controller
     public function show(Enquiry $enquiry)
     {
         $enquiry->load(['customer', 'vehicle', 'prospectSheet', 'booking', 'delivery', 'user']);
+        abort_unless($enquiry->isVisibleTo(request()->user()), 403);
 
         if ($enquiry->isTerminalLead()) {
             return $this->redirectTerminalLead($enquiry);
@@ -69,7 +70,8 @@ class DeliveryController extends Controller
         if ($currentStep === 3 && $firstTimeBuyerForNavigation === 'yes') {
             return redirect()->route('delivery.show', ['enquiry' => $enquiry->id, 'step' => 4]);
         }
-        $vehicleModels = Vehicle::query()
+        $viewer = request()->user();
+        $vehicleModels = Vehicle::visibleTo($viewer)
             ->select('model')
             ->distinct()
             ->orderBy('model')
@@ -179,6 +181,13 @@ class DeliveryController extends Controller
             'payment_credit_permitted_by' => $delivery->payment_credit_permitted_by,
             'payment_credit_expected_date' => $delivery->payment_credit_expected_date ? substr((string) $delivery->payment_credit_expected_date, 0, 10) : null,
         ];
+        $selectedVehicle = $this->resolveVehicleBySelection(
+            $defaultValues['interested_model'],
+            $defaultValues['interested_engine'],
+            $defaultValues['interested_variant'],
+            $enquiry->vehicle,
+            $viewer
+        );
 
         return view('delivery.show', [
             'enquiry' => $enquiry,
@@ -190,6 +199,7 @@ class DeliveryController extends Controller
             'defaultValues' => $defaultValues,
             'currentStep' => $currentStep,
             'vehicleModels' => $vehicleModels,
+            'vehicleColorOptions' => $this->vehicleColorOptions($selectedVehicle, $defaultValues['interested_vehicle_color']),
             'competitionMap' => $competitionMap,
             'deliveryReceiptPaymentModes' => $this->deliveryReceiptPaymentModes(),
             'bankOptions' => $this->bankOptions(),
@@ -199,6 +209,7 @@ class DeliveryController extends Controller
     public function store(Request $request, Enquiry $enquiry)
     {
         $enquiry->load(['delivery', 'booking', 'prospectSheet', 'vehicle']);
+        abort_unless($enquiry->isVisibleTo($request->user()), 403);
 
         if ($enquiry->isTerminalLead()) {
             return $this->redirectTerminalLead($enquiry);
@@ -344,6 +355,38 @@ class DeliveryController extends Controller
 
         $currentStep = (int) ($validated['delivery_step'] ?? 1);
         $currentStep = max(1, min(6, $currentStep));
+        $viewer = $request->user();
+        $selectedVehicle = null;
+        if (
+            !empty($validated['interested_model'])
+            && !empty($validated['interested_engine'])
+            && !empty($validated['interested_variant'])
+        ) {
+            $selectedVehicle = Vehicle::visibleTo($viewer)
+                ->where('model', $validated['interested_model'])
+                ->where('engine_type', $validated['interested_engine'])
+                ->where('variant', $validated['interested_variant'])
+                ->first();
+
+            if (!$selectedVehicle) {
+                return back()
+                    ->withErrors(['interested_variant' => 'Please select a permitted model, engine type, and variant.'])
+                    ->withInput();
+            }
+        }
+        $selectedVehicle ??= $this->resolveVehicleBySelection(
+            $enquiry->booking?->interested_model ?: $enquiry->delivery?->interested_model ?: $enquiry->vehicle?->model,
+            $enquiry->booking?->interested_engine ?: $enquiry->delivery?->interested_engine ?: $enquiry->vehicle?->engine_type,
+            $enquiry->booking?->interested_variant ?: $enquiry->delivery?->interested_variant ?: $enquiry->vehicle?->variant,
+            $enquiry->vehicle,
+            $viewer
+        );
+
+        if (!$this->vehicleAllowsColor($selectedVehicle, $validated['interested_vehicle_color'] ?? null)) {
+            return back()
+                ->withErrors(['interested_vehicle_color' => 'Please select a color available for the selected vehicle.'])
+                ->withInput();
+        }
         $existingDelivery = $enquiry->delivery;
         $bookingPaymentAmount = $this->bookingPaymentAmount($enquiry->booking);
         $deliveryReceipts = $this->normalizeDeliveryReceipts($validated['delivery_receipts'] ?? []);
@@ -1015,6 +1058,52 @@ class DeliveryController extends Controller
         $vatDiscount = (float) ($booking?->offer_vat_discount ?? $prospect?->offer_vat_discount ?? 0);
 
         return max(0, ($unitPrice + $vatAmount) - ($unitDiscount + $vatDiscount));
+    }
+
+    private function resolveVehicleBySelection(?string $model, ?string $engine, ?string $variant, ?Vehicle $fallback = null, ?User $viewer = null): ?Vehicle
+    {
+        $model = trim((string) $model);
+        $engine = trim((string) $engine);
+        $variant = trim((string) $variant);
+
+        if ($model !== '' && $engine !== '' && $variant !== '') {
+            $vehicle = Vehicle::visibleTo($viewer)
+                ->where('model', $model)
+                ->where('engine_type', $engine)
+                ->where('variant', $variant)
+                ->first();
+
+            if ($vehicle) {
+                return $vehicle;
+            }
+        }
+
+        return $fallback;
+    }
+
+    private function vehicleColorOptions(?Vehicle $vehicle, ?string $selectedColor = null): array
+    {
+        if (!$vehicle) {
+            $selectedColor = trim((string) $selectedColor);
+            return $selectedColor !== '' ? [$selectedColor] : [];
+        }
+
+        return $vehicle->colorOptions($selectedColor);
+    }
+
+    private function vehicleAllowsColor(?Vehicle $vehicle, ?string $selectedColor): bool
+    {
+        $selectedColor = trim((string) $selectedColor);
+        if ($selectedColor === '') {
+            return true;
+        }
+
+        $colors = $vehicle?->colorOptions() ?? [];
+        if (empty($colors)) {
+            return true;
+        }
+
+        return in_array($selectedColor, $colors, true);
     }
 
     private function resolveTestDriveVehicleUsed(?string $selectedVehicle, ?string $otherVehicle): ?string

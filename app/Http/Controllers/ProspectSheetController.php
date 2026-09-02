@@ -16,6 +16,7 @@ class ProspectSheetController extends Controller
     public function show(Enquiry $enquiry)
     {
         $enquiry->load(['customer', 'vehicle']);
+        abort_unless($enquiry->isVisibleTo(request()->user()), 403);
 
         if ($enquiry->isTerminalLead()) {
             return $this->redirectTerminalLead($enquiry);
@@ -34,7 +35,8 @@ class ProspectSheetController extends Controller
                 return $items->pluck('model')->unique()->values();
             });
 
-        $vehicleModels = Vehicle::query()
+        $viewer = request()->user();
+        $vehicleModels = Vehicle::visibleTo($viewer)
             ->select('model')
             ->distinct()
             ->orderBy('model')
@@ -51,7 +53,6 @@ class ProspectSheetController extends Controller
 
         $initialStep = (int) request()->query('step', 1);
         $initialStep = max(1, min(5, $initialStep));
-        $viewer = request()->user();
         $districtOptions = $viewer instanceof User
             ? $viewer->resolvePermittedDistricts()
             : User::DISTRICT_OPTIONS;
@@ -60,7 +61,14 @@ class ProspectSheetController extends Controller
             $districtOptions[] = $currentDistrict;
             sort($districtOptions);
         }
-        $vehicleColorOptions = $this->vehicleColorOptions($prospect->interested_vehicle_color);
+        $selectedVehicle = $this->resolveVehicleBySelection(
+            request()->old('interested_model', $prospect->exists ? null : $enquiry->vehicle?->model),
+            request()->old('interested_engine', $prospect->exists ? null : $enquiry->vehicle?->engine_type),
+            request()->old('interested_variant', $prospect->exists ? null : $enquiry->vehicle?->variant),
+            $enquiry->vehicle,
+            $viewer
+        );
+        $vehicleColorOptions = $this->vehicleColorOptions($selectedVehicle, $prospect->interested_vehicle_color);
 
         return view('prospect.show', compact(
             'enquiry',
@@ -76,6 +84,9 @@ class ProspectSheetController extends Controller
 
     public function store(Request $request, Enquiry $enquiry)
     {
+        $enquiry->loadMissing(['customer', 'vehicle']);
+        abort_unless($enquiry->isVisibleTo($request->user()), 403);
+
         if ($enquiry->isTerminalLead()) {
             return $this->redirectTerminalLead($enquiry);
         }
@@ -222,8 +233,9 @@ class ProspectSheetController extends Controller
             && !empty($validated['interested_engine'])
             && !empty($validated['interested_variant']);
 
+        $selectedVehicle = null;
         if ($hasInterestedVehicleSelection) {
-            $selectedVehicle = Vehicle::query()
+            $selectedVehicle = Vehicle::visibleTo($viewer)
                 ->where('model', $validated['interested_model'])
                 ->where('engine_type', $validated['interested_engine'])
                 ->where('variant', $validated['interested_variant'])
@@ -239,6 +251,12 @@ class ProspectSheetController extends Controller
                 $enquiry->vehicle_id = $selectedVehicle->id;
                 $enquiry->save();
             }
+        }
+
+        if (!$this->vehicleAllowsColor($selectedVehicle ?? $enquiry->vehicle, $validated['interested_vehicle_color'] ?? null)) {
+            return back()
+                ->withErrors(['interested_vehicle_color' => 'Please select a color available for the selected vehicle.'])
+                ->withInput();
         }
 
         if (array_key_exists('lead_source', $validated) && !empty($validated['lead_source'])) {
@@ -721,33 +739,50 @@ class ProspectSheetController extends Controller
         }
     }
 
-    private function vehicleColorOptions(?string $selectedColor = null): array
+    private function resolveVehicleBySelection(?string $model, ?string $engine, ?string $variant, ?Vehicle $fallback = null, ?User $viewer = null): ?Vehicle
     {
-        $colors = [
-            'White',
-            'Pearl White',
-            'Black',
-            'Silver',
-            'Grey',
-            'Red',
-            'Blue',
-            'Green',
-            'Brown',
-            'Orange',
-            'Yellow',
-            'Beige',
-            'Gold',
-            'Maroon',
-            'Purple',
-            'Other',
-        ];
+        $model = trim((string) $model);
+        $engine = trim((string) $engine);
+        $variant = trim((string) $variant);
 
-        $selectedColor = trim((string) $selectedColor);
-        if ($selectedColor !== '' && !in_array($selectedColor, $colors, true)) {
-            $colors[] = $selectedColor;
+        if ($model !== '' && $engine !== '' && $variant !== '') {
+            $vehicle = Vehicle::visibleTo($viewer)
+                ->where('model', $model)
+                ->where('engine_type', $engine)
+                ->where('variant', $variant)
+                ->first();
+
+            if ($vehicle) {
+                return $vehicle;
+            }
         }
 
-        return $colors;
+        return $fallback;
+    }
+
+    private function vehicleColorOptions(?Vehicle $vehicle, ?string $selectedColor = null): array
+    {
+        if (!$vehicle) {
+            $selectedColor = trim((string) $selectedColor);
+            return $selectedColor !== '' ? [$selectedColor] : [];
+        }
+
+        return $vehicle->colorOptions($selectedColor);
+    }
+
+    private function vehicleAllowsColor(?Vehicle $vehicle, ?string $selectedColor): bool
+    {
+        $selectedColor = trim((string) $selectedColor);
+        if ($selectedColor === '') {
+            return true;
+        }
+
+        $colors = $vehicle?->colorOptions() ?? [];
+        if (empty($colors)) {
+            return true;
+        }
+
+        return in_array($selectedColor, $colors, true);
     }
 
     private function resolveTestDriveVehicleUsed(?string $selectedVehicle, ?string $otherVehicle): ?string

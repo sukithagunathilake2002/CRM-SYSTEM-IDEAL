@@ -129,6 +129,70 @@ class User extends Authenticatable
         return $this->hasMany(self::class, 'manager_id');
     }
 
+    public function permittedVehicles()
+    {
+        return $this->belongsToMany(Vehicle::class, 'head_of_sales_vehicle', 'head_of_sales_id', 'vehicle_id');
+    }
+
+    public function headOfSalesForVehiclePermissions(): ?self
+    {
+        if ($this->role === self::ROLE_HEAD_OF_SALES) {
+            return $this;
+        }
+
+        if ($this->role === self::ROLE_AREA_MANAGER) {
+            $manager = $this->manager;
+
+            return $manager?->role === self::ROLE_HEAD_OF_SALES ? $manager : null;
+        }
+
+        if ($this->role === self::ROLE_SALES_CONSULTANT) {
+            $areaManager = $this->manager;
+            if ($areaManager?->role !== self::ROLE_AREA_MANAGER) {
+                return null;
+            }
+
+            $headOfSales = $areaManager->manager;
+
+            return $headOfSales?->role === self::ROLE_HEAD_OF_SALES ? $headOfSales : null;
+        }
+
+        return null;
+    }
+
+    public function accessibleUserIds(): array
+    {
+        if ($this->role === self::ROLE_SUPER_ADMIN) {
+            return self::query()
+                ->pluck('id')
+                ->map(fn($id) => (int) $id)
+                ->values()
+                ->all();
+        }
+
+        $resolvedIds = [(int) $this->id];
+        $frontier = [(int) $this->id];
+
+        while (!empty($frontier)) {
+            $childIds = self::query()
+                ->whereIn('manager_id', $frontier)
+                ->pluck('id')
+                ->map(fn($id) => (int) $id)
+                ->values()
+                ->all();
+
+            $next = array_values(array_diff($childIds, $resolvedIds));
+            if (empty($next)) {
+                break;
+            }
+
+            $resolvedIds = array_values(array_unique(array_merge($resolvedIds, $next)));
+            $frontier = $next;
+        }
+
+        return $resolvedIds;
+    }
+
     public function getRoleLabelAttribute(): string
     {
         return self::ROLE_LABELS[$this->role] ?? ucfirst(str_replace('_', ' ', (string) $this->role));

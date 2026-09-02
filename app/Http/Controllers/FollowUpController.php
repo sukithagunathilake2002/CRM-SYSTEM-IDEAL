@@ -25,7 +25,7 @@ class FollowUpController extends Controller
             'followupAttempts' => fn($query) => $query->with('user')->latest('attempted_at')->latest('id'),
         ]);
 
-        abort_unless($this->canAccessEnquiry($request->user(), $enquiry), 403);
+        abort_unless($enquiry->isVisibleTo($request->user()), 403);
 
         if ($enquiry->isTerminalLead()) {
             return $this->redirectTerminalLead($enquiry);
@@ -58,7 +58,7 @@ class FollowUpController extends Controller
             })
             ->toArray();
         $competitionBrands = array_keys($competitionMap);
-        $vehicleModels = Vehicle::query()
+        $vehicleModels = Vehicle::visibleTo($request->user())
             ->select('model')
             ->distinct()
             ->orderBy('model')
@@ -184,7 +184,7 @@ class FollowUpController extends Controller
 
     public function updateStatus(Request $request, Enquiry $enquiry): RedirectResponse
     {
-        abort_unless($this->canAccessEnquiry($request->user(), $enquiry), 403);
+        abort_unless($enquiry->isVisibleTo($request->user()), 403);
 
         if ($enquiry->isTerminalLead()) {
             return $this->redirectTerminalLead($enquiry);
