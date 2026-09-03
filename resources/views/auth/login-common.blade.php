@@ -50,6 +50,17 @@
                     </button>
                 </div>
 
+                <label class="login-ui-field login-ui-captcha-field" for="commonLoginCaptchaAnswer">
+                    <span class="sr-only">CAPTCHA answer</span>
+                    <span class="login-ui-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 2 5 5v6c0 4.48 2.9 8.49 7 10 4.1-1.51 7-5.52 7-10V5l-7-3Zm1 14h-2v-2h2v2Zm0-4h-2V7h2v5Z"></path>
+                        </svg>
+                    </span>
+                    <img src="{{ $captchaImage }}" alt="CAPTCHA code" class="login-ui-captcha-image" width="152" height="48">
+                    <input id="commonLoginCaptchaAnswer" type="text" name="captcha_answer" maxlength="5" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Type code" required>
+                </label>
+
                 <button type="submit" class="login-ui-submit">Login</button>
             </form>
         </div>
