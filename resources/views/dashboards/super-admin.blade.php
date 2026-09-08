@@ -471,7 +471,7 @@ html.theme-dark .analytics-card-enhanced {
     function normalize(str) {
         var key = String(str || '').trim().toLowerCase().replace(/[^a-z]/g, '');
         if (key === 'moneragala') {
-            return 'monaragala';
+            return 'moneragala';
         }
         return key;
     }
