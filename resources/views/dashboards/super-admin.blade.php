@@ -348,6 +348,7 @@ html.theme-dark .analytics-card-enhanced {
     <a class="hierarchy-metric-btn active" href="{{ route('dashboard.analytics.detail', 'active') }}">Active</a>
     <a class="hierarchy-metric-btn booking" href="{{ route('dashboard.analytics.detail', 'booking') }}">Booking</a>
     <a class="hierarchy-metric-btn delivery" href="{{ route('dashboard.delivery_analytics') }}">Delivery</a>
+    <a class="hierarchy-metric-btn vehicle" href="{{ route('vehicles.index') }}">Vehicale Details</a>
     <a class="hierarchy-metric-btn lost" href="{{ route('dashboard.analytics.detail', 'lost') }}">Lost</a>
     <a class="hierarchy-metric-btn closed" href="{{ route('dashboard.analytics.detail', 'closed') }}">Closed Lead</a>
     <a class="hierarchy-metric-btn followup" href="{{ route('dashboard.followup_tracker') }}">FollowUp</a>

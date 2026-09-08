@@ -16,6 +16,7 @@
     const interestedModelSelect = document.getElementById('interested_model');
     const interestedEngineSelect = document.getElementById('interested_engine');
     const interestedVariantSelect = document.getElementById('interested_variant');
+    const interestedColorSelect = document.getElementById('interested_vehicle_color');
     const sourceInfoSelect = document.getElementById('source_of_information');
 
     const exchangeImageToggle = document.getElementById('addExchangeImages');
@@ -80,6 +81,7 @@
     const stepEditToggles = Array.from(document.querySelectorAll('[data-step-edit-toggle]'));
     const summaryFields = {};
     const exchangePreviewObjectUrls = new WeakMap();
+    let interestedVariantCatalog = [];
 
     document.querySelectorAll('[data-summary-field]').forEach((field) => {
         const key = field.dataset.summaryField;
@@ -547,6 +549,33 @@
         });
     }
 
+    function selectedVehicleColors() {
+        if (!interestedVariantSelect) {
+            return [];
+        }
+
+        const selectedVariant = interestedVariantSelect.value || '';
+        const selectedVehicle = interestedVariantCatalog.find((item) => item.variant === selectedVariant);
+
+        return Array.isArray(selectedVehicle?.colors)
+            ? selectedVehicle.colors.map((color) => String(color || '').trim()).filter(Boolean)
+            : [];
+    }
+
+    function updateInterestedColorOptions(selectedColor) {
+        if (!interestedColorSelect) {
+            return;
+        }
+
+        const colors = selectedVehicleColors();
+        const activeColor = selectedColor ?? interestedColorSelect.dataset.selectedColor ?? interestedColorSelect.value ?? '';
+        const selectedColorForVehicle = colors.includes(activeColor) ? activeColor : '';
+
+        setSelectOptions(interestedColorSelect, 'Select Color', colors, selectedColorForVehicle);
+        interestedColorSelect.dataset.selectedColor = '';
+        updateProspectSummary();
+    }
+
     async function loadInterestedVariants(selectedVariant = '') {
         if (!interestedModelSelect || !interestedEngineSelect || !interestedVariantSelect) {
             return;
@@ -556,19 +585,25 @@
         const engine = interestedEngineSelect.value;
 
         if (!model || !engine) {
+            interestedVariantCatalog = [];
             setSelectOptions(interestedVariantSelect, 'Select Variant', [], '');
+            updateInterestedColorOptions('');
             return;
         }
 
         try {
             const response = await fetch(`/get-variants/${encodeURIComponent(model)}/${encodeURIComponent(engine)}`);
             const data = await response.json();
+            interestedVariantCatalog = Array.isArray(data) ? data : [];
             const variants = data.map((item) => item.variant).filter(Boolean);
             setSelectOptions(interestedVariantSelect, 'Select Variant', variants, selectedVariant);
+            updateInterestedColorOptions(selectedVariant ? undefined : '');
             updateProspectSummary();
         } catch (error) {
             console.error('Failed to load variants', error);
+            interestedVariantCatalog = [];
             setSelectOptions(interestedVariantSelect, 'Select Variant', [], '');
+            updateInterestedColorOptions('');
         }
     }
 
@@ -579,8 +614,10 @@
 
         const model = interestedModelSelect.value;
         if (!model) {
+            interestedVariantCatalog = [];
             setSelectOptions(interestedEngineSelect, 'Select Engine Type', [], '');
             setSelectOptions(interestedVariantSelect, 'Select Variant', [], '');
+            updateInterestedColorOptions('');
             return;
         }
 
@@ -593,8 +630,10 @@
             updateProspectSummary();
         } catch (error) {
             console.error('Failed to load engines', error);
+            interestedVariantCatalog = [];
             setSelectOptions(interestedEngineSelect, 'Select Engine Type', [], '');
             setSelectOptions(interestedVariantSelect, 'Select Variant', [], '');
+            updateInterestedColorOptions('');
         }
     }
 
@@ -1160,6 +1199,12 @@
     if (interestedEngineSelect) {
         interestedEngineSelect.addEventListener('change', () => {
             loadInterestedVariants();
+        });
+    }
+
+    if (interestedVariantSelect) {
+        interestedVariantSelect.addEventListener('change', () => {
+            updateInterestedColorOptions('');
         });
     }
 

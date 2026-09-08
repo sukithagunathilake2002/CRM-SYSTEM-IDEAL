@@ -152,7 +152,7 @@ class DashboardController extends Controller
         
         $districtEpData = $this->getDistrictEpData($user);
 
-        return view('dashboards.super-admin', compact('counts', 'headHierarchy', 'manageableUsers', 'analytics', 'dashboardEpds', 'districtEpData', 'followupEscalations'));
+        return view('dashboards.super-admin', compact('counts', 'headHierarchy', 'manageableUsers', 'analytics'));
     }
 
     public function headOfSales(Request $request): View
@@ -592,8 +592,9 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
             $query->whereRaw('LOWER(TRIM(COALESCE(district, \'\'))) = ?', [strtolower($normalizedDistrict)]);
         })
         ->whereRaw("LOWER(COALESCE(followup_status, '')) <> ?", ['done'])
-        ->orderBy('follow_date', 'asc')
-        ->get();
+        ->orderBy('follow_date', 'asc');
+    $this->applyVehicleVisibility($enquiries, $viewer);
+    $enquiries = $enquiries->get();
     
     $mappedEnquiries = $enquiries->map(function ($enquiry) {
         $customer = $enquiry->customer;
@@ -695,6 +696,7 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
             ->whereIn('user_id', $accessibleUserIds)
             ->nonTerminalLead()
             ->whereRaw("LOWER(COALESCE(followup_status, 'pending')) NOT IN (?, ?)", ['done', 'not_done']);
+        $this->applyVehicleVisibility($baseQuery, $viewer);
 
         // Keep follow_date unwrapped so MySQL can use the composite follow-up
         // index.  whereDate() generates DATE(follow_date), which forces a scan
@@ -720,8 +722,9 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
         $totalCount = Enquiry::query()
             ->whereIn('user_id', $accessibleUserIds)
             ->pendingRegistration()
-            ->whereRaw("LOWER(COALESCE(followup_status, 'pending')) NOT IN (?, ?)", ['done', 'not_done'])
-            ->count();
+            ->whereRaw("LOWER(COALESCE(followup_status, 'pending')) NOT IN (?, ?)", ['done', 'not_done']);
+        $this->applyVehicleVisibility($totalCount, $viewer);
+        $totalCount = $totalCount->count();
         
         $callEpds = (clone $dueFollowupQuery)
             ->where('follow_type', 'Call')
@@ -888,6 +891,7 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
                 $query = Enquiry::query()
                     ->with(['customer', 'vehicle', 'user.manager'])
                     ->whereIn('user_id', $accessibleUserIds);
+                $this->applyVehicleVisibility($query, $viewer);
 
                 $query->whereDate('follow_date', $today->toDateString())
                     ->whereRaw("LOWER(COALESCE(followup_status, '')) <> ?", ['done']);
@@ -914,8 +918,9 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
             } else {
                 $attemptQuery = FollowupAttempt::query()
                     ->with(['enquiry.customer', 'enquiry.vehicle', 'enquiry.user.manager'])
-                    ->whereHas('enquiry', function ($enquiryQuery) use ($accessibleUserIds, $filters): void {
+                    ->whereHas('enquiry', function ($enquiryQuery) use ($accessibleUserIds, $filters, $viewer): void {
                         $enquiryQuery->whereIn('user_id', $accessibleUserIds);
+                        $this->applyVehicleVisibility($enquiryQuery, $viewer);
                         $this->applyFollowupTrackerFilters($enquiryQuery, $filters, $accessibleUserIds);
                     });
 
@@ -970,7 +975,7 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
             'requires_date_filter' => $requiresDateFilter,
             'filter_error' => $filterError,
             'filters' => $filters,
-            'filter_options' => $this->followupTrackerFilterOptions($accessibleUserIds),
+            'filter_options' => $this->followupTrackerFilterOptions($accessibleUserIds, $viewer),
             'groups' => array_values($groups),
             'total' => array_sum(array_map(fn(array $group): int => (int) $group['count'], $groups)),
         ];
@@ -1006,7 +1011,7 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
         }
     }
 
-    private function followupTrackerFilterOptions(array $accessibleUserIds): array
+    private function followupTrackerFilterOptions(array $accessibleUserIds, ?User $viewer = null): array
     {
         return [
             'area_managers' => User::query()
@@ -1025,7 +1030,7 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
                 ->map(fn(User $user): array => ['id' => (int) $user->id, 'name' => $user->name])
                 ->values()
                 ->all(),
-            'models' => Vehicle::query()
+            'models' => Vehicle::visibleTo($viewer)
                 ->whereNotNull('model')
                 ->where('model', '<>', '')
                 ->distinct()
@@ -1803,6 +1808,65 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
         ];
     }
 
+    private function buildSuperAdminOverviewAnalytics(User $viewer): array
+    {
+        $query = Enquiry::query()
+            ->leftJoin('customers', 'customers.id', '=', 'enquiries.customer_id')
+            ->selectRaw('customers.district as district, COUNT(enquiries.id) as leads');
+
+        if ($viewer->role !== User::ROLE_SUPER_ADMIN) {
+            $accessibleUserIds = $this->resolveAccessibleUserIds($viewer);
+            if (empty($accessibleUserIds)) {
+                return [
+                    'by_district' => [],
+                    'by_province' => [],
+                ];
+            }
+
+            $query->whereIn('enquiries.user_id', $accessibleUserIds);
+        }
+
+        $this->applyVehicleVisibility($query, $viewer, 'enquiries.vehicle_id');
+
+        $districtTotals = [];
+        $query
+            ->groupBy('customers.district')
+            ->pluck('leads', 'district')
+            ->each(function ($total, $district) use (&$districtTotals): void {
+                $districtLabel = $this->districtAnalyticsLabel($district);
+                $districtTotals[$districtLabel] = ($districtTotals[$districtLabel] ?? 0) + (int) $total;
+            });
+
+        arsort($districtTotals);
+
+        $districtRows = [];
+        $provinceTotals = [];
+        foreach ($districtTotals as $district => $total) {
+            $districtRows[] = [
+                'district' => (string) $district,
+                'leads' => (int) $total,
+            ];
+
+            $province = $this->provinceAnalyticsLabel((string) $district);
+            $provinceTotals[$province] = ($provinceTotals[$province] ?? 0) + (int) $total;
+        }
+
+        arsort($provinceTotals);
+
+        $provinceRows = [];
+        foreach ($provinceTotals as $province => $total) {
+            $provinceRows[] = [
+                'province' => (string) $province,
+                'leads' => (int) $total,
+            ];
+        }
+
+        return [
+            'by_district' => $districtRows,
+            'by_province' => $provinceRows,
+        ];
+    }
+
     private function buildDeliveryAnalytics(User $viewer, Request $request): array
     {
         $fromDate = $this->parseFilterDate((string) $request->query('delivery_from_date', ''), true);
@@ -1845,8 +1909,9 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
                 'enquiry.vehicle:id,model,engine_type,variant',
                 'enquiry.prospectSheet:id,enquiry_id,source_of_information,first_time_buyer,interested_in_exchange',
             ])
-            ->whereHas('enquiry', function ($query) use ($accessibleUserIds): void {
+            ->whereHas('enquiry', function ($query) use ($accessibleUserIds, $viewer): void {
                 $query->whereIn('user_id', $accessibleUserIds);
+                $this->applyVehicleVisibility($query, $viewer);
             })
             ->whereNotNull('date_of_delivery');
 
@@ -1867,6 +1932,7 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
                 'prospectSheet:id,enquiry_id,source_of_information,first_time_buyer,interested_in_exchange',
             ])
             ->whereIn('user_id', $accessibleUserIds);
+        $this->applyVehicleVisibility($enquiriesQuery, $viewer);
 
         if ($fromDate !== null) {
             $enquiriesQuery->where('created_at', '>=', $fromDate);
@@ -2233,6 +2299,7 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
         } elseif ($viewer->role !== User::ROLE_SUPER_ADMIN) {
             $enquiriesQuery->whereIn('user_id', $accessibleUserIds);
         }
+        $this->applyVehicleVisibility($enquiriesQuery, $viewer, 'enquiries.vehicle_id');
 
         $selectedUserIdInput = (string) $request->query('user_id', '');
         $selectedUserId = ctype_digit($selectedUserIdInput) ? (int) $selectedUserIdInput : null;
@@ -4677,6 +4744,15 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
         }
 
         return $resolvedIds;
+    }
+
+    private function applyVehicleVisibility($query, ?User $viewer, string $vehicleColumn = 'vehicle_id'): void
+    {
+        if (!$viewer || $viewer->role === User::ROLE_SUPER_ADMIN) {
+            return;
+        }
+
+        $query->whereIn($vehicleColumn, Vehicle::visibleTo($viewer)->select('id'));
     }
 
     private function filterUsersForViewerHierarchy(User $viewer, Collection $users): Collection

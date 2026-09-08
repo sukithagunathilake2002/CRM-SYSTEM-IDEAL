@@ -160,7 +160,7 @@
         ]];
     }
 
-    $vehicleColorOptions = ['White', 'Black', 'Silver', 'Grey', 'Red', 'Blue', 'Green', 'Brown', 'Orange', 'Other'];
+    $vehicleColorOptions = $vehicleColorOptions ?? [];
     $testDriveNoReasons = [
         'Not interested',
         'Vehicle not available',
