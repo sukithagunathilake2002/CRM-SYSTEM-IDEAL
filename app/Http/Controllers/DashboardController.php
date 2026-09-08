@@ -696,20 +696,26 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
             ->nonTerminalLead()
             ->whereRaw("LOWER(COALESCE(followup_status, 'pending')) NOT IN (?, ?)", ['done', 'not_done']);
 
+        // Keep follow_date unwrapped so MySQL can use the composite follow-up
+        // index.  whereDate() generates DATE(follow_date), which forces a scan
+        // of the (very large) enquiries table on every dashboard load.
         $dueFollowupQuery = (clone $baseQuery)
-            ->whereDate('follow_date', '<=', $today);
+            ->where('follow_date', '<=', $today);
 
-        $callCount = (clone $dueFollowupQuery)
-            ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%call%'])
-            ->count();
+        // The previous three individual counts each scanned roughly 40,000
+        // enquiries for this consultant. Calculate all card totals in one
+        // indexed query instead.
+        $followupCounts = (clone $dueFollowupQuery)
+            ->whereIn('follow_type', ['Call', 'Showroom Visit', 'Home Visit'])
+            ->selectRaw(
+                "SUM(follow_type = ?) AS call_count, SUM(follow_type = ?) AS showroom_count, SUM(follow_type = ?) AS home_count",
+                ['Call', 'Showroom Visit', 'Home Visit']
+            )
+            ->first();
 
-        $showroomCount = (clone $dueFollowupQuery)
-            ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%showroom%'])
-            ->count();
-
-        $homeCount = (clone $dueFollowupQuery)
-            ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%home%'])
-            ->count();
+        $callCount = (int) ($followupCounts?->call_count ?? 0);
+        $showroomCount = (int) ($followupCounts?->showroom_count ?? 0);
+        $homeCount = (int) ($followupCounts?->home_count ?? 0);
 
         $totalCount = Enquiry::query()
             ->whereIn('user_id', $accessibleUserIds)
@@ -718,7 +724,7 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
             ->count();
         
         $callEpds = (clone $dueFollowupQuery)
-            ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%call%'])
+            ->where('follow_type', 'Call')
             ->orderBy('follow_date', 'desc')
             ->orderBy('follow_time', 'asc')
             ->limit(10)
@@ -742,7 +748,7 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
             });
         
         $showroomEpds = (clone $dueFollowupQuery)
-            ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%showroom%'])
+            ->where('follow_type', 'Showroom Visit')
             ->orderBy('follow_date', 'desc')
             ->orderBy('follow_time', 'asc')
             ->limit(10)
@@ -766,7 +772,7 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
             });
         
         $homeEpds = (clone $dueFollowupQuery)
-            ->whereRaw('LOWER(COALESCE(follow_type, \'\')) LIKE ?', ['%home%'])
+            ->where('follow_type', 'Home Visit')
             ->orderBy('follow_date', 'desc')
             ->orderBy('follow_time', 'asc')
             ->limit(10)
