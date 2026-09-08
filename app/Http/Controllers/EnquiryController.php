@@ -330,12 +330,7 @@ public function list(Request $request)
         $enquiriesQuery->whereRaw("LOWER(COALESCE(followup_result, '')) = ?", [$selectedLeadResult]);
     }
 
-    $enquiries = $enquiriesQuery
-        ->orderBy('follow_date', 'desc')
-        ->orderBy('follow_time')
-        ->get();
-
-    return view('enquiries.index', compact('enquiries'));
+    return $this->renderEnquiryList($enquiriesQuery, $request);
 }
 
 public function destroy(Request $request, Enquiry $enquiry)
@@ -376,12 +371,7 @@ public function listCallEpds(Request $request)
     }
     $this->applyVehicleVisibility($enquiriesQuery, $viewer);
 
-    $enquiries = $enquiriesQuery
-        ->orderBy('follow_date', 'desc')
-        ->orderBy('follow_time')
-        ->get();
-
-    return view('enquiries.index', compact('enquiries'));
+    return $this->renderEnquiryList($enquiriesQuery, $request);
 }
 
 public function listShowroomEpds(Request $request)
@@ -400,12 +390,7 @@ public function listShowroomEpds(Request $request)
     }
     $this->applyVehicleVisibility($enquiriesQuery, $viewer);
 
-    $enquiries = $enquiriesQuery
-        ->orderBy('follow_date', 'desc')
-        ->orderBy('follow_time')
-        ->get();
-
-    return view('enquiries.index', compact('enquiries'));
+    return $this->renderEnquiryList($enquiriesQuery, $request);
 }
 
 public function listHomeEpds(Request $request)
@@ -424,13 +409,25 @@ public function listHomeEpds(Request $request)
     }
     $this->applyVehicleVisibility($enquiriesQuery, $viewer);
 
-    $enquiries = $enquiriesQuery
-        ->orderBy('follow_date', 'desc')
-        ->orderBy('follow_time')
-        ->get();
-
-    return view('enquiries.index', compact('enquiries'));
+    return $this->renderEnquiryList($enquiriesQuery, $request);
 }
+
+    private function renderEnquiryList(\Illuminate\Database\Eloquent\Builder $query, Request $request)
+    {
+        $listing = new \App\Support\EnquiryListing();
+        if ($request->boolean('filter_options')) {
+            return response()->json($listing->options($query));
+        }
+
+        $enquiries = $listing->paginate($query, $request);
+        if ($request->header('X-Enquiry-Partial') === '1') {
+            return response()->json([
+                'html' => view('enquiries.partials.results', compact('enquiries'))->render(),
+            ]);
+        }
+
+        return view('enquiries.index', compact('enquiries'));
+    }
 
     private function resolveAccessibleUserIds(User $viewer): array
     {

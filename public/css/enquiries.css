@@ -10,6 +10,56 @@
     --text-main: #111;
 }
 
+.epr-pagination {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 12px 28px;
+}
+
+.epr-page-summary {
+    flex-basis: 100%;
+    text-align: center;
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.epr-pagination button,
+.epr-pagination a {
+    box-sizing: border-box;
+    text-align: center;
+    text-decoration: none;
+    min-width: 40px;
+    min-height: 40px;
+    padding: 8px 12px;
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    background: var(--card-bg);
+    color: var(--text-main);
+    font: inherit;
+    cursor: pointer;
+}
+
+.epr-pagination button[aria-current="page"] {
+    background: var(--chip-red);
+    border-color: var(--chip-red);
+    color: #fff;
+    font-weight: 700;
+}
+
+.epr-pagination button:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.epr-pagination button:focus-visible,
+.epr-pagination a:focus-visible {
+    outline: 2px solid var(--text-main);
+    outline-offset: 2px;
+}
+
 body {
     margin: 0;
     background: var(--app-bg);
