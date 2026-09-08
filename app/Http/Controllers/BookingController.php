@@ -16,6 +16,7 @@ class BookingController extends Controller
     public function show(Enquiry $enquiry)
     {
         $enquiry->load(['customer', 'vehicle', 'prospectSheet', 'booking', 'user']);
+        abort_unless($enquiry->isVisibleTo(request()->user()), 403);
 
         if ($enquiry->isTerminalLead()) {
             return $this->redirectTerminalLead($enquiry);
@@ -47,7 +48,8 @@ class BookingController extends Controller
         if ($currentStep === 3 && $firstTimeBuyerForNavigation === 'yes') {
             return redirect()->route('booking.show', ['enquiry' => $enquiry->id, 'step' => 4]);
         }
-        $vehicleModels = Vehicle::query()
+        $viewer = request()->user();
+        $vehicleModels = Vehicle::visibleTo($viewer)
             ->select('model')
             ->distinct()
             ->orderBy('model')
@@ -60,7 +62,6 @@ class BookingController extends Controller
             ->map(function ($items) {
                 return $items->pluck('model')->unique()->values();
             });
-        $viewer = request()->user();
         $districtOptions = $viewer instanceof User
             ? $viewer->resolvePermittedDistricts()
             : User::DISTRICT_OPTIONS;
@@ -73,7 +74,8 @@ class BookingController extends Controller
             $booking->interested_model ?: $enquiry->vehicle?->model,
             $booking->interested_engine ?: $enquiry->vehicle?->engine_type,
             $booking->interested_variant ?: $enquiry->vehicle?->variant,
-            $enquiry->vehicle
+            $enquiry->vehicle,
+            $viewer
         );
         $vehicleUnitPrice = (float) ($pricingVehicle?->unit_price ?? 0);
         $vehicleVatAmount = (float) ($pricingVehicle?->vat_amount ?? 0);
@@ -101,7 +103,7 @@ class BookingController extends Controller
             'competitionMap' => $competitionMap,
             'districtOptions' => $districtOptions,
             'currentStep' => $currentStep,
-            'vehicleColorOptions' => $this->vehicleColorOptions($booking->interested_vehicle_color ?: $prospect?->interested_vehicle_color),
+            'vehicleColorOptions' => $this->vehicleColorOptions($pricingVehicle, $booking->interested_vehicle_color ?: $prospect?->interested_vehicle_color),
             'defaultValues' => [
                 'title' => $customer?->title ?: $booking->title,
                 'name' => $customer?->name ?: $booking->name,
@@ -191,6 +193,7 @@ class BookingController extends Controller
     public function store(Request $request, Enquiry $enquiry)
     {
         $enquiry->load(['customer', 'vehicle', 'prospectSheet', 'booking', 'user']);
+        abort_unless($enquiry->isVisibleTo($request->user()), 403);
 
         if ($enquiry->isTerminalLead()) {
             return $this->redirectTerminalLead($enquiry);
@@ -360,6 +363,31 @@ class BookingController extends Controller
             $validated['exchange_vehicle_model'] = $validated['exchange_vehicle_model_backup'];
         }
 
+        $selectedVehicle = null;
+        if (
+            !empty($validated['interested_model'])
+            && !empty($validated['interested_engine'])
+            && !empty($validated['interested_variant'])
+        ) {
+            $selectedVehicle = Vehicle::visibleTo($viewer)
+                ->where('model', $validated['interested_model'])
+                ->where('engine_type', $validated['interested_engine'])
+                ->where('variant', $validated['interested_variant'])
+                ->first();
+
+            if (!$selectedVehicle) {
+                return back()
+                    ->withErrors(['interested_variant' => 'Please select a permitted model, engine type, and variant.'])
+                    ->withInput();
+            }
+        }
+
+        if (!$this->vehicleAllowsColor($selectedVehicle ?? $enquiry->vehicle, $validated['interested_vehicle_color'] ?? null)) {
+            return back()
+                ->withErrors(['interested_vehicle_color' => 'Please select a color available for the selected vehicle.'])
+                ->withInput();
+        }
+
         $mobileNumbers = collect($customer?->mobile_numbers ?? [])
             ->map(fn($mobile) => trim((string) $mobile))
             ->filter()
@@ -518,7 +546,8 @@ class BookingController extends Controller
             $payload['interested_model'] ?? $enquiry->vehicle?->model,
             $payload['interested_engine'] ?? $enquiry->vehicle?->engine_type,
             $payload['interested_variant'] ?? $enquiry->vehicle?->variant,
-            $enquiry->vehicle
+            $enquiry->vehicle,
+            $viewer
         );
         $isEditingOffer = ($validated['edit_offer_details'] ?? '0') === '1'
             || ($validated['offer_details_dirty'] ?? '0') === '1';
@@ -948,14 +977,14 @@ class BookingController extends Controller
         }
     }
 
-    private function resolvePricingVehicle(?string $model, ?string $engine, ?string $variant, ?Vehicle $fallback = null): ?Vehicle
+    private function resolvePricingVehicle(?string $model, ?string $engine, ?string $variant, ?Vehicle $fallback = null, ?User $viewer = null): ?Vehicle
     {
         $model = trim((string) $model);
         $engine = trim((string) $engine);
         $variant = trim((string) $variant);
 
         if ($model !== '' && $engine !== '' && $variant !== '') {
-            $vehicle = Vehicle::query()
+            $vehicle = Vehicle::visibleTo($viewer)
                 ->where('model', $model)
                 ->where('engine_type', $engine)
                 ->where('variant', $variant)
@@ -1024,33 +1053,29 @@ class BookingController extends Controller
         ];
     }
 
-    private function vehicleColorOptions(?string $selectedColor = null): array
+    private function vehicleColorOptions(?Vehicle $vehicle, ?string $selectedColor = null): array
     {
-        $colors = [
-            'White',
-            'Pearl White',
-            'Black',
-            'Silver',
-            'Grey',
-            'Red',
-            'Blue',
-            'Green',
-            'Brown',
-            'Orange',
-            'Yellow',
-            'Beige',
-            'Gold',
-            'Maroon',
-            'Purple',
-            'Other',
-        ];
-
-        $selectedColor = trim((string) $selectedColor);
-        if ($selectedColor !== '' && !in_array($selectedColor, $colors, true)) {
-            $colors[] = $selectedColor;
+        if (!$vehicle) {
+            $selectedColor = trim((string) $selectedColor);
+            return $selectedColor !== '' ? [$selectedColor] : [];
         }
 
-        return $colors;
+        return $vehicle->colorOptions($selectedColor);
+    }
+
+    private function vehicleAllowsColor(?Vehicle $vehicle, ?string $selectedColor): bool
+    {
+        $selectedColor = trim((string) $selectedColor);
+        if ($selectedColor === '') {
+            return true;
+        }
+
+        $colors = $vehicle?->colorOptions() ?? [];
+        if (empty($colors)) {
+            return true;
+        }
+
+        return in_array($selectedColor, $colors, true);
     }
 
     private function bookingReceiptPaymentModes(): array
