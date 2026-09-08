@@ -65,6 +65,11 @@ class EnquiryController extends Controller
             $selectedLeadResult = null;
         }
 
+        $selectedFollowType = strtolower(trim((string) $request->query('follow_type', '')));
+        if (!in_array($selectedFollowType, ['call', 'showroom', 'home'], true)) {
+            $selectedFollowType = null;
+        }
+
         $registrationFilter = strtolower(trim((string) $request->query('registration', '')));
         
         // ============================================================
@@ -129,7 +134,7 @@ class EnquiryController extends Controller
         // Apply lead status filter
         if ($selectedLeadStatus !== null) {
             $enquiriesQuery->whereHas('prospectSheet', function ($query) use ($selectedLeadStatus) {
-                $query->whereRaw("LOWER(COALESCE(lead_status, '')) = ?", [$selectedLeadStatus]);
+                $query->where('lead_status', $selectedLeadStatus);
             });
         }
 
@@ -138,11 +143,29 @@ class EnquiryController extends Controller
             $enquiriesQuery->whereRaw("LOWER(COALESCE(followup_result, '')) = ?", [$selectedLeadResult]);
         }
 
-        // Keep mobile sidebar datasets and ordering identical to the web list.
+        // The mobile dashboard uses this filter for its Call, Showroom, and
+        // Home lists. Apply it in SQL instead of downloading all leads and
+        // filtering them in Flutter.
+        if ($selectedFollowType !== null) {
+            $followType = match ($selectedFollowType) {
+                'call' => 'Call',
+                'showroom' => 'Showroom Visit',
+                'home' => 'Home Visit',
+            };
+            $enquiriesQuery
+                ->nonTerminalLead()
+                ->whereRaw("LOWER(COALESCE(followup_status, 'pending')) NOT IN (?, ?)", ['done', 'not_done'])
+                ->where('follow_date', '<=', now('Asia/Colombo')->toDateString())
+                ->where('follow_type', $followType);
+        }
+
+        // Avoid paginator's expensive total-count query. The app requests the
+        // next page only when the user reaches the list bottom.
+        $perPage = min(max((int) $request->query('per_page', 20), 1), 50);
         $enquiries = $enquiriesQuery
             ->orderBy('follow_date')
             ->orderBy('follow_time')
-            ->get();
+            ->simplePaginate($perPage);
 
         return response()->json($enquiries);
     }

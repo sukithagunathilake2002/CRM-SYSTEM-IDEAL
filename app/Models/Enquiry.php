@@ -76,14 +76,14 @@ class Enquiry extends Model
     public function scopeRegisteredLead($query)
     {
         return $query->nonTerminalLead()->whereHas('prospectSheet', function ($query): void {
-            $query->whereRaw("LOWER(COALESCE(lead_status, '')) IN ('hot', 'warm', 'cold')");
+            $query->whereIn('lead_status', ['hot', 'warm', 'cold']);
         });
     }
 
     public function scopePendingRegistration($query)
     {
         return $query->nonTerminalLead()->whereDoesntHave('prospectSheet', function ($query): void {
-            $query->whereRaw("LOWER(COALESCE(lead_status, '')) IN ('hot', 'warm', 'cold')");
+            $query->whereIn('lead_status', ['hot', 'warm', 'cold']);
         });
     }
 

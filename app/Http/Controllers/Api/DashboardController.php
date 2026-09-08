@@ -118,7 +118,7 @@ class DashboardController extends Controller
                     ->whereIn('user_id', $accessibleUserIds)
                     ->registeredLead()
                     ->whereHas('prospectSheet', function ($query) use ($status): void {
-                        $query->whereRaw("LOWER(COALESCE(lead_status, '')) = ?", [$status]);
+                        $query->where('lead_status', $status);
                     })
                     ->count();
 

@@ -9,10 +9,25 @@ use App\Models\Enquiry;
 use App\Models\User;
 use App\Models\Vehicle;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class DeliveryController extends Controller
 {
+    private const DOCUMENT_FIELDS = [
+        'purchase_order_image',
+        'insurance_copy_1_image',
+        'insurance_copy_2_image',
+        'pan_certificate_image',
+        'tin_certificate_image',
+        'company_registration_certificate_1_image',
+        'company_registration_certificate_2_image',
+        'share_certificate_copy_1_image',
+        'share_certificate_copy_2_image',
+        'citizenship_certificate_1_image',
+        'citizenship_certificate_2_image',
+    ];
+
     private function resolveAccessibleUserIds(User $viewer): array
     {
         if ($viewer->role === User::ROLE_SUPER_ADMIN) {
@@ -277,6 +292,20 @@ class DeliveryController extends Controller
             'payment_credit_permitted_by' => $validated['payment_credit_permitted_by'] ?? null,
             'payment_credit_expected_date' => $validated['payment_credit_expected_date'] ?? null,
         ];
+
+        // Store the personal-step documents sent by the mobile app. Preserve
+        // the current file when that field is not included in this request.
+        foreach (self::DOCUMENT_FIELDS as $field) {
+            $currentPath = $delivery->{$field};
+            if ($request->hasFile($field)) {
+                if (!empty($currentPath)) {
+                    Storage::disk('public')->delete($currentPath);
+                }
+                $payload[$field] = $request->file($field)->store('delivery/documents', 'public');
+            } else {
+                $payload[$field] = $currentPath;
+            }
+        }
 
         // Match web submissions so mobile-completed deliveries enter the
         // Pending Delivery approval queue for the Area Manager.
