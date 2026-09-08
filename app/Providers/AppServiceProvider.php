@@ -39,10 +39,11 @@ class AppServiceProvider extends ServiceProvider
 
             $viewerId = (int) $user->id;
             $visibleUserIds = collect([$viewerId])->filter()->values();
+            $shouldFilterByVisibleUsers = true;
 
             if (Schema::hasTable('users')) {
                 if ($user->role === User::ROLE_SUPER_ADMIN) {
-                    $visibleUserIds = User::query()->pluck('id');
+                    $shouldFilterByVisibleUsers = false;
                 } elseif ($user->role === User::ROLE_HEAD_OF_SALES) {
                     $areaIds = User::query()
                         ->where('role', User::ROLE_AREA_MANAGER)
@@ -73,17 +74,21 @@ class AppServiceProvider extends ServiceProvider
 
             $todayFollowups = collect();
             if (Schema::hasTable('enquiries')) {
-                $todayFollowups = Enquiry::query()
+                $todayFollowupsQuery = Enquiry::query()
                     ->with(['customer:id,title,name'])
                     ->select(['id', 'customer_id', 'follow_type', 'follow_date', 'follow_time', 'followup_status'])
-                    ->whereIn('user_id', $visibleUserIds)
                     ->nonTerminalLead()
                     ->whereDate('follow_date', '<=', now('Asia/Colombo')->toDateString())
                     ->whereRaw("LOWER(COALESCE(followup_status, 'pending')) NOT IN (?, ?)", ['done', 'not_done'])
                     ->orderBy('follow_date', 'desc')
                     ->orderBy('follow_time')
-                    ->limit(8)
-                    ->get();
+                    ->limit(8);
+
+                if ($shouldFilterByVisibleUsers) {
+                    $todayFollowupsQuery->whereIn('user_id', $visibleUserIds);
+                }
+
+                $todayFollowups = $todayFollowupsQuery->get();
             }
 
             $systemReminders = collect();

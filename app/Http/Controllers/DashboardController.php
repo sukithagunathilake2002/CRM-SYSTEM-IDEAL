@@ -151,8 +151,9 @@ class DashboardController extends Controller
         $dashboardEpds = $this->getDashboardEpData($user);
         
         $districtEpData = $this->getDistrictEpData($user);
+        $analytics = $this->buildSuperAdminOverviewAnalytics($user);
 
-        return view('dashboards.super-admin', compact('counts', 'headHierarchy', 'manageableUsers', 'analytics', 'dashboardEpds', 'districtEpData', 'followupEscalations'));
+        return view('dashboards.super-admin', compact('counts', 'headHierarchy', 'manageableUsers', 'analytics'));
     }
 
     public function headOfSales(Request $request): View
@@ -1822,6 +1823,65 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
             'head_of_sales' => User::query()->where('role', User::ROLE_HEAD_OF_SALES)->count(),
             'area_manager' => User::query()->where('role', User::ROLE_AREA_MANAGER)->count(),
             'sales_consultant' => User::query()->where('role', User::ROLE_SALES_CONSULTANT)->count(),
+        ];
+    }
+
+    private function buildSuperAdminOverviewAnalytics(User $viewer): array
+    {
+        $query = Enquiry::query()
+            ->leftJoin('customers', 'customers.id', '=', 'enquiries.customer_id')
+            ->selectRaw('customers.district as district, COUNT(enquiries.id) as leads');
+
+        if ($viewer->role !== User::ROLE_SUPER_ADMIN) {
+            $accessibleUserIds = $this->resolveAccessibleUserIds($viewer);
+            if (empty($accessibleUserIds)) {
+                return [
+                    'by_district' => [],
+                    'by_province' => [],
+                ];
+            }
+
+            $query->whereIn('enquiries.user_id', $accessibleUserIds);
+        }
+
+        $this->applyVehicleVisibility($query, $viewer, 'enquiries.vehicle_id');
+
+        $districtTotals = [];
+        $query
+            ->groupBy('customers.district')
+            ->pluck('leads', 'district')
+            ->each(function ($total, $district) use (&$districtTotals): void {
+                $districtLabel = $this->districtAnalyticsLabel($district);
+                $districtTotals[$districtLabel] = ($districtTotals[$districtLabel] ?? 0) + (int) $total;
+            });
+
+        arsort($districtTotals);
+
+        $districtRows = [];
+        $provinceTotals = [];
+        foreach ($districtTotals as $district => $total) {
+            $districtRows[] = [
+                'district' => (string) $district,
+                'leads' => (int) $total,
+            ];
+
+            $province = $this->provinceAnalyticsLabel((string) $district);
+            $provinceTotals[$province] = ($provinceTotals[$province] ?? 0) + (int) $total;
+        }
+
+        arsort($provinceTotals);
+
+        $provinceRows = [];
+        foreach ($provinceTotals as $province => $total) {
+            $provinceRows[] = [
+                'province' => (string) $province,
+                'leads' => (int) $total,
+            ];
+        }
+
+        return [
+            'by_district' => $districtRows,
+            'by_province' => $provinceRows,
         ];
     }
 
