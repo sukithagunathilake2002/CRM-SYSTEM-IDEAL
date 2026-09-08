@@ -145,7 +145,7 @@ class DashboardController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'email', 'employee_number', 'phone', 'role', 'manager_id']);
 
-        $analytics = $this->buildAnalytics($user, $request);
+        $analytics = $this->buildDashboardGeographyAnalytics($user);
         $followupEscalations = $this->buildFollowupEscalations($user);
         
         $dashboardEpds = $this->getDashboardEpData($user);
@@ -646,19 +646,22 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
     {
         $accessibleUserIds = $this->resolveAccessibleUserIds($viewer);
         
-        $districtCounts = [];
-        
-        foreach (User::DISTRICT_OPTIONS as $district) {
-            $count = Enquiry::with(['customer'])
-                ->whereIn('user_id', $accessibleUserIds)
-                ->pendingRegistration()
-                ->whereHas('customer', function ($query) use ($district) {
-                    $query->whereRaw('LOWER(TRIM(COALESCE(district, \'\'))) = ?', [strtolower($district)]);
-                })
-                ->whereRaw("LOWER(COALESCE(followup_status, '')) <> ?", ['done'])
-                ->count();
-            
-            $districtCounts[$district] = $count;
+        $districtCounts = array_fill_keys(User::DISTRICT_OPTIONS, 0);
+
+        $rows = Enquiry::query()
+            ->join('customers', 'customers.id', '=', 'enquiries.customer_id')
+            ->whereIn('enquiries.user_id', $accessibleUserIds)
+            ->pendingRegistration()
+            ->whereRaw("LOWER(COALESCE(enquiries.followup_status, '')) <> ?", ['done'])
+            ->selectRaw('customers.district as district, COUNT(*) as aggregate')
+            ->groupBy('customers.district')
+            ->get();
+
+        foreach ($rows as $row) {
+            $district = User::normalizeDistrictName($row->district);
+            if ($district !== null && array_key_exists($district, $districtCounts)) {
+                $districtCounts[$district] += (int) $row->aggregate;
+            }
         }
         
         $maxCount = max($districtCounts) ?: 1;
@@ -1169,12 +1172,13 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
 
         $enquiries = Enquiry::query()
             ->with(['user.manager.manager'])
-            ->select(['id', 'user_id', 'follow_type', 'follow_date', 'follow_time', 'followup_status'])
+            ->select(['user_id', 'follow_type', 'follow_date'])
+            ->selectRaw('COUNT(*) as pending_count')
             ->whereIn('user_id', $accessibleUserIds)
             ->whereNotNull('follow_date')
             ->whereDate('follow_date', '<=', $today->toDateString())
             ->whereRaw("LOWER(COALESCE(followup_status, '')) <> ?", ['done'])
-            ->orderBy('follow_date')
+            ->groupBy('user_id', 'follow_type', 'follow_date')
             ->get();
 
         $areaManagerRows = [];
@@ -1233,10 +1237,11 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
 
             $owner = $enquiry->user;
             $areaManager = $this->findHierarchyRecipient($owner, User::ROLE_AREA_MANAGER);
+            $pendingCount = max(1, (int) $enquiry->pending_count);
             $lead = [
-                'id' => (int) $enquiry->id,
                 'follow_date' => $followDate,
                 'pending_days' => (int) $pendingDays,
+                'count' => $pendingCount,
             ];
 
             $delayBucketKey = match (true) {
@@ -1246,7 +1251,7 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
                 $pendingDays === 3 => 'three_day_delay',
                 default => 'over_three_day_delay',
             };
-            $delayBuckets[$delayBucketKey]['count']++;
+            $delayBuckets[$delayBucketKey]['count'] += $pendingCount;
 
             $followupTypeKey = match ($this->normalizeFollowupType($enquiry->follow_type)) {
                 'Call' => 'call',
@@ -1350,7 +1355,7 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
             ], $extra);
         }
 
-        $rows[$key]['count']++;
+        $rows[$key]['count'] += (int) ($lead['count'] ?? 1);
         $rows[$key]['max_pending_days'] = max((int) $rows[$key]['max_pending_days'], (int) $lead['pending_days']);
 
         if (!$rows[$key]['oldest_follow_date'] instanceof Carbon
@@ -1411,7 +1416,7 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
             ];
         }
 
-        $rows[$key]['count']++;
+        $rows[$key]['count'] += (int) ($lead['count'] ?? 1);
         $rows[$key]['max_pending_days'] = max((int) $rows[$key]['max_pending_days'], (int) $lead['pending_days']);
 
         if (!$rows[$key]['oldest_follow_date'] instanceof Carbon
@@ -2736,6 +2741,67 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
             'by_district' => $districtRows,
             'by_province' => $provinceRows,
             'current_hierarchy' => $currentHierarchy,
+        ];
+    }
+
+    /**
+     * Build only the geographic totals rendered on role dashboards.
+     *
+     * The full analytics report joins and hydrates every enquiry so it can
+     * produce its drill-down sections. Dashboard views need only these two
+     * summaries, so running the full report here needlessly exhausts PHP's
+     * memory as the enquiry table grows.
+     */
+    private function buildDashboardGeographyAnalytics(User $viewer): array
+    {
+        $query = Enquiry::query()
+            ->leftJoin('customers', 'customers.id', '=', 'enquiries.customer_id');
+
+        if ($viewer->role !== User::ROLE_SUPER_ADMIN) {
+            $query->whereIn('enquiries.user_id', $this->resolveAccessibleUserIds($viewer));
+        }
+
+        $districtTotals = [];
+        foreach ($query
+            ->selectRaw('customers.district as district, COUNT(*) as leads')
+            ->groupBy('customers.district')
+            ->get() as $row) {
+            $district = trim((string) $row->district);
+            $districtLabel = $district === ''
+                || strcasecmp($district, 'na') === 0
+                || strcasecmp($district, 'n/a') === 0
+                    ? 'N/A'
+                    : ucwords(strtolower($district));
+
+            $districtTotals[$districtLabel] = ($districtTotals[$districtLabel] ?? 0) + (int) $row->leads;
+        }
+
+        arsort($districtTotals);
+        $districtRows = [];
+        $provinceTotals = [];
+
+        foreach ($districtTotals as $district => $total) {
+            $districtRows[] = [
+                'district' => $district,
+                'leads' => $total,
+            ];
+
+            $province = User::provinceForDistrict($district) ?? 'N/A';
+            $provinceTotals[$province] = ($provinceTotals[$province] ?? 0) + $total;
+        }
+
+        arsort($provinceTotals);
+        $provinceRows = [];
+        foreach ($provinceTotals as $province => $total) {
+            $provinceRows[] = [
+                'province' => $province,
+                'leads' => $total,
+            ];
+        }
+
+        return [
+            'by_district' => $districtRows,
+            'by_province' => $provinceRows,
         ];
     }
 
