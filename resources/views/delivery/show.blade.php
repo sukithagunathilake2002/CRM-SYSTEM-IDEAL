@@ -62,14 +62,14 @@
     $selectedExistingYear = old('existing_vehicle_year', $defaultValues['existing_vehicle_year']);
     $selectedInterestedExchange = old('interested_in_exchange', $defaultValues['interested_in_exchange']);
     $selectedExchangeType = old('exchange_type', $defaultValues['exchange_type']);
-    $selectedExchangePurchaseValue = old('exchange_purchase_value', $booking?->exchange_purchase_value ?? null);
+    $selectedExchangePurchaseValue = old('exchange_purchase_value', $defaultValues['exchange_purchase_value']);
     $selectedExchangeBrand = old('exchange_vehicle_brand', $defaultValues['exchange_vehicle_brand']);
     $selectedExchangeModel = old('exchange_vehicle_model', $defaultValues['exchange_vehicle_model']);
     $selectedExchangeYear = old('exchange_manufacture_year', $defaultValues['exchange_manufacture_year']);
-    $selectedExchangeOwnership = old('exchange_ownership', $booking?->exchange_ownership ?? $prospect?->exchange_ownership ?? '');
-    $selectedExchangeInsuranceRaw = old('exchange_insurance_validity', $booking?->exchange_insurance_validity ?? $prospect?->exchange_insurance_validity ?? null);
+    $selectedExchangeOwnership = old('exchange_ownership', $defaultValues['exchange_ownership']);
+    $selectedExchangeInsuranceRaw = old('exchange_insurance_validity', $defaultValues['exchange_insurance_validity']);
     $selectedExchangeInsuranceValidity = $selectedExchangeInsuranceRaw ? \Carbon\Carbon::parse($selectedExchangeInsuranceRaw)->format('Y-m-d') : '';
-    $selectedExchangeTyreReplacements = old('exchange_tyre_replacements', $booking?->exchange_tyre_replacements ?? []);
+    $selectedExchangeTyreReplacements = old('exchange_tyre_replacements', $defaultValues['exchange_tyre_replacements']);
     if (is_string($selectedExchangeTyreReplacements)) {
         $selectedExchangeTyreReplacements = json_decode($selectedExchangeTyreReplacements, true) ?: [];
     }
@@ -90,6 +90,8 @@
     $selectedOfferTotalDiscount = old('offer_total_discount', $defaultValues['offer_total_discount']);
     $selectedOfferFinalPrice = old('offer_final_price', $defaultValues['offer_final_price']);
     $isOfferEdit = old('edit_offer_details') === '1';
+    $isBuyingEdit = old('edit_buying_details') === '1';
+    $isExchangeEdit = old('edit_exchange_details') === '1';
 
     $offerUnitValue = (float) ($selectedOfferUnitPrice ?? 0);
     $offerVatValue = (float) ($selectedOfferVatAmount ?? 0);
@@ -98,6 +100,7 @@
     $selectedOfferTotalCost = $selectedOfferTotalCost ?? ($offerUnitValue + $offerVatValue);
     $selectedOfferTotalDiscount = $selectedOfferTotalDiscount ?? ($offerUnitDiscountValue + $offerVatDiscountValue);
     $selectedOfferFinalPrice = $selectedOfferFinalPrice ?? max(0, (float) $selectedOfferTotalCost - (float) $selectedOfferTotalDiscount);
+    $isPersonalEdit = old('edit_personal_details') === '1';
     $selectedPaymentReceiptBooking = $defaultValues['payment_receipt_amount_booking'];
     $selectedPaymentPreDelivery = old('payment_pre_delivery_amount', $defaultValues['payment_pre_delivery_amount']);
     $selectedPaymentDelivery = old('payment_delivery_amount', $defaultValues['payment_delivery_amount']);
@@ -370,7 +373,7 @@
             </section>
         @endif
 
-        <form method="POST" action="{{ route('delivery.store', $enquiry->id) }}" enctype="multipart/form-data" class="delivery-form {{ $currentStep === 6 ? 'delivery-form-review' : '' }}">
+        <form id="deliveryForm" method="POST" action="{{ route('delivery.store', $enquiry->id) }}" enctype="multipart/form-data" class="delivery-form {{ $currentStep === 6 ? 'delivery-form-review' : '' }}">
             @csrf
             <input type="hidden" name="delivery_step" value="{{ $currentStep }}">
 
@@ -378,11 +381,12 @@
             <div class="delivery-section-head">
                 <h2>Personal Details</h2>
                 <label class="delivery-switch">
-                    <input type="checkbox" id="deliveryEditToggle">
+                    <input type="checkbox" id="deliveryEditToggle" name="edit_personal_details" value="1" @checked($isPersonalEdit) aria-controls="deliveryPersonalEditPanel" aria-expanded="{{ $isPersonalEdit ? 'true' : 'false' }}">
                     <span>Edit Personal Detail</span>
                 </label>
             </div>
 
+            <section id="deliveryPersonalEditPanel" class="delivery-personal-edit-panel {{ $isPersonalEdit ? '' : 'hidden' }}" @if(!$isPersonalEdit) hidden @endif>
             <div class="delivery-grid">
                 <label class="delivery-pill delivery-title">
                     <span>Title</span>
@@ -405,7 +409,7 @@
 
                 <label class="delivery-pill delivery-dob-field">
                     <span>DOB</span>
-                    <input type="date" value="{{ $selectedDob }}" data-lockable>
+                    <input type="date" name="date_of_birth" value="{{ $selectedDob }}" data-lockable>
                 </label>
 
                 <label class="delivery-pill delivery-contact-no-field">
@@ -544,15 +548,17 @@
                     @endfor
                 </div>
             </div>
+            </section>
             @elseif($currentStep === 2)
             <div class="delivery-section-head">
                 <h2>Buying Details</h2>
                 <label class="delivery-switch">
-                    <input type="checkbox" id="deliveryBuyingEditToggle">
+                    <input type="checkbox" id="deliveryBuyingEditToggle" name="edit_buying_details" value="1" @checked($isBuyingEdit) aria-controls="deliveryBuyingEditPanel" aria-expanded="{{ $isBuyingEdit ? 'true' : 'false' }}">
                     <span>Edit Buying Details</span>
                 </label>
             </div>
 
+            <section id="deliveryBuyingEditPanel" class="delivery-buying-edit-panel {{ $isBuyingEdit ? '' : 'hidden' }}" @if(!$isBuyingEdit) hidden @endif>
             <div class="delivery-buying-grid">
                 <label class="delivery-pill">
                     <span>Color</span>
@@ -692,15 +698,17 @@
                     </select>
                 </label>
             </div>
+            </section>
             @elseif($currentStep === 3)
             <div class="delivery-section-head">
                 <h2>Exchange Details</h2>
                 <label class="delivery-switch">
-                    <input type="checkbox" id="deliveryExchangeEditToggle">
+                    <input type="checkbox" id="deliveryExchangeEditToggle" name="edit_exchange_details" value="1" @checked($isExchangeEdit) aria-controls="deliveryExchangeEditPanel" aria-expanded="{{ $isExchangeEdit ? 'true' : 'false' }}">
                     <span>Edit Exchange Details</span>
                 </label>
             </div>
 
+            <section id="deliveryExchangeEditPanel" class="delivery-exchange-edit-panel {{ $isExchangeEdit ? '' : 'hidden' }}" @if(!$isExchangeEdit) hidden @endif>
             <label class="delivery-exchange-top-label">Exchange Type</label>
             <div class="delivery-segment delivery-exchange-type-segment">
                 <label><input type="radio" name="exchange_type" value="in_house" @checked($selectedExchangeType !== 'outhouse')><span>In - House</span></label>
@@ -722,10 +730,6 @@
                 <div class="delivery-exchange-detail-fields">
                     <div class="delivery-exchange-vehicle-pill">
                         <span>{{ strtoupper(collect([$selectedExchangeBrand, $selectedExchangeModel])->filter()->implode(' ') ?: 'Not selected') }}</span>
-                        <label class="delivery-exchange-edit-inline">
-                            <input type="checkbox" id="deliveryExchangeInlineEdit">
-                            <span>Edit</span>
-                        </label>
                     </div>
 
                     <div class="delivery-exchange-brand-model-row hidden" id="deliveryExchangeBrandModelRow">
@@ -873,6 +877,7 @@
                     </div>
                 </div>
             </div>
+            </section>
             @elseif($currentStep === 4)
             <div class="delivery-section-head delivery-offer-head">
                 <h2>Offer Details</h2>
@@ -1216,20 +1221,21 @@
             </div>
             @endif
 
-            <div class="delivery-actions {{ $currentStep === 1 ? 'no-back' : '' }} {{ $currentStep === 6 ? 'delivery-final-actions' : '' }}">
-                @if($currentStep > 1)
-                    <a href="{{ route('delivery.show', ['enquiry' => $enquiry->id, 'step' => $deliveryBackStep]) }}" class="delivery-action back">Back</a>
-                @endif
-                @if($currentStep !== 6)
-                    <button type="submit" name="action_type" value="save_exit" class="delivery-action save-exit">Save &amp; Exit</button>
-                @endif
-                @if($currentStep === 6)
-                    <button type="submit" name="action_type" value="submit" class="delivery-action save-next delivery-submit-action">Deliver Now</button>
-                @else
-                    <button type="submit" name="action_type" value="save_next" class="delivery-action save-next" id="deliverySaveNextButton" @if($currentStep === 5) data-requires-pending-zero="1" title="Pending Amount must be 0 before Save & Next" aria-disabled="{{ (float) ($selectedPaymentPendingAmount ?? 0) > 0 ? 'true' : 'false' }}" @endif>Save &amp; Next</button>
-                @endif
-            </div>
         </form>
+
+        <div class="delivery-actions {{ $currentStep === 1 ? 'no-back' : '' }} {{ $currentStep === 6 ? 'delivery-final-actions' : '' }}">
+            @if($currentStep > 1)
+                <a href="{{ route('delivery.show', ['enquiry' => $enquiry->id, 'step' => $deliveryBackStep]) }}" class="delivery-action back">Back</a>
+            @endif
+            @if($currentStep !== 6)
+                <button type="submit" form="deliveryForm" name="action_type" value="save_exit" class="delivery-action save-exit">Save &amp; Exit</button>
+            @endif
+            @if($currentStep === 6)
+                <button type="submit" form="deliveryForm" name="action_type" value="submit" class="delivery-action save-next delivery-submit-action">Deliver Now</button>
+            @else
+                <button type="submit" form="deliveryForm" name="action_type" value="save_next" class="delivery-action save-next" id="deliverySaveNextButton" @if($currentStep === 5) data-requires-pending-zero="1" title="Pending Amount must be 0 before Save & Next" aria-disabled="{{ (float) ($selectedPaymentPendingAmount ?? 0) > 0 ? 'true' : 'false' }}" @endif>Save &amp; Next</button>
+            @endif
+        </div>
     </main>
 </div>
 
@@ -1307,6 +1313,7 @@
 <script>
 (() => {
     const editToggle = document.getElementById('deliveryEditToggle');
+    const personalEditPanel = document.getElementById('deliveryPersonalEditPanel');
     const deliveryContactAddButton = document.querySelector('.delivery-contact-add-btn');
     const deliveryContactList = document.getElementById('deliveryContactList');
     const deliveryMobileNumbersValue = document.getElementById('deliveryMobileNumbersValue');
@@ -1388,10 +1395,17 @@
     }
 
     const syncLockable = () => {
+        const editable = Boolean(editToggle?.checked);
+        if (personalEditPanel) {
+            personalEditPanel.hidden = !editable;
+            personalEditPanel.classList.toggle('hidden', !editable);
+        }
+        editToggle?.setAttribute('aria-expanded', editable ? 'true' : 'false');
+
         document.querySelectorAll('[data-lockable]').forEach((field) => {
-            field.classList.toggle('delivery-locked', !editToggle.checked);
+            field.classList.toggle('delivery-locked', !editable);
             if (field.tagName.toLowerCase() === 'input') {
-                field.readOnly = !editToggle.checked;
+                field.readOnly = !editable;
             }
         });
         syncDeliveryContactControls();
@@ -1409,11 +1423,19 @@
     });
 
     const buyingEditToggle = document.getElementById('deliveryBuyingEditToggle');
+    const buyingEditPanel = document.getElementById('deliveryBuyingEditPanel');
     const buyingLockableFields = Array.from(document.querySelectorAll('[data-buying-lockable]'));
 
     const syncBuyingLockable = () => {
+        const editable = Boolean(buyingEditToggle?.checked);
+        if (buyingEditPanel) {
+            buyingEditPanel.hidden = !editable;
+            buyingEditPanel.classList.toggle('hidden', !editable);
+        }
+        buyingEditToggle?.setAttribute('aria-expanded', editable ? 'true' : 'false');
+
         buyingLockableFields.forEach((field) => {
-            field.classList.toggle('delivery-locked', !buyingEditToggle?.checked);
+            field.classList.toggle('delivery-locked', !editable);
         });
     };
 
@@ -2117,13 +2139,13 @@
     const exchangeTypeInputs = Array.from(document.querySelectorAll('input[name="interested_in_exchange"]'));
     const exchangeHouseTypeInputs = Array.from(document.querySelectorAll('input[name="exchange_type"]'));
     const exchangeEditToggle = document.getElementById('deliveryExchangeEditToggle');
-    const exchangeInlineEdit = document.getElementById('deliveryExchangeInlineEdit');
+    const exchangeEditPanel = document.getElementById('deliveryExchangeEditPanel');
     const exchangePurchaseRow = document.getElementById('deliveryExchangePurchaseRow');
     const exchangeBrandModelRow = document.getElementById('deliveryExchangeBrandModelRow');
     const exchangeLockableFields = Array.from(document.querySelectorAll('[data-exchange-lockable]'));
 
     const syncExchangeLockable = () => {
-        const isEditable = Boolean(exchangeEditToggle?.checked || exchangeInlineEdit?.checked);
+        const isEditable = Boolean(exchangeEditToggle?.checked);
         if (exchangeBrandModelRow) {
             exchangeBrandModelRow.classList.toggle('hidden', !isEditable);
         }
@@ -2138,8 +2160,14 @@
     };
 
     const syncExchangeDetails = () => {
+        const isExchangeEdit = Boolean(exchangeEditToggle?.checked);
         const isExchange = picked('interested_in_exchange') === 'yes';
         const isInHouse = picked('exchange_type') !== 'outhouse';
+        if (exchangeEditPanel) {
+            exchangeEditPanel.hidden = !isExchangeEdit;
+            exchangeEditPanel.classList.toggle('hidden', !isExchangeEdit);
+        }
+        exchangeEditToggle?.setAttribute('aria-expanded', isExchangeEdit ? 'true' : 'false');
         if (exchangeWrap) {
             exchangeWrap.classList.toggle('hidden', !isExchange);
         }
@@ -2151,18 +2179,7 @@
 
     exchangeTypeInputs.forEach((input) => input.addEventListener('change', syncExchangeDetails));
     exchangeHouseTypeInputs.forEach((input) => input.addEventListener('change', syncExchangeDetails));
-    exchangeEditToggle?.addEventListener('change', () => {
-        if (exchangeInlineEdit) {
-            exchangeInlineEdit.checked = exchangeEditToggle.checked;
-        }
-        syncExchangeLockable();
-    });
-    exchangeInlineEdit?.addEventListener('change', () => {
-        if (exchangeEditToggle) {
-            exchangeEditToggle.checked = exchangeInlineEdit.checked;
-        }
-        syncExchangeLockable();
-    });
+    exchangeEditToggle?.addEventListener('change', syncExchangeDetails);
 
     const competitionMap = @json($competitionMap);
     const fillModelSelect = (brandSelectId, modelSelectId) => {

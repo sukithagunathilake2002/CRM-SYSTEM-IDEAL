@@ -31,6 +31,7 @@ Route::get('/login/{role}', [AuthController::class, 'showLoginForm'])->name('aut
 Route::post('/login/{role}', [AuthController::class, 'login'])->name('auth.login.submit');
 Route::get('/register/{role}', [AuthController::class, 'showRegistrationForm'])->name('auth.register.form');
 Route::post('/register/{role}', [AuthController::class, 'register'])->name('auth.register.submit');
+Route::get('/logout', fn () => redirect()->route('login'));
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('auth.logout');
 
 /*

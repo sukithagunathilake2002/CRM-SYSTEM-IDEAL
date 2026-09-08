@@ -134,9 +134,13 @@ class DeliveryController extends Controller
             'existing_vehicle_year' => $firstFilled($booking?->existing_vehicle_year, $prospect?->existing_vehicle_year, $delivery->existing_vehicle_year),
             'interested_in_exchange' => $firstFilled($booking?->interested_in_exchange, $prospect?->interested_in_exchange, $delivery->interested_in_exchange),
             'exchange_type' => $firstFilled($booking?->exchange_type, $delivery->exchange_type, 'in_house'),
+            'exchange_purchase_value' => $firstFilled($delivery->exchange_purchase_value, $booking?->exchange_purchase_value),
             'exchange_vehicle_brand' => $firstFilled($booking?->exchange_vehicle_brand, $prospect?->exchange_vehicle_brand, $delivery->exchange_vehicle_brand),
             'exchange_vehicle_model' => $firstFilled($booking?->exchange_vehicle_model, $prospect?->exchange_vehicle_model, $delivery->exchange_vehicle_model),
             'exchange_manufacture_year' => $firstFilled($booking?->exchange_manufacture_year, $prospect?->exchange_manufacture_year, $delivery->exchange_manufacture_year),
+            'exchange_ownership' => $firstFilled($delivery->exchange_ownership, $booking?->exchange_ownership, $prospect?->exchange_ownership),
+            'exchange_insurance_validity' => $firstFilled($delivery->exchange_insurance_validity, $booking?->exchange_insurance_validity, $prospect?->exchange_insurance_validity),
+            'exchange_tyre_replacements' => $delivery->exchange_tyre_replacements ?: ($booking?->exchange_tyre_replacements ?: ($prospect?->exchange_tyre_replacements ?: [])),
             'exchange_color' => $firstFilled($booking?->exchange_color, $prospect?->exchange_color, $delivery->exchange_color),
             'exchange_mileage_km' => $firstFilled($booking?->exchange_mileage_km, $prospect?->exchange_mileage_km, $delivery->exchange_mileage_km),
             'exchange_registration_no' => $firstFilled($booking?->exchange_registration_no, $prospect?->exchange_registration_no, $delivery->exchange_registration_no),
@@ -225,11 +229,15 @@ class DeliveryController extends Controller
         $validated = $request->validate([
             'action_type' => ['nullable', Rule::in(['save_exit', 'save_next', 'submit'])],
             'delivery_step' => ['nullable', 'integer', 'between:1,6'],
+            'edit_personal_details' => ['nullable', 'in:1'],
+            'edit_buying_details' => ['nullable', 'in:1'],
+            'edit_exchange_details' => ['nullable', 'in:1'],
             'title' => ['nullable', 'string', 'max:20'],
             'name' => ['nullable', 'string', 'max:255'],
             'contact_type' => ['nullable', Rule::in(['Mobile', 'Home', 'Office'])],
             'email' => ['nullable', 'email', 'max:255'],
             'mobile_numbers' => ['nullable', 'string', 'max:255'],
+            'date_of_birth' => ['nullable', 'date'],
             'district' => ['nullable', 'string', 'max:255'],
             'location' => ['nullable', 'string', 'max:255'],
             'state' => ['nullable', 'string', 'max:255'],
@@ -354,15 +362,15 @@ class DeliveryController extends Controller
             ->except(array_merge([
                 'action_type',
                 'delivery_step',
+                'edit_personal_details',
+                'edit_buying_details',
+                'edit_exchange_details',
+                'date_of_birth',
                 'extra_images',
                 'remove_extra_images',
                 'exchange_extra_images',
                 'remove_exchange_extra_images',
-                'exchange_purchase_value',
-                'exchange_ownership',
-                'exchange_insurance_validity',
                 'exchange_tyre_replacements_present',
-                'exchange_tyre_replacements',
                 'test_drive_vehicle_model_other',
                 'test_drive_not_given_reason_other',
                 'offer_unit_price',
@@ -452,17 +460,28 @@ class DeliveryController extends Controller
             $payload['existing_vehicle_year'] = null;
         }
 
+        if (array_key_exists('exchange_tyre_replacements_present', $validated)) {
+            $payload['exchange_tyre_replacements'] = $validated['exchange_tyre_replacements'] ?? [];
+        }
+
         if (array_key_exists('interested_in_exchange', $payload) && ($payload['interested_in_exchange'] ?? null) !== 'yes') {
             $payload['exchange_type'] = null;
+            $payload['exchange_purchase_value'] = null;
             $payload['exchange_vehicle_brand'] = null;
             $payload['exchange_vehicle_model'] = null;
             $payload['exchange_manufacture_year'] = null;
+            $payload['exchange_ownership'] = null;
+            $payload['exchange_insurance_validity'] = null;
+            $payload['exchange_tyre_replacements'] = [];
             $payload['exchange_color'] = null;
             $payload['exchange_mileage_km'] = null;
             $payload['exchange_registration_no'] = null;
             $payload['exchange_expected_price'] = null;
             $payload['exchange_quoted_price'] = null;
             $payload['exchange_price_difference'] = null;
+        }
+        if (array_key_exists('exchange_type', $payload) && ($payload['exchange_type'] ?? null) !== 'in_house') {
+            $payload['exchange_purchase_value'] = null;
         }
 
         foreach (self::DOCUMENT_FIELDS as $field) {
@@ -573,12 +592,9 @@ class DeliveryController extends Controller
         $sharedWorkflowPayload = array_merge(
             $payload,
             collect($validated)
-                ->only(['exchange_purchase_value', 'exchange_ownership', 'exchange_insurance_validity'])
+                ->only(['date_of_birth'])
                 ->all()
         );
-        if (array_key_exists('exchange_tyre_replacements_present', $validated)) {
-            $sharedWorkflowPayload['exchange_tyre_replacements'] = $validated['exchange_tyre_replacements'] ?? [];
-        }
         if (($sharedWorkflowPayload['interested_in_exchange'] ?? null) !== 'yes') {
             $sharedWorkflowPayload['exchange_purchase_value'] = null;
             $sharedWorkflowPayload['exchange_ownership'] = null;

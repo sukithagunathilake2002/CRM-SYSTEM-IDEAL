@@ -28,6 +28,12 @@
     @yield('content')
 
     @auth
+        <template id="globalNotificationsTemplate">
+            @include('layouts.partials.notifications')
+        </template>
+    @endauth
+
+    @auth
         <aside id="globalLeadSidebar" class="global-lead-sidebar" aria-label="Leads and Bookings menu" aria-hidden="true">
             <div class="crm-left-group">
                 <p>Leads and Bookings</p>
@@ -178,7 +184,6 @@
             const globalSearchTarget = @json(url('/epr'));
             const dashboardMainUrl = @json(route('dashboard.main'));
             const analyticsUrl = @json(route('dashboard.home'));
-            const notificationUrl = @json(url('/epr'));
             const logoutUrl = @json(route('auth.logout'));
             const csrfToken = @json(csrf_token());
             const globalUserName = @json($globalHeaderUserName);
@@ -221,6 +226,8 @@
                     return existing;
                 }
 
+                const notificationTemplate = document.getElementById('globalNotificationsTemplate');
+                const notificationMarkup = notificationTemplate ? notificationTemplate.innerHTML : '';
                 const quickIcons = document.createElement('div');
                 quickIcons.className = 'global-quick-icons';
                 const analyticsIconMarkup = showAnalyticsIcon ? `
@@ -259,12 +266,7 @@
                             </form>
                         </div>
                     </details>
-                    <a href="${notificationUrl}" class="global-quick-icon" aria-label="Notifications" title="Notifications">
-                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <path d="M12 4a4 4 0 0 0-4 4v2.6c0 .8-.2 1.6-.6 2.3L6 15h12l-1.4-2.1c-.4-.7-.6-1.5-.6-2.3V8a4 4 0 0 0-4-4Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
-                            <path d="M10 17a2 2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
-                        </svg>
-                    </a>
+                    ${notificationMarkup}
                 `;
 
                 return quickIcons;
