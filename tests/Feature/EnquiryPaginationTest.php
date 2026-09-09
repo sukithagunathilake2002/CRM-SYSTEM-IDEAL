@@ -130,4 +130,42 @@ class EnquiryPaginationTest extends TestCase
         $response->assertSee('page=2', false);
         $response->assertSee('of 25 enquiries');
     }
+
+    public function test_dashboard_district_counts_use_one_grouped_query_and_preserve_filters(): void
+    {
+        Schema::table('customers', fn (Blueprint $table) => $table->text('district')->nullable());
+        DB::table('customers')->where('id', 1)->update(['district' => ' COLOMBO ']);
+        DB::table('enquiries')->where('id', 1)->update(['followup_status' => 'done']);
+        DB::table('enquiries')->where('id', 2)->update(['status' => 'lost']);
+        DB::table('prospect_sheets')->insert(['enquiry_id' => 3, 'lead_status' => 'hot']);
+        $viewer = new User(['role' => User::ROLE_SUPER_ADMIN]);
+        $viewer->id = 99;
+        DB::enableQueryLog();
+        $method = new \ReflectionMethod(\App\Http\Controllers\DashboardController::class, 'getDistrictEpData');
+        $data = $method->invoke(new \App\Http\Controllers\DashboardController, $viewer);
+        $queries = collect(DB::getQueryLog())->filter(fn ($query) => str_contains($query['query'], '"enquiries"'));
+        DB::disableQueryLog();
+        $this->assertCount(1, $queries);
+        $this->assertSame(22, $data['district_counts']['Colombo']);
+        $this->assertSame(0, $data['district_counts']['Galle']);
+        $this->assertSame(22, $data['total_active_eprs']);
+        $this->assertCount(25, $data['map_data']);
+    }
+
+    public function test_dashboard_followup_counts_preserve_due_and_status_filters(): void
+    {
+        DB::table('enquiries')->where('id', 1)->update(['follow_type' => 'Showroom Visit']);
+        DB::table('enquiries')->where('id', 2)->update(['follow_type' => 'Home Visit']);
+        DB::table('enquiries')->where('id', 3)->update(['followup_status' => 'done']);
+        DB::table('enquiries')->where('id', 4)->update(['follow_date' => '2099-01-01']);
+        $viewer = new User(['role' => User::ROLE_SUPER_ADMIN]);
+        $viewer->id = 99;
+        $method = new \ReflectionMethod(\App\Http\Controllers\DashboardController::class, 'getDashboardEpData');
+        $data = $method->invoke(new \App\Http\Controllers\DashboardController, $viewer);
+        $this->assertSame(21, $data['call_count']);
+        $this->assertSame(1, $data['showroom_count']);
+        $this->assertSame(1, $data['home_count']);
+        $this->assertSame(24, $data['total_count']);
+        $this->assertCount(10, $data['call_epds']);
+    }
 }

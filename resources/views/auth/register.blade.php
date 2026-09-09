@@ -2,7 +2,7 @@
 
 @section('content')
 <section class="card auth-card narrow">
-    <h1>{{ $roleLabel }} Registration</h1>
+    <h1>{{ $role === \App\Models\User::ROLE_ADMIN ? 'Create Admin Account' : $roleLabel.' Registration' }}</h1>
 
     @if($parentRole && $managerOptions->isEmpty())
         <div class="portal-flash error">
@@ -74,7 +74,7 @@
             <input type="password" name="password_confirmation" required>
         </label>
 
-        <button type="submit" class="btn-primary" @disabled($parentRole && $managerOptions->isEmpty())>Register</button>
+        <button type="submit" class="btn-primary" @disabled($parentRole && $managerOptions->isEmpty())>{{ $role === \App\Models\User::ROLE_ADMIN ? 'Create Admin' : 'Register' }}</button>
     </form>
 
     <div class="helper-links">

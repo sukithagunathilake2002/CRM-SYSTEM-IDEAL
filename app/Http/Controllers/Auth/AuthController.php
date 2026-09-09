@@ -137,6 +137,7 @@ class AuthController extends Controller
     public function showRegistrationForm(string $roleSlug): View
     {
         $role = $this->resolveRoleFromSlug($roleSlug);
+        $this->authorizeRegistration($role);
         $parentRole = User::parentRoleFor($role);
         $managerOptions = collect();
 
@@ -160,6 +161,7 @@ class AuthController extends Controller
     public function register(Request $request, string $roleSlug): RedirectResponse
     {
         $role = $this->resolveRoleFromSlug($roleSlug);
+        $this->authorizeRegistration($role);
         $parentRole = User::parentRoleFor($role);
 
         $rules = [
@@ -207,6 +209,11 @@ class AuthController extends Controller
             'permitted_districts' => null,
         ]);
 
+        if (Auth::check()) {
+            return redirect()->route('dashboard.home')
+                ->with('success', User::ROLE_LABELS[$role] . ' account created successfully for ' . $user->name . '.');
+        }
+
         Auth::login($user);
         $request->session()->regenerate();
 
@@ -231,6 +238,13 @@ class AuthController extends Controller
         abort_if(!$role, 404, 'Role not found.');
 
         return $role;
+    }
+
+    private function authorizeRegistration(string $role): void
+    {
+        if (in_array($role, [User::ROLE_ADMIN, User::ROLE_SUPER_ADMIN], true)) {
+            abort_unless(Auth::user()?->role === User::ROLE_SUPER_ADMIN, 403, 'Only Super Admin can create this account.');
+        }
     }
 
     private function generateLoginCaptcha(Request $request): string

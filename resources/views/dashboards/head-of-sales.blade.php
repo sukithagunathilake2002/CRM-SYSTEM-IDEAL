@@ -2,7 +2,10 @@
 
 @section('content')
 <section class="card dashboard-header-card">
-    <h1>Head Of Sales Dashboard</h1>
+    <h1>{{ auth()->user()->role === \App\Models\User::ROLE_ADMIN ? 'Admin Dashboard' : 'Head Of Sales Dashboard' }}</h1>
+    @if(auth()->user()->role === \App\Models\User::ROLE_ADMIN)
+        <p>Assigned Head Of Sales: {{ auth()->user()->manager?->name }}</p>
+    @endif
     <p>You manage Area Managers and overall sales operations.</p>
 
     <div class="stats-grid">
@@ -12,12 +15,14 @@
     </div>
 
     <div class="quick-links">
+        <button class="btn-link alt" type="button" data-all-leads-open>All Leads</button>
         <a class="btn-link" href="{{ route('auth.register.form', 'area-manager') }}">Register Area Manager</a>
         <a class="btn-link" href="{{ route('dashboard.analytics') }}">Analytics Filters</a>
         <a class="btn-link" href="{{ route('dashboard.delivery_analytics') }}">Delivery</a>
         <a class="btn-link alt" href="{{ url('/epr') }}">Open EPR</a>
     </div>
 </section>
+@include('dashboards.all-leads.filters')
 
 <section class="card">
     <h2>Hierarchy Lead Summary</h2>

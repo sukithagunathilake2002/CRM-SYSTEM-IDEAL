@@ -3,6 +3,7 @@
     $canViewLostAnalytics = in_array(auth()->user()?->role, [
         \App\Models\User::ROLE_SUPER_ADMIN,
         \App\Models\User::ROLE_HEAD_OF_SALES,
+        \App\Models\User::ROLE_ADMIN,
     ], true);
     $canViewActiveAnalytics = $canViewLostAnalytics;
     $canViewClosedAnalytics = $canViewLostAnalytics;

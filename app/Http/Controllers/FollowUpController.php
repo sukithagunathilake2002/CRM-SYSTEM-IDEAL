@@ -643,27 +643,7 @@ class FollowUpController extends Controller
 
     private function resolveAccessibleUserIds(User $viewer): array
     {
-        $resolvedIds = [(int) $viewer->id];
-        $frontier = [(int) $viewer->id];
-
-        while (!empty($frontier)) {
-            $childIds = User::query()
-                ->whereIn('manager_id', $frontier)
-                ->pluck('id')
-                ->map(fn($id) => (int) $id)
-                ->values()
-                ->all();
-
-            $next = array_values(array_diff($childIds, $resolvedIds));
-            if (empty($next)) {
-                break;
-            }
-
-            $resolvedIds = array_values(array_unique(array_merge($resolvedIds, $next)));
-            $frontier = $next;
-        }
-
-        return $resolvedIds;
+        return $viewer->accessibleUserIds();
     }
 
     private function clearActiveFollowupFields(Enquiry $enquiry): void

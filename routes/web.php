@@ -10,6 +10,7 @@ use App\Http\Controllers\FollowUpController;
 use App\Http\Controllers\LeadTransferRequestController;
 use App\Http\Controllers\ProspectSheetController;
 use App\Http\Controllers\VehicleController;
+use App\Http\Controllers\SuperAdminLeadsController;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
@@ -49,9 +50,21 @@ Route::middleware('auth')->group(function () {
         ->middleware('role:' . User::ROLE_SUPER_ADMIN)
         ->name('dashboard.super_admin');
 
+    Route::middleware('role:' . User::ROLE_SUPER_ADMIN)->group(function () {
+        Route::get('/dashboard/super-admin/all-leads', [SuperAdminLeadsController::class, 'index'])->name('dashboard.super_admin.leads');
+        Route::get('/dashboard/super-admin/all-leads/options', [SuperAdminLeadsController::class, 'options'])->name('dashboard.super_admin.leads.options');
+        Route::get('/dashboard/super-admin/all-leads/export', [SuperAdminLeadsController::class, 'export'])->name('dashboard.super_admin.leads.export');
+    });
+
     Route::get('/dashboard/head-of-sales', [DashboardController::class, 'headOfSales'])
         ->middleware('role:' . User::ROLE_HEAD_OF_SALES)
         ->name('dashboard.head_of_sales');
+
+    Route::middleware('role:' . User::ROLE_HEAD_OF_SALES)->group(function () {
+        Route::get('/dashboard/admin/all-leads', [SuperAdminLeadsController::class, 'index'])->name('dashboard.admin.leads');
+        Route::get('/dashboard/admin/all-leads/options', [SuperAdminLeadsController::class, 'options'])->name('dashboard.admin.leads.options');
+        Route::get('/dashboard/admin/all-leads/export', [SuperAdminLeadsController::class, 'export'])->name('dashboard.admin.leads.export');
+    });
 
     Route::get('/dashboard/area-manager', [DashboardController::class, 'areaManager'])
         ->middleware('role:' . User::ROLE_AREA_MANAGER)

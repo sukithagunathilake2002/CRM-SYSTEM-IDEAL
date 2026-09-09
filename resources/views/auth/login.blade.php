@@ -59,7 +59,9 @@
             </form>
 
             <div class="login-ui-links">
+                @if(!in_array($role, [\App\Models\User::ROLE_ADMIN, \App\Models\User::ROLE_SUPER_ADMIN], true) || auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
                 <a href="{{ route('auth.register.form', $roleSlug) }}">Create {{ $roleLabel }} account</a>
+                @endif
                 <a href="{{ route('auth.roles') }}">Back to all roles</a>
             </div>
         </div>
