@@ -134,33 +134,44 @@ class AuthController extends Controller
         return redirect()->route('dashboard.home');
     }
 
-    public function showRegistrationForm(string $roleSlug): View
+    public function showRegistrationForm(string $roleSlug): \Illuminate\Http\Response
     {
         $role = $this->resolveRoleFromSlug($roleSlug);
+        $this->authorizeRegistration($role);
         $parentRole = User::parentRoleFor($role);
         $managerOptions = collect();
+        $autoAssignManager = $role === User::ROLE_AREA_MANAGER && Auth::user()?->role === User::ROLE_HEAD_OF_SALES;
 
-        if ($parentRole) {
+        if ($parentRole && !$autoAssignManager) {
             $managerOptions = User::query()
                 ->where('role', $parentRole)
                 ->orderBy('name')
                 ->get(['id', 'name', 'email', 'role', 'manager_id']);
         }
 
-        return view('auth.register', [
+        $createdAccount = null;
+        if ($encryptedAccount = session()->pull('created_account')) {
+            $createdAccount = json_decode(\Illuminate\Support\Facades\Crypt::decryptString($encryptedAccount), true);
+        }
+
+        return response()->view('auth.register', [
             'role' => $role,
             'roleSlug' => $roleSlug,
             'roleLabel' => User::ROLE_LABELS[$role],
             'parentRole' => $parentRole,
             'parentRoleLabel' => $parentRole ? User::ROLE_LABELS[$parentRole] : null,
             'managerOptions' => $managerOptions,
-        ]);
+            'autoAssignManager' => $autoAssignManager,
+            'createdAccount' => $createdAccount,
+        ])->header('Cache-Control', 'no-store, private');
     }
 
     public function register(Request $request, string $roleSlug): RedirectResponse
     {
         $role = $this->resolveRoleFromSlug($roleSlug);
+        $this->authorizeRegistration($role);
         $parentRole = User::parentRoleFor($role);
+        $autoAssignManager = $role === User::ROLE_AREA_MANAGER && $request->user()?->role === User::ROLE_HEAD_OF_SALES;
 
         $rules = [
             'name' => ['required', 'string', 'max:255'],
@@ -174,7 +185,9 @@ class AuthController extends Controller
             'employee_number.regex' => 'Employee number must start with M followed by exactly 5 digits.',
         ];
 
-        if ($parentRole) {
+        if ($autoAssignManager) {
+            $rules['manager_id'] = ['exclude'];
+        } elseif ($parentRole) {
             $rules['manager_id'] = ['required', 'integer', Rule::exists('users', 'id')];
         } else {
             $rules['manager_id'] = ['nullable', 'integer'];
@@ -182,7 +195,7 @@ class AuthController extends Controller
 
         $validated = $request->validate($rules, $messages);
 
-        $managerId = $validated['manager_id'] ?? null;
+        $managerId = $autoAssignManager ? $request->user()->id : ($validated['manager_id'] ?? null);
 
         if ($parentRole && $managerId) {
             $manager = User::query()->find($managerId);
@@ -207,10 +220,13 @@ class AuthController extends Controller
             'permitted_districts' => null,
         ]);
 
-        Auth::login($user);
-        $request->session()->regenerate();
-
-        return redirect()->route('dashboard.home');
+        return redirect()->route('auth.register.form', $roleSlug)
+            ->with('created_account', \Illuminate\Support\Facades\Crypt::encryptString(json_encode([
+                'role' => User::ROLE_LABELS[$role],
+                'name' => $user->name,
+                'username' => $user->email,
+                'password' => $validated['password'],
+            ])));
     }
 
     public function logout(Request $request): RedirectResponse
@@ -231,6 +247,13 @@ class AuthController extends Controller
         abort_if(!$role, 404, 'Role not found.');
 
         return $role;
+    }
+
+    private function authorizeRegistration(string $role): void
+    {
+        if (in_array($role, [User::ROLE_ADMIN, User::ROLE_SUPER_ADMIN], true)) {
+            abort_unless(Auth::user()?->role === User::ROLE_SUPER_ADMIN, 403, 'Only Super Admin can create this account.');
+        }
     }
 
     private function generateLoginCaptcha(Request $request): string

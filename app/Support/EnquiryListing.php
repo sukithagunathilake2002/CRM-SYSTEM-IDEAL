@@ -60,23 +60,7 @@ class EnquiryListing
                 }
             });
         }
-        if ($models = $request->input('model', [])) {
-            $models = array_map('strtolower', $models);
-            $query->where(function ($q) use ($models) {
-                $q->where(function ($fallback) use ($models) {
-                    $fallback->where(function ($empty) {
-                        $empty->whereNull('selected_vehicle_models')->orWhere('selected_vehicle_models', '[]');
-                    })->whereHas('vehicle', fn($v) => $v->whereIn($v->getQuery()->raw('LOWER(TRIM(model))'), $models));
-                });
-                foreach ($models as $model) {
-                    if ($q->getConnection()->getDriverName() === 'sqlite') {
-                        $q->orWhereRaw("EXISTS (SELECT 1 FROM json_each(enquiries.selected_vehicle_models) AS selected_model WHERE LOWER(TRIM(json_extract(selected_model.value, '$.model'))) = ?)", [$model]);
-                    } else {
-                        $q->orWhereRaw('JSON_CONTAINS(LOWER(enquiries.selected_vehicle_models), ?)', [json_encode(['model' => $model])]);
-                    }
-                }
-            });
-        }
+        $this->filterVehicleModels($query, $request->input('model', []));
 
         $search = trim((string) $request->input('q', ''));
         $tokens = preg_split('/[^\pL\pN]+/u', mb_strtolower($search), -1, PREG_SPLIT_NO_EMPTY);
@@ -115,6 +99,26 @@ class EnquiryListing
             $enquiries = $query->paginate(10, ['*'], 'page', $enquiries->lastPage());
         }
         return $enquiries->appends($request->except(['page', 'filter_options']));
+    }
+
+    public function filterVehicleModels(Builder $query, array $models): void
+    {
+        if ($models === []) return;
+        $models = array_map('strtolower', $models);
+        $query->where(function ($q) use ($models) {
+            $q->where(function ($fallback) use ($models) {
+                $fallback->where(function ($empty) {
+                    $empty->whereNull('selected_vehicle_models')->orWhere('selected_vehicle_models', '[]');
+                })->whereHas('vehicle', fn($v) => $v->whereIn($v->getQuery()->raw('LOWER(TRIM(model))'), $models));
+            });
+            foreach ($models as $model) {
+                if ($q->getConnection()->getDriverName() === 'sqlite') {
+                    $q->orWhereRaw("EXISTS (SELECT 1 FROM json_each(enquiries.selected_vehicle_models) AS selected_model WHERE LOWER(TRIM(json_extract(selected_model.value, '$.model'))) = ?)", [$model]);
+                } else {
+                    $q->orWhereRaw('JSON_CONTAINS(LOWER(enquiries.selected_vehicle_models), ?)', [json_encode(['model' => $model])]);
+                }
+            }
+        });
     }
 
     public function options(Builder $query): array

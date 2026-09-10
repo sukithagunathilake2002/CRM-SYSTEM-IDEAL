@@ -15,7 +15,9 @@
                 <h3>{{ $label }}</h3>
                 <div class="role-actions">
                     <a href="{{ route('auth.login.form', $slug) }}" class="btn-link">Login</a>
+                @if(!in_array($role, [\App\Models\User::ROLE_ADMIN, \App\Models\User::ROLE_SUPER_ADMIN], true) || auth()->user()?->role === \App\Models\User::ROLE_SUPER_ADMIN)
                     <a href="{{ route('auth.register.form', $slug) }}" class="btn-link alt">Register</a>
+                @endif
                 </div>
             </div>
         @endforeach

@@ -2030,6 +2030,10 @@ html.theme-dark .hierarchy-metric-btn {
     background: #f8fbff;
 }
 
+body.delivery-approvals-page .portal-main {
+    max-width: 1600px;
+}
+
 .delivery-approvals-table td strong,
 .delivery-approvals-table td span,
 .delivery-approvals-table td small {
@@ -2081,6 +2085,60 @@ html.theme-dark .hierarchy-metric-btn {
     cursor: pointer;
     font-family: inherit;
     white-space: nowrap;
+}
+
+.registration-success-dialog,
+.delivery-reject-dialog {
+    width: min(480px, calc(100% - 32px));
+    max-height: calc(100vh - 32px);
+    overflow: auto;
+    border: 0;
+    border-radius: 16px;
+    padding: 24px;
+    color: #172033;
+    background: #fff;
+}
+
+.registration-success-dialog dt {
+    margin-top: 14px;
+    font-weight: 700;
+}
+
+.registration-success-dialog dd {
+    margin: 4px 0 0;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+
+.registration-created-password {
+    font-family: monospace;
+}
+
+.registration-success-dialog::backdrop,
+.delivery-reject-dialog::backdrop {
+    background: rgba(15, 23, 42, 0.6);
+}
+
+.delivery-reject-dialog textarea {
+    display: block;
+    width: 100%;
+    margin-top: 8px;
+    padding: 10px;
+    border: 1px solid #94a3b8;
+    border-radius: 8px;
+    font: inherit;
+    resize: vertical;
+}
+
+#deliveryRejectError {
+    color: #dc2626;
+}
+
+html.theme-dark .registration-success-dialog,
+html.theme-dark .delivery-reject-dialog,
+html.theme-dark .delivery-reject-dialog textarea {
+    color: #e5e7eb;
+    background: #1e293b;
 }
 
 .delivery-reject-form input {

@@ -44,6 +44,8 @@ class AppServiceProvider extends ServiceProvider
             if (Schema::hasTable('users')) {
                 if ($user->role === User::ROLE_SUPER_ADMIN) {
                     $shouldFilterByVisibleUsers = false;
+                } elseif ($user->role === User::ROLE_ADMIN) {
+                    $visibleUserIds = collect($user->accessibleUserIds());
                 } elseif ($user->role === User::ROLE_HEAD_OF_SALES) {
                     $areaIds = User::query()
                         ->where('role', User::ROLE_AREA_MANAGER)

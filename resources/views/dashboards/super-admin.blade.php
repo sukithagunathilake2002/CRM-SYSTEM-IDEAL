@@ -194,20 +194,25 @@ html.theme-dark .analytics-card-enhanced {
     </div>
 
     <div class="quick-links">
+        <a class="btn-link" href="{{ route('auth.register.form', 'admin') }}">Create Admin</a>
         <a class="btn-link" href="{{ route('auth.register.form', 'head-of-sales') }}">Register Head Of Sales</a>
         <a class="btn-link" href="{{ route('auth.register.form', 'area-manager') }}">Register Area Manager</a>
         <a class="btn-link" href="{{ route('auth.register.form', 'sales-consultant') }}">Register Sales Consultant</a>
         <a class="btn-link" href="{{ route('dashboard.analytics') }}">Analytics Filters</a>
         <a class="btn-link" href="{{ route('dashboard.delivery_analytics') }}">Delivery</a>
+        <button class="btn-link alt" type="button" data-all-leads-open>All Leads</button>
         <a class="btn-link alt" href="{{ url('/epr') }}">Open EPR</a>
         <a class="btn-link alt" href="{{ route('enquiries.list', ['view' => 'all']) }}">Delete Leads</a>
     </div>
 </section>
 
+@include('dashboards.all-leads.filters')
+
 <section class="card users-card">
     @php
         $manageableUserGroups = collect($manageableUsers)->groupBy('role');
         $manageableRoleOrder = [
+            \App\Models\User::ROLE_ADMIN,
             \App\Models\User::ROLE_HEAD_OF_SALES,
             \App\Models\User::ROLE_AREA_MANAGER,
             \App\Models\User::ROLE_SALES_CONSULTANT,

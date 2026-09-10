@@ -15,12 +15,14 @@ class User extends Authenticatable
 
     public const ROLE_SUPER_ADMIN = 'super_admin';
     public const ROLE_HEAD_OF_SALES = 'head_of_sales';
+    public const ROLE_ADMIN = 'admin';
     public const ROLE_AREA_MANAGER = 'area_manager';
     public const ROLE_SALES_CONSULTANT = 'sales_consultant';
 
     public const ROLE_HIERARCHY = [
         self::ROLE_SUPER_ADMIN,
         self::ROLE_HEAD_OF_SALES,
+        self::ROLE_ADMIN,
         self::ROLE_AREA_MANAGER,
         self::ROLE_SALES_CONSULTANT,
     ];
@@ -28,6 +30,7 @@ class User extends Authenticatable
     public const ROLE_LABELS = [
         self::ROLE_SUPER_ADMIN => 'Super Admin',
         self::ROLE_HEAD_OF_SALES => 'Head Of Sales',
+        self::ROLE_ADMIN => 'Admin',
         self::ROLE_AREA_MANAGER => 'Area Manager',
         self::ROLE_SALES_CONSULTANT => 'Sales Consultant',
     ];
@@ -35,6 +38,7 @@ class User extends Authenticatable
     public const ROLE_SLUGS = [
         self::ROLE_SUPER_ADMIN => 'super-admin',
         self::ROLE_HEAD_OF_SALES => 'head-of-sales',
+        self::ROLE_ADMIN => 'admin',
         self::ROLE_AREA_MANAGER => 'area-manager',
         self::ROLE_SALES_CONSULTANT => 'sales-consultant',
     ];
@@ -137,6 +141,10 @@ class User extends Authenticatable
 
     public function headOfSalesForVehiclePermissions(): ?self
     {
+        if ($this->role === self::ROLE_ADMIN) {
+            return $this->manager?->role === self::ROLE_HEAD_OF_SALES ? $this->manager : null;
+        }
+
         if ($this->role === self::ROLE_HEAD_OF_SALES) {
             return $this;
         }
@@ -163,6 +171,10 @@ class User extends Authenticatable
 
     public function accessibleUserIds(): array
     {
+        if ($this->role === self::ROLE_ADMIN) {
+            return $this->headOfSalesForVehiclePermissions()?->accessibleUserIds() ?? [];
+        }
+
         if ($this->role === self::ROLE_SUPER_ADMIN) {
             return self::query()
                 ->pluck('id')
@@ -212,6 +224,7 @@ class User extends Authenticatable
     public static function parentRoleFor(string $role): ?string
     {
         return match ($role) {
+            self::ROLE_ADMIN => self::ROLE_HEAD_OF_SALES,
             self::ROLE_AREA_MANAGER => self::ROLE_HEAD_OF_SALES,
             self::ROLE_SALES_CONSULTANT => self::ROLE_AREA_MANAGER,
             default => null,

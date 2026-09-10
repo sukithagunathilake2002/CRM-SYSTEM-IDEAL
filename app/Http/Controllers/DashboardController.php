@@ -25,6 +25,7 @@ class DashboardController extends Controller
         $routeByRole = [
             User::ROLE_SUPER_ADMIN => 'dashboard.super_admin',
             User::ROLE_HEAD_OF_SALES => 'dashboard.head_of_sales',
+            User::ROLE_ADMIN => 'dashboard.head_of_sales',
             User::ROLE_AREA_MANAGER => 'dashboard.area_manager',
             User::ROLE_SALES_CONSULTANT => 'dashboard.main',
         ];
@@ -42,7 +43,7 @@ class DashboardController extends Controller
             return redirect()->route('dashboard.super_admin');
         }
 
-        if ($user?->role === User::ROLE_HEAD_OF_SALES) {
+        if (in_array($user?->role, [User::ROLE_HEAD_OF_SALES, User::ROLE_ADMIN], true)) {
             return redirect()->route('dashboard.head_of_sales');
         }
 
@@ -158,6 +159,10 @@ class DashboardController extends Controller
     public function headOfSales(Request $request): View
     {
         $user = $request->user();
+        if ($user->role === User::ROLE_ADMIN) {
+            $user = $user->headOfSalesForVehiclePermissions();
+            abort_unless($user, 403, 'A valid Head Of Sales assignment is required.');
+        }
         $areaManagers = User::query()
             ->where('role', User::ROLE_AREA_MANAGER)
             ->where('manager_id', $user->id)
@@ -212,14 +217,9 @@ class DashboardController extends Controller
         $hierarchyCounts['dependent_users'] = $hierarchyCounts['area_managers']
             + $hierarchyCounts['sales_consultants'];
 
-        $analytics = $this->buildAnalytics($user, $request);
-        $followupEscalations = $this->buildFollowupEscalations($user);
-        
-        $dashboardEpds = $this->getDashboardEpData($user);
-        
-        $districtEpData = $this->getDistrictEpData($user);
+        $analytics = (new \App\Support\HeadOfSalesOverview)->build($user);
 
-        return view('dashboards.head-of-sales', compact('hierarchy', 'hierarchyCounts', 'analytics', 'dashboardEpds', 'districtEpData', 'followupEscalations'));
+        return view('dashboards.head-of-sales', compact('hierarchy', 'hierarchyCounts', 'analytics'));
     }
 
     public function areaManager(Request $request): View
@@ -480,7 +480,7 @@ class DashboardController extends Controller
     {
         $user = $request->user();
 
-        if (!in_array($user?->role, [User::ROLE_SUPER_ADMIN, User::ROLE_HEAD_OF_SALES], true)) {
+        if (!in_array($user?->role, [User::ROLE_SUPER_ADMIN, User::ROLE_ADMIN, User::ROLE_HEAD_OF_SALES], true)) {
             return redirect()->route('dashboard.home');
         }
 
@@ -496,7 +496,7 @@ class DashboardController extends Controller
     {
         $user = $request->user();
 
-        if (!in_array($user?->role, [User::ROLE_SUPER_ADMIN, User::ROLE_HEAD_OF_SALES], true)) {
+        if (!in_array($user?->role, [User::ROLE_SUPER_ADMIN, User::ROLE_ADMIN, User::ROLE_HEAD_OF_SALES], true)) {
             return redirect()->route('dashboard.home');
         }
 
@@ -647,6 +647,20 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
     {
         $accessibleUserIds = $this->resolveAccessibleUserIds($viewer);
         
+        $countsQuery = Enquiry::query()
+            ->join('customers', 'customers.id', '=', 'enquiries.customer_id')
+            ->whereIn('enquiries.user_id', $accessibleUserIds)
+            ->pendingRegistration()
+            ->whereRaw("LOWER(COALESCE(followup_status, '')) <> ?", ['done']);
+        $this->applyVehicleVisibility($countsQuery, $viewer, 'enquiries.vehicle_id');
+        $counts = $countsQuery
+            ->selectRaw("LOWER(TRIM(COALESCE(customers.district, ''))) as district_key, COUNT(*) as total")
+            ->groupByRaw("LOWER(TRIM(COALESCE(customers.district, '')))")
+            ->pluck('total', 'district_key');
+
+        $districtCounts = [];
+        foreach (User::DISTRICT_OPTIONS as $district) {
+            $districtCounts[$district] = (int) ($counts[strtolower($district)] ?? 0);
         $districtCounts = array_fill_keys(User::DISTRICT_OPTIONS, 0);
 
         $rows = Enquiry::query()
@@ -664,7 +678,7 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
                 $districtCounts[$district] += (int) $row->aggregate;
             }
         }
-        
+
         $maxCount = max($districtCounts) ?: 1;
         
         $mapData = [];
@@ -704,6 +718,15 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
         $dueFollowupQuery = (clone $baseQuery)
             ->where('follow_date', '<=', $today);
 
+        $typeCounts = (clone $dueFollowupQuery)->toBase()
+            ->selectRaw("SUM(CASE WHEN LOWER(COALESCE(follow_type, '')) LIKE ? THEN 1 ELSE 0 END) as call_count,
+                SUM(CASE WHEN LOWER(COALESCE(follow_type, '')) LIKE ? THEN 1 ELSE 0 END) as showroom_count,
+                SUM(CASE WHEN LOWER(COALESCE(follow_type, '')) LIKE ? THEN 1 ELSE 0 END) as home_count",
+                ['%call%', '%showroom%', '%home%'])
+            ->first();
+        $callCount = (int) ($typeCounts->call_count ?? 0);
+        $showroomCount = (int) ($typeCounts->showroom_count ?? 0);
+        $homeCount = (int) ($typeCounts->home_count ?? 0);
         // The previous three individual counts each scanned roughly 40,000
         // enquiries for this consultant. Calculate all card totals in one
         // indexed query instead.
@@ -812,7 +835,7 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
     private function canViewFollowupTracker(?User $user): bool
     {
         return $user instanceof User
-            && in_array($user->role, [User::ROLE_SUPER_ADMIN, User::ROLE_HEAD_OF_SALES, User::ROLE_AREA_MANAGER], true);
+            && in_array($user->role, [User::ROLE_SUPER_ADMIN, User::ROLE_ADMIN, User::ROLE_HEAD_OF_SALES, User::ROLE_AREA_MANAGER], true);
     }
 
     private function buildFollowupTrackerReport(User $viewer, string $section, Request $request): array
@@ -2311,6 +2334,7 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
             ? $selectedUserScopeInput
             : 'hierarchy';
         $forceHierarchyScope = in_array($viewer->role, [
+            User::ROLE_ADMIN,
             User::ROLE_HEAD_OF_SALES,
             User::ROLE_AREA_MANAGER,
         ], true);
@@ -4715,35 +4739,7 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
 
     private function resolveAccessibleUserIds(User $viewer): array
     {
-        if ($viewer->role === User::ROLE_SUPER_ADMIN) {
-            return User::query()
-                ->pluck('id')
-                ->map(fn($id) => (int) $id)
-                ->values()
-                ->all();
-        }
-
-        $resolvedIds = [(int) $viewer->id];
-        $frontier = [(int) $viewer->id];
-
-        while (!empty($frontier)) {
-            $childIds = User::query()
-                ->whereIn('manager_id', $frontier)
-                ->pluck('id')
-                ->map(fn($id) => (int) $id)
-                ->values()
-                ->all();
-
-            $next = array_values(array_diff($childIds, $resolvedIds));
-            if (empty($next)) {
-                break;
-            }
-
-            $resolvedIds = array_values(array_unique(array_merge($resolvedIds, $next)));
-            $frontier = $next;
-        }
-
-        return $resolvedIds;
+        return $viewer->accessibleUserIds();
     }
 
     private function applyVehicleVisibility($query, ?User $viewer, string $vehicleColumn = 'vehicle_id'): void

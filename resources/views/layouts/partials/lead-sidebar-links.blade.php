@@ -9,8 +9,8 @@
         ['href' => route('enquiries.list', ['lead_result' => 'closed']), 'label' => 'Closed Lead', 'icon' => 'circle-check'],
         ['href' => route('enquiries.list', ['registration' => 'pending']), 'label' => 'EPR', 'icon' => 'clipboard'],
         ['href' => route('enquiries.list', ['booking' => 'active']), 'label' => 'Active Booking', 'icon' => 'calendar-check'],
-        ['href' => url('/epr'), 'label' => 'Cancelled Booking', 'icon' => 'calendar-x'],
-        ['href' => route('enquiries.list', ['delivery' => 'active']), 'label' => 'Deliveries', 'icon' => 'truck'],
+        ['href' => route('enquiries.list', ['booking' => 'cancelled']), 'label' => 'Cancelled Booking', 'icon' => 'calendar-x'],
+        ['href' => route('enquiries.list', ['delivery_approval' => 'approved']), 'label' => 'Deliveries', 'icon' => 'truck'],
         ['href' => route('enquiries.list', ['delivery_approval' => 'pending']), 'label' => 'Pending Delivery', 'icon' => 'clock'],
     ];
 

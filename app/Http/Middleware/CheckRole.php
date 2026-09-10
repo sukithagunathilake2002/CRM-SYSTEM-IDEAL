@@ -16,11 +16,14 @@ class CheckRole
             abort(401);
         }
 
-        if (empty($roles) || in_array($user->role, $roles, true)) {
+        $role = $user->role === \App\Models\User::ROLE_ADMIN
+            && $user->headOfSalesForVehiclePermissions()
+            ? \App\Models\User::ROLE_HEAD_OF_SALES : $user->role;
+
+        if (empty($roles) || in_array($role, $roles, true)) {
             return $next($request);
         }
 
         abort(403, 'You do not have permission to access this page.');
     }
 }
-
