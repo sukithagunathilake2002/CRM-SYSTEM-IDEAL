@@ -272,7 +272,7 @@ public function list(Request $request)
         $selectedLeadResult = null;
     }
     $selectedBookingView = strtolower(trim((string) $request->query('booking', '')));
-    if (!in_array($selectedBookingView, ['active', 'inactive'], true)) {
+    if (!in_array($selectedBookingView, ['active', 'inactive', 'cancelled'], true)) {
         $selectedBookingView = null;
     }
     $selectedInquiryView = strtolower(trim((string) $request->query('inquiry', '')));
@@ -300,6 +300,8 @@ public function list(Request $request)
         });
     } elseif ($selectedDeliveryView === 'active') {
         $enquiriesQuery->activeDeliveryStage();
+    } elseif ($selectedBookingView === 'cancelled') {
+        $enquiriesQuery->has('booking')->whereRaw("LOWER(TRIM(COALESCE(status, ''))) IN ('cancelled', 'canceled')");
     } elseif ($selectedBookingView === 'active') {
         $enquiriesQuery->activeBookingStage();
     } elseif ($selectedBookingView === 'inactive') {
@@ -327,7 +329,17 @@ public function list(Request $request)
     }
 
     if ($selectedLeadResult !== null) {
-        $enquiriesQuery->whereRaw("LOWER(COALESCE(followup_result, '')) = ?", [$selectedLeadResult]);
+        if ($selectedLeadResult === 'active') {
+            $enquiriesQuery->nonTerminalLead();
+        } else {
+            $enquiriesQuery->where(function ($query) use ($selectedLeadResult) {
+                $query->whereRaw("LOWER(TRIM(COALESCE(followup_result, ''))) = ?", [$selectedLeadResult])
+                    ->orWhere(function ($fallback) use ($selectedLeadResult) {
+                        $fallback->whereRaw("LOWER(TRIM(COALESCE(followup_result, ''))) NOT IN ('lost', 'closed')")
+                            ->whereRaw("LOWER(TRIM(COALESCE(status, ''))) = ?", [$selectedLeadResult]);
+                    });
+            });
+        }
     }
 
     return $this->renderEnquiryList($enquiriesQuery, $request);

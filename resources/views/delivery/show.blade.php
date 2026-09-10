@@ -4,6 +4,7 @@
 <link rel="stylesheet" href="{{ asset('css/delivery.css') }}">
 
 @php
+    $isReadOnly = auth()->user()?->role === \App\Models\User::ROLE_AREA_MANAGER;
     $summaryName = trim(($customer?->title ? $customer->title . ' ' : '') . ($customer?->name ?? 'N/A'));
     $summaryMobile = collect($customer?->mobile_numbers ?? [])->filter()->values()->implode(', ') ?: 'N/A';
     $summaryAddress = collect([$customer?->address1, $customer?->address2, $customer?->location, $customer?->district, $customer?->state])->filter()->implode(', ');
@@ -287,6 +288,9 @@
     </header>
 
     <h1 class="workflow-form-heading">Delivery</h1>
+    @if($isReadOnly)
+        <p>Review only. Delivery details cannot be edited by Area Managers.</p>
+    @endif
 
     <div class="delivery-stepper" aria-label="Delivery workflow">
         @foreach([
@@ -376,6 +380,9 @@
         <form id="deliveryForm" method="POST" action="{{ route('delivery.store', $enquiry->id) }}" enctype="multipart/form-data" class="delivery-form {{ $currentStep === 6 ? 'delivery-form-review' : '' }}">
             @csrf
             <input type="hidden" name="delivery_step" value="{{ $currentStep }}">
+            @if($isReadOnly && $currentStep !== 6)
+                <fieldset disabled style="display: contents;">
+            @endif
 
             @if($currentStep === 1)
             <div class="delivery-section-head">
@@ -1184,15 +1191,24 @@
                 </div>
 
                 <div class="delivery-final-reference">
+                    @if($isReadOnly)
+                        <fieldset disabled style="display: contents;">
+                    @endif
                     <span>Reference Taken</span>
                     <label class="delivery-final-switch">
                         <input type="hidden" name="reference_taken" value="0">
                         <input type="checkbox" name="reference_taken" value="1" @checked($selectedReferenceTaken)>
                         <i></i>
                     </label>
+                    @if($isReadOnly)
+                        </fieldset>
+                    @endif
                 </div>
 
                 <section class="delivery-final-form-card">
+                    @if($isReadOnly)
+                        <fieldset disabled style="display: contents;">
+                    @endif
                     <h2>Top Reason For Selecting Brand</h2>
                     <div class="delivery-final-reasons">
                         @foreach($selectingBrandReasonOptions as $reasonOption)
@@ -1217,16 +1233,32 @@
                             <input type="text" name="pending_commitments" value="{{ $selectedPendingCommitments }}" placeholder="Pending Commitments">
                         </label>
                     </div>
+                    @if($isReadOnly)
+                        </fieldset>
+                    @endif
                 </section>
             </div>
             @endif
 
+            @if($isReadOnly && $currentStep !== 6)
+                </fieldset>
+            @endif
         </form>
 
         <div class="delivery-actions {{ $currentStep === 1 ? 'no-back' : '' }} {{ $currentStep === 6 ? 'delivery-final-actions' : '' }}">
             @if($currentStep > 1)
+                @if($isReadOnly)
+                    <button type="button" class="delivery-action back" disabled>Back</button>
+                @else
                 <a href="{{ route('delivery.show', ['enquiry' => $enquiry->id, 'step' => $deliveryBackStep]) }}" class="delivery-action back">Back</a>
+                @endif
             @endif
+            @if($isReadOnly)
+                <button type="button" class="delivery-action save-exit" disabled>Back to Approvals</button>
+                @if($currentStep < 6)
+                    <a href="{{ route('delivery.show', ['enquiry' => $enquiry->id, 'step' => $currentStep === 2 && $selectedFirstTimeBuyer === 'yes' ? 4 : $currentStep + 1]) }}" class="delivery-action save-next">Next</a>
+                @endif
+            @else
             @if($currentStep !== 6)
                 <button type="submit" form="deliveryForm" name="action_type" value="save_exit" class="delivery-action save-exit">Save &amp; Exit</button>
             @endif
@@ -1234,6 +1266,7 @@
                 <button type="submit" form="deliveryForm" name="action_type" value="submit" class="delivery-action save-next delivery-submit-action">Deliver Now</button>
             @else
                 <button type="submit" form="deliveryForm" name="action_type" value="save_next" class="delivery-action save-next" id="deliverySaveNextButton" @if($currentStep === 5) data-requires-pending-zero="1" title="Pending Amount must be 0 before Save & Next" aria-disabled="{{ (float) ($selectedPaymentPendingAmount ?? 0) > 0 ? 'true' : 'false' }}" @endif>Save &amp; Next</button>
+            @endif
             @endif
         </div>
     </main>

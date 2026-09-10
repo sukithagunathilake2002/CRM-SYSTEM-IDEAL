@@ -1,5 +1,7 @@
 @extends('layouts.portal')
 
+@section('bodyClass', 'delivery-approvals-page')
+
 @section('content')
 <section class="card">
     <h1>Delivery Approvals</h1>
@@ -78,11 +80,7 @@
                                         <button type="submit" class="btn-link">Approve</button>
                                     </form>
 
-                                    <form method="POST" action="{{ route('delivery.reject', $delivery) }}" class="delivery-reject-form">
-                                        @csrf
-                                        <input type="text" name="approval_note" placeholder="Reject note">
-                                        <button type="submit" class="btn-link alt">Reject</button>
-                                    </form>
+                                    <button type="button" class="btn-link alt" data-reject-url="{{ route('delivery.reject', $delivery) }}" data-delivery-id="{{ $delivery->id }}" data-lead-id="{{ $delivery->enquiry_id }}">Reject</button>
                                 @endif
                             </div>
                         </td>
@@ -95,5 +93,71 @@
             </tbody>
         </table>
     </div>
+
+    @if($deliveries->total())
+        <nav class="quick-links" aria-label="Delivery approvals pagination">
+            <span>
+                Showing {{ $deliveries->firstItem() ?? 0 }}–{{ $deliveries->lastItem() ?? 0 }} of {{ $deliveries->total() }} deliveries
+                (Page {{ $deliveries->currentPage() }} of {{ $deliveries->lastPage() }})
+            </span>
+            @unless($deliveries->onFirstPage())
+                <a class="btn-link alt" href="{{ $deliveries->previousPageUrl() }}" rel="prev">Previous</a>
+            @endunless
+            @if($deliveries->hasMorePages())
+                <a class="btn-link" href="{{ $deliveries->nextPageUrl() }}" rel="next">Next</a>
+            @endif
+        </nav>
+    @endif
 </section>
+<dialog id="deliveryRejectDialog" class="delivery-reject-dialog" aria-labelledby="deliveryRejectTitle">
+    <form method="POST" id="deliveryRejectForm">
+        @csrf
+        <input type="hidden" name="rejection_delivery_id" id="rejectionDeliveryId" value="{{ old('rejection_delivery_id') }}">
+        <h2 id="deliveryRejectTitle">Reject Delivery</h2>
+        <p id="deliveryRejectDescription">Enter a reason for rejecting this delivery.</p>
+        <label for="deliveryRejectNote">Rejection note (required)</label>
+        <textarea id="deliveryRejectNote" name="approval_note" rows="4" maxlength="1000" required autofocus aria-describedby="deliveryRejectError">{{ old('approval_note') }}</textarea>
+        <p id="deliveryRejectError" role="alert">@error('approval_note'){{ $message }}@enderror</p>
+        <div class="quick-links">
+            <button type="button" class="btn-link alt" id="deliveryRejectCancel">Cancel</button>
+            <button type="submit" class="btn-link">Reject Delivery</button>
+        </div>
+    </form>
+</dialog>
+<script>
+(() => {
+    const dialog = document.getElementById('deliveryRejectDialog');
+    const form = document.getElementById('deliveryRejectForm');
+    const note = document.getElementById('deliveryRejectNote');
+    const deliveryId = document.getElementById('rejectionDeliveryId');
+    const error = document.getElementById('deliveryRejectError');
+    const buttons = document.querySelectorAll('[data-reject-url]');
+    const openDialog = (button, restore = false) => {
+        form.action = button.dataset.rejectUrl;
+        deliveryId.value = button.dataset.deliveryId;
+        document.getElementById('deliveryRejectDescription').textContent = `Enter a reason for rejecting delivery for lead #${button.dataset.leadId}.`;
+        if (!restore) {
+            note.value = '';
+            error.textContent = '';
+        }
+        note.setCustomValidity('');
+        dialog.showModal();
+    };
+    buttons.forEach(button => button.addEventListener('click', () => openDialog(button)));
+    document.getElementById('deliveryRejectCancel').addEventListener('click', () => dialog.close());
+    note.addEventListener('input', () => note.setCustomValidity(''));
+    form.addEventListener('submit', event => {
+        note.value = note.value.trim();
+        if (!note.value) {
+            event.preventDefault();
+            note.setCustomValidity('Please enter a rejection note.');
+            note.reportValidity();
+        }
+    });
+    if (error.textContent.trim() && deliveryId.value) {
+        const button = Array.from(buttons).find(button => button.dataset.deliveryId === deliveryId.value);
+        if (button) openDialog(button, true);
+    }
+})();
+</script>
 @endsection

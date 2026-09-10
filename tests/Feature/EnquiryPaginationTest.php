@@ -131,6 +131,34 @@ class EnquiryPaginationTest extends TestCase
         $response->assertSee('of 25 enquiries');
     }
 
+    public function test_sidebar_categories_return_matching_leads(): void
+    {
+        DB::table('enquiries')->where('id', '>', 10)->delete();
+        foreach ([1 => 'hot', 2 => 'warm', 3 => 'cold', 5 => 'hot', 6 => 'warm', 7 => 'hot', 8 => 'hot', 9 => 'hot', 10 => 'cold'] as $id => $status) {
+            DB::table('prospect_sheets')->insert(['enquiry_id' => $id, 'lead_status' => $status]);
+        }
+        DB::table('enquiries')->where('id', 5)->update(['status' => 'LOST']);
+        DB::table('enquiries')->where('id', 6)->update(['status' => 'CLOSED']);
+        DB::table('enquiries')->where('id', 8)->update(['status' => 'CANCELLED']);
+        foreach ([7, 8, 9, 10] as $id) DB::table('bookings')->insert(['enquiry_id' => $id]);
+        DB::table('deliveries')->insert([
+            ['enquiry_id' => 9, 'approval_status' => 'approved'],
+            ['enquiry_id' => 10, 'approval_status' => 'pending'],
+        ]);
+        $viewer = new User(['role' => User::ROLE_SUPER_ADMIN]);
+        $viewer->id = 99;
+        $this->actingAs($viewer);
+        foreach ([
+            'lead_status=hot' => [1, 7, 9], 'lead_status=warm' => [2], 'lead_status=cold' => [3, 10],
+            'lead_result=active' => [1, 2, 3], 'lead_result=lost' => [5], 'lead_result=closed' => [6],
+            'registration=pending' => [4], 'booking=active' => [7], 'booking=cancelled' => [8],
+            'delivery_approval=approved' => [9], 'delivery_approval=pending' => [10],
+        ] as $query => $expected) {
+            $response = $this->get('/epr?'.$query)->assertOk();
+            $this->assertEqualsCanonicalizing($expected, $response->viewData('enquiries')->pluck('id')->all(), $query);
+        }
+    }
+
     public function test_dashboard_district_counts_use_one_grouped_query_and_preserve_filters(): void
     {
         Schema::table('customers', fn (Blueprint $table) => $table->text('district')->nullable());

@@ -4,7 +4,7 @@
 <section class="card auth-card narrow">
     <h1>{{ $role === \App\Models\User::ROLE_ADMIN ? 'Create Admin Account' : $roleLabel.' Registration' }}</h1>
 
-    @if($parentRole && $managerOptions->isEmpty())
+    @if($parentRole && !$autoAssignManager && $managerOptions->isEmpty())
         <div class="portal-flash error">
             No {{ $parentRoleLabel }} account exists yet. Create one first, then register {{ $roleLabel }}.
         </div>
@@ -50,7 +50,7 @@
             >
         </label>
 
-        @if($parentRole)
+        @if($parentRole && !$autoAssignManager)
             <label>
                 Assign {{ $parentRoleLabel }}
                 <select name="manager_id" required>
@@ -74,7 +74,7 @@
             <input type="password" name="password_confirmation" required>
         </label>
 
-        <button type="submit" class="btn-primary" @disabled($parentRole && $managerOptions->isEmpty())>{{ $role === \App\Models\User::ROLE_ADMIN ? 'Create Admin' : 'Register' }}</button>
+        <button type="submit" class="btn-primary" @disabled($parentRole && !$autoAssignManager && $managerOptions->isEmpty())>{{ $role === \App\Models\User::ROLE_ADMIN ? 'Create Admin' : 'Register' }}</button>
     </form>
 
     <div class="helper-links">
@@ -82,4 +82,27 @@
         <a href="{{ route('auth.roles') }}">Back to all roles</a>
     </div>
 </section>
+@if($createdAccount)
+    <dialog id="registrationSuccessDialog" class="registration-success-dialog" aria-labelledby="registrationSuccessTitle">
+        <h2 id="registrationSuccessTitle">{{ $createdAccount['role'] }} Created Successfully</h2>
+        <dl>
+            <dt>Name</dt>
+            <dd>{{ $createdAccount['name'] }}</dd>
+            <dt>Username (Email)</dt>
+            <dd>{{ $createdAccount['username'] }}</dd>
+            <dt>Password</dt>
+            <dd class="registration-created-password">{{ $createdAccount['password'] }}</dd>
+        </dl>
+        <button type="button" class="btn-primary" id="registrationSuccessClose" autofocus>OK</button>
+    </dialog>
+    <script>
+    (() => {
+        const dialog = document.getElementById('registrationSuccessDialog');
+        document.getElementById('registrationSuccessClose').addEventListener('click', () => dialog.close());
+        dialog.addEventListener('close', () => dialog.remove());
+        window.addEventListener('pagehide', () => dialog.remove());
+        dialog.showModal();
+    })();
+    </script>
+@endif
 @endsection

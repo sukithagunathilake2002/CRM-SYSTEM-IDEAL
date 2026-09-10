@@ -39,19 +39,30 @@ class DeliveryController extends Controller
     public function show(Enquiry $enquiry)
     {
         $enquiry->load(['customer', 'vehicle', 'prospectSheet', 'booking', 'delivery', 'user']);
-        abort_unless($enquiry->isVisibleTo(request()->user()), 403);
+        $viewer = request()->user();
+        $isApprovalReview = $viewer?->role === User::ROLE_AREA_MANAGER;
+        if ($isApprovalReview) {
+            // Use the same ownership and status rules as the approvals list.
+            abort_unless(
+                (int) ($enquiry->user?->manager_id ?? 0) === (int) $viewer->id
+                && in_array($enquiry->delivery?->approval_status, [Delivery::APPROVAL_PENDING, Delivery::APPROVAL_APPROVED, Delivery::APPROVAL_REJECTED], true),
+                403
+            );
+        } else {
+            abort_unless($enquiry->isVisibleTo($viewer), 403);
+        }
 
-        if ($enquiry->isTerminalLead()) {
+        if (!$isApprovalReview && $enquiry->isTerminalLead()) {
             return $this->redirectTerminalLead($enquiry);
         }
 
-        if (!$enquiry->hasCompletedProspectSheet()) {
+        if (!$isApprovalReview && !$enquiry->hasCompletedProspectSheet()) {
             return redirect()
                 ->route('prospect.show', $enquiry->id)
                 ->with('error', 'Please complete the Prospect Sheet before opening Delivery.');
         }
 
-        if (!$enquiry->canOpenDelivery()) {
+        if (!$isApprovalReview && !$enquiry->canOpenDelivery()) {
             return redirect()
                 ->route('booking.show', $enquiry->id)
                 ->with('error', 'Please complete Booking before opening Delivery.');
@@ -208,6 +219,8 @@ class DeliveryController extends Controller
 
     public function store(Request $request, Enquiry $enquiry)
     {
+        abort_if($request->user()?->role === User::ROLE_AREA_MANAGER, 403, 'Area Managers can only review delivery details.');
+
         $enquiry->load(['delivery', 'booking', 'prospectSheet', 'vehicle']);
         abort_unless($enquiry->isVisibleTo($request->user()), 403);
 
@@ -844,7 +857,9 @@ class DeliveryController extends Controller
             })
             ->whereIn('approval_status', [Delivery::APPROVAL_PENDING, Delivery::APPROVAL_APPROVED, Delivery::APPROVAL_REJECTED])
             ->latest('submitted_at')
-            ->get();
+            ->latest('id')
+            ->paginate(10)
+            ->withQueryString();
 
         return view('delivery.approvals', [
             'deliveries' => $deliveries,
@@ -881,7 +896,9 @@ class DeliveryController extends Controller
         abort_unless($areaManager?->role === User::ROLE_AREA_MANAGER, 403);
 
         $validated = $request->validate([
-            'approval_note' => ['nullable', 'string', 'max:1000'],
+            'approval_note' => ['required', 'string', 'max:1000'],
+        ], [
+            'approval_note.required' => 'Please enter a rejection note.',
         ]);
 
         $delivery->load('enquiry.user:id,manager_id');
@@ -895,7 +912,7 @@ class DeliveryController extends Controller
             'approval_status' => Delivery::APPROVAL_REJECTED,
             'approved_by' => $areaManager->id,
             'approved_at' => now(),
-            'approval_note' => $validated['approval_note'] ?? null,
+            'approval_note' => trim($validated['approval_note']),
         ])->save();
 
         return redirect()

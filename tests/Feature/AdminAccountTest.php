@@ -68,7 +68,7 @@ class AdminAccountTest extends TestCase
         $head = $this->user(User::ROLE_HEAD_OF_SALES);
         $this->actingAs($super)->get('/register/admin')->assertOk()
             ->assertSee('Create Admin Account')->assertSee('Assign Head Of Sales')->assertSee($head->email);
-        $this->post('/register/admin', $this->payload($head))->assertRedirect(route('dashboard.home'));
+        $this->post('/register/admin', $this->payload($head))->assertRedirect(route('auth.register.form', 'admin'));
         $this->assertAuthenticatedAs($super);
         $admin = User::where('email', 'admin@example.test')->firstOrFail();
         $this->assertSame(User::ROLE_ADMIN, $admin->role);
@@ -107,10 +107,77 @@ class AdminAccountTest extends TestCase
         $head = $this->user(User::ROLE_HEAD_OF_SALES);
         $this->actingAs($super)->withSession(['_token' => 'existing-form-token'])
             ->post('/register/area-manager', $this->payload($head))
-            ->assertRedirect(route('dashboard.home'))
+            ->assertRedirect(route('auth.register.form', 'area-manager'))
             ->assertSessionHas('_token', 'existing-form-token');
         $this->assertAuthenticatedAs($super);
         $this->assertDatabaseHas('users', ['email' => 'admin@example.test', 'role' => User::ROLE_AREA_MANAGER]);
+    }
+
+    public function test_head_of_sales_registers_area_managers_only_under_their_own_account(): void
+    {
+        $head = $this->user(User::ROLE_HEAD_OF_SALES);
+        $otherHead = $this->user(User::ROLE_HEAD_OF_SALES);
+        $this->actingAs($head)->get('/register/area-manager')->assertOk()
+            ->assertDontSee('Assign Head Of Sales')
+            ->assertDontSee('name="manager_id"', false)
+            ->assertDontSee($otherHead->email);
+
+        foreach ([false, true] as $tampered) {
+            $payload = $this->payload($otherHead);
+            $payload['email'] = $tampered ? 'second-area@example.test' : 'first-area@example.test';
+            $payload['employee_number'] = $tampered ? 'M00002' : 'M00001';
+            if (!$tampered) {
+                unset($payload['manager_id']);
+            }
+
+            $this->post('/register/area-manager', $payload)
+                ->assertSessionHasNoErrors()
+                ->assertRedirect(route('auth.register.form', 'area-manager'));
+            $this->assertDatabaseHas('users', [
+                'email' => $payload['email'],
+                'role' => User::ROLE_AREA_MANAGER,
+                'manager_id' => $head->id,
+            ]);
+            $this->assertAuthenticatedAs($head);
+        }
+    }
+
+    public function test_registration_shows_credentials_once_for_each_role_without_switching_accounts(): void
+    {
+        $super = $this->user(User::ROLE_SUPER_ADMIN);
+        $head = $this->user(User::ROLE_HEAD_OF_SALES);
+        $area = $this->user(User::ROLE_AREA_MANAGER, $head);
+        $this->actingAs($super);
+        foreach (User::ROLE_SLUGS as $role => $slug) {
+            $payload = $this->payload($head);
+            $payload['email'] = $slug.'@example.test';
+            $payload['employee_number'] = 'M'.str_pad((string) User::count(), 5, '0', STR_PAD_LEFT);
+            $payload['manager_id'] = match (User::parentRoleFor($role)) {
+                User::ROLE_SUPER_ADMIN => $super->id,
+                User::ROLE_HEAD_OF_SALES => $head->id,
+                User::ROLE_AREA_MANAGER => $area->id,
+                default => null,
+            };
+            $this->post('/register/'.$slug, $payload)
+                ->assertSessionHasNoErrors()
+                ->assertRedirect(route('auth.register.form', $slug));
+            $this->assertAuthenticatedAs($super);
+            $this->assertStringNotContainsString($payload['password'], session('created_account'));
+            $this->get('/register/'.$slug)->assertOk()
+                ->assertSee(User::ROLE_LABELS[$role].' Created Successfully')
+                ->assertSee($payload['email'])->assertSee($payload['password'])
+                ->assertSessionMissing('created_account');
+            $this->get('/register/'.$slug)->assertOk()->assertDontSee('id="registrationSuccessDialog"', false);
+        }
+    }
+
+    public function test_guest_registration_does_not_log_in_as_the_created_user(): void
+    {
+        $head = $this->user(User::ROLE_HEAD_OF_SALES);
+        $this->post('/register/area-manager', $this->payload($head))
+            ->assertRedirect(route('auth.register.form', 'area-manager'));
+        $this->assertGuest();
+        $this->get('/register/area-manager')->assertOk()->assertSee('Area Manager Created Successfully');
     }
 
     public function test_admin_inherits_only_assigned_team_and_vehicles(): void
