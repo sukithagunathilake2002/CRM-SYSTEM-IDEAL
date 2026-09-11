@@ -142,6 +142,38 @@ class AdminAccountTest extends TestCase
         }
     }
 
+    public function test_area_manager_registers_consultants_only_under_their_own_account(): void
+    {
+        $head = $this->user(User::ROLE_HEAD_OF_SALES);
+        $area = $this->user(User::ROLE_AREA_MANAGER, $head);
+        $otherArea = $this->user(User::ROLE_AREA_MANAGER, $head);
+        $this->actingAs($area)->get('/register/sales-consultant')->assertOk()
+            ->assertDontSee('Assign Area Manager')
+            ->assertDontSee('name="manager_id"', false)
+            ->assertDontSee($otherArea->email);
+
+        foreach ([false, true] as $tampered) {
+            $payload = $this->payload($otherArea);
+            $payload['email'] = $tampered ? 'second-consultant@example.test' : 'first-consultant@example.test';
+            $payload['employee_number'] = $tampered ? 'M00002' : 'M00001';
+            if (!$tampered) {
+                unset($payload['manager_id']);
+            }
+            $this->post('/register/sales-consultant', $payload)
+                ->assertSessionHasNoErrors()
+                ->assertRedirect(route('auth.register.form', 'sales-consultant'));
+            $this->assertDatabaseHas('users', [
+                'email' => $payload['email'],
+                'role' => User::ROLE_SALES_CONSULTANT,
+                'manager_id' => $area->id,
+            ]);
+            $this->assertAuthenticatedAs($area);
+            $this->get('/register/sales-consultant')->assertOk()
+                ->assertSee(User::ROLE_LABELS[User::ROLE_SALES_CONSULTANT].' Created Successfully')
+                ->assertSee($payload['email'])->assertSee($payload['password']);
+        }
+    }
+
     public function test_registration_shows_credentials_once_for_each_role_without_switching_accounts(): void
     {
         $super = $this->user(User::ROLE_SUPER_ADMIN);

@@ -140,7 +140,7 @@ class AuthController extends Controller
         $this->authorizeRegistration($role);
         $parentRole = User::parentRoleFor($role);
         $managerOptions = collect();
-        $autoAssignManager = $role === User::ROLE_AREA_MANAGER && Auth::user()?->role === User::ROLE_HEAD_OF_SALES;
+        $autoAssignManager = $this->shouldAutoAssignManager($role, Auth::user());
 
         if ($parentRole && !$autoAssignManager) {
             $managerOptions = User::query()
@@ -171,7 +171,7 @@ class AuthController extends Controller
         $role = $this->resolveRoleFromSlug($roleSlug);
         $this->authorizeRegistration($role);
         $parentRole = User::parentRoleFor($role);
-        $autoAssignManager = $role === User::ROLE_AREA_MANAGER && $request->user()?->role === User::ROLE_HEAD_OF_SALES;
+        $autoAssignManager = $this->shouldAutoAssignManager($role, $request->user());
 
         $rules = [
             'name' => ['required', 'string', 'max:255'],
@@ -254,6 +254,12 @@ class AuthController extends Controller
         if (in_array($role, [User::ROLE_ADMIN, User::ROLE_SUPER_ADMIN], true)) {
             abort_unless(Auth::user()?->role === User::ROLE_SUPER_ADMIN, 403, 'Only Super Admin can create this account.');
         }
+    }
+
+    private function shouldAutoAssignManager(string $role, ?User $creator): bool
+    {
+        return ($role === User::ROLE_AREA_MANAGER && $creator?->role === User::ROLE_HEAD_OF_SALES)
+            || ($role === User::ROLE_SALES_CONSULTANT && $creator?->role === User::ROLE_AREA_MANAGER);
     }
 
     private function generateLoginCaptcha(Request $request): string
