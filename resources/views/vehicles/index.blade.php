@@ -4,18 +4,32 @@
 
 @section('content')
 <style>
+body.vehicle-details-page .portal-topbar {
+    height: var(--portal-topbar-height) !important;
+    min-height: var(--portal-topbar-height) !important;
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+}
+
+body.vehicle-details-page .portal-brand-logo {
+    width: auto !important;
+    height: calc(var(--portal-topbar-height) - 16px) !important;
+    max-height: calc(var(--portal-topbar-height) - 16px) !important;
+}
+
 .vehicle-page-head {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
     gap: 16px;
-    margin-bottom: 18px;
+    margin-bottom: 12px;
 }
 
 .vehicle-page-head h1 {
-    margin: 0 0 6px;
+    margin: 0 0 2px;
     color: var(--text);
-    font-size: 28px;
+    font-size: 24px;
+    line-height: 1.2;
 }
 
 .vehicle-page-head p,
@@ -23,6 +37,16 @@
     margin: 0;
     color: var(--text-soft);
     font-size: 14px;
+}
+
+.vehicle-page-head p {
+    font-size: 13px;
+    line-height: 1.35;
+}
+
+.vehicle-page-head .vehicle-btn {
+    min-height: 32px;
+    padding: 6px 12px;
 }
 
 .vehicle-actions {
@@ -181,10 +205,27 @@
 }
 
 .vehicle-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 14px;
     background: var(--surface-card);
     border: 1px solid var(--line);
     border-radius: 8px;
     padding: 14px;
+}
+
+.vehicle-delete-form {
+    margin: 0;
+    text-align: right;
+}
+
+.vehicle-delete-reason {
+    max-width: 160px;
+    margin: 6px 0 0;
+    color: var(--text-soft);
+    font-size: 12px;
+    line-height: 1.4;
 }
 
 .vehicle-row summary {
@@ -235,13 +276,21 @@ html.theme-dark .vehicle-btn.secondary {
 }
 
 @media (max-width: 880px) {
+    .vehicle-row {
+        grid-template-columns: 1fr;
+    }
+
+    .vehicle-delete-form {
+        justify-self: end;
+    }
+
     .vehicle-page-head,
     .vehicle-row summary {
         display: block;
     }
 
     .vehicle-actions {
-        margin-top: 12px;
+        margin-top: 8px;
     }
 
     .vehicle-form-grid {
@@ -331,7 +380,8 @@ html.theme-dark .vehicle-btn.secondary {
             $vehicleLabel = trim($vehicle->model . ' / ' . $vehicle->engine_type . ' / ' . $vehicle->variant);
             $vehicleColors = collect($vehicle->colors ?? [])->map(fn($color) => trim((string) $color))->filter()->values()->all();
         @endphp
-        <details class="vehicle-row">
+        <article class="vehicle-row">
+        <details>
             <summary>
                 <span class="vehicle-title">
                     <strong>{{ $vehicle->model }}</strong>
@@ -405,13 +455,17 @@ html.theme-dark .vehicle-btn.secondary {
                     </div>
                 </form>
 
-                <form method="POST" action="{{ route('vehicles.destroy', $vehicle) }}" class="vehicle-row-actions" onsubmit="return confirm('Delete {{ addslashes($vehicleLabel) }}?');">
-                    @csrf
-                    @method('DELETE')
-                    <button class="vehicle-btn danger" type="submit" @disabled($vehicle->enquiries_count > 0)>Delete</button>
-                </form>
             </div>
         </details>
+        <form method="POST" action="{{ route('vehicles.destroy', $vehicle) }}" class="vehicle-delete-form" data-vehicle-label="{{ $vehicleLabel }}" onsubmit="return confirm('Delete ' + this.dataset.vehicleLabel + '? This cannot be undone.');">
+            @csrf
+            @method('DELETE')
+            <button class="vehicle-btn danger" type="submit" aria-label="Delete {{ $vehicleLabel }}" title="{{ $vehicle->enquiries_count > 0 ? 'This vehicle is linked to existing enquiries and cannot be deleted.' : 'Delete vehicle' }}" @disabled($vehicle->enquiries_count > 0)>Delete</button>
+            @if($vehicle->enquiries_count > 0)
+                <p class="vehicle-delete-reason">Cannot delete: linked to {{ $vehicle->enquiries_count }} {{ \Illuminate\Support\Str::plural('enquiry', $vehicle->enquiries_count) }}.</p>
+            @endif
+        </form>
+        </article>
     @empty
         <section class="vehicle-panel">
             <p class="vehicle-help-text">No vehicles found. Add the first vehicle above.</p>
