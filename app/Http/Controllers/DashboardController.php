@@ -663,6 +663,7 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
             if ($district !== null && array_key_exists($district, $districtCounts)) {
                 $districtCounts[$district] += (int) $row->aggregate;
             }
+        }
         $countsQuery = Enquiry::query()
             ->join('customers', 'customers.id', '=', 'enquiries.customer_id')
             ->whereIn('enquiries.user_id', $accessibleUserIds)
