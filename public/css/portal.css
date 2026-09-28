@@ -5144,3 +5144,10 @@ body.login-page .login-ui {
     padding-top: 0;
     overflow: hidden !important;
 }
+
+/* Management dashboard heading icon */
+.management-dashboard-title { display:flex; align-items:center; gap:14px; }
+.management-dashboard-title-icon { display:inline-flex; align-items:center; justify-content:center; flex:0 0 46px; height:46px; border-radius:12px; background:#e8efff; color:#2456b8; }
+.management-dashboard-title-icon svg { width:26px; height:26px; }
+html.theme-dark .management-dashboard-title-icon { background:#243653; color:#a8c6ff; }
+@media(max-width:600px) { .management-dashboard-title { gap:10px; } .management-dashboard-title-icon { flex-basis:38px; height:38px; } }

@@ -118,6 +118,8 @@ class FollowUpController extends Controller
 
     public function updateStatus(Request $request, Enquiry $enquiry)
     {
+        abort_unless($enquiry->isEditableBy($request->user()), 403, 'You can only edit your own leads.');
+
         $viewer = $request->user();
         abort_unless($this->canAccessEnquiry($viewer, $enquiry), 403);
 

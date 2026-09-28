@@ -92,6 +92,8 @@ class DeliveryController extends Controller
 
         return response()->json([
             'enquiry' => $enquiry,
+            'already_submitted' => $delivery->submitted_at !== null,
+            'can_edit' => (int) $enquiry->user_id === (int) $viewer->id,
             'delivery' => $delivery,
             'customer' => $customer,
             'prospect' => $prospect,
@@ -103,6 +105,14 @@ class DeliveryController extends Controller
 
     public function store(Request $request, Enquiry $enquiry)
     {
+        return \App\Support\WorkflowSubmission::save($request, $enquiry, 'delivery',
+            fn (Enquiry $locked) => $this->saveRecord($request, $locked));
+    }
+
+    private function saveRecord(Request $request, Enquiry $enquiry)
+    {
+        abort_unless($enquiry->isEditableBy($request->user()), 403, 'You can only edit your own leads.');
+
         $viewer = $request->user();
         
         // Check access
@@ -142,6 +152,7 @@ class DeliveryController extends Controller
         ]);
 
         $validated = $request->validate([
+            ...\App\Support\ExchangeAssessment::rules(),
             'title' => ['nullable', 'string', 'max:20'],
             'name' => ['nullable', 'string', 'max:255'],
             'contact_type' => ['nullable', 'string', 'max:50'],
@@ -177,7 +188,7 @@ class DeliveryController extends Controller
             'interested_in_exchange' => ['nullable', 'string', 'max:10'],
             'exchange_type' => ['nullable', 'string', 'max:20'],
             'exchange_vehicle_brand' => ['nullable', 'string', 'max:255'],
-            'exchange_vehicle_model' => ['nullable', 'string', 'max:255'],
+            'exchange_vehicle_model' => ['nullable', Rule::in(\App\Support\ExchangeAssessment::VEHICLES)],
             'exchange_manufacture_year' => ['nullable', 'integer'],
             'exchange_color' => ['nullable', 'string', 'max:255'],
             'exchange_mileage_km' => ['nullable', 'integer'],
@@ -207,6 +218,10 @@ class DeliveryController extends Controller
             'delivery_step' => ['nullable', 'integer', 'between:1,6'],
             'action_type' => ['nullable', 'string', 'in:save_exit,save_next,submit,exit'],
         ]);
+        if (in_array($validated['exchange_vehicle_model'] ?? null, \App\Support\ExchangeAssessment::VEHICLES, true)) {
+            $validated['exchange_vehicle_brand'] = 'Mahindra';
+        }
+
 
         $currentStep = (int) ($validated['delivery_step'] ?? 1);
         $currentStep = max(1, min(6, $currentStep));
@@ -296,8 +311,10 @@ class DeliveryController extends Controller
             }
         }
 
+        $payload['exchange_assessment'] = \App\Support\ExchangeAssessment::resolve($validated, $delivery->exchange_assessment ?? $enquiry->prospectSheet?->exchange_assessment, $payload['interested_in_exchange'] ?? null);
         $delivery->fill($payload);
         $delivery->save();
+        \App\Support\ExchangeAssessment::sync($enquiry, $delivery);
 
         return response()->json([
             'message' => 'Delivery saved successfully',

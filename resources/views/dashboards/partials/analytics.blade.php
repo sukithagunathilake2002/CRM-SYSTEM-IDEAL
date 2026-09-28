@@ -192,7 +192,7 @@
     <div class="analytics-head lost-analytics-head">
         <div>
             <h2>Active Analytics</h2>
-            <p>Active Percentage = active count / total active leads for the selected parameter.</p>
+            <p>Active leads include open enquiries awaiting follow-up. Lost, closed, and cancelled leads are excluded. Percentages show each group's share of active leads.</p>
         </div>
         <strong>Total : {{ number_format((int) ($activeAnalytics['total'] ?? 0)) }}</strong>
     </div>
@@ -217,7 +217,7 @@
             <span>Total : <strong id="activeAnalyticsTotal">{{ number_format((int) ($activeAnalytics['total'] ?? 0)) }}</strong></span>
         </div>
         <canvas id="activeAnalyticsChart" aria-label="Active analytics chart"></canvas>
-        <p class="lost-analytics-empty" id="activeAnalyticsEmpty" hidden>No active lead data available for this parameter.</p>
+        <p class="lost-analytics-empty" id="activeAnalyticsEmpty" hidden>No active leads match your current filters and access scope. Try clearing the analytics filters.</p>
     </div>
 
     <div class="lost-analytics-table-grid" aria-label="Active analytics export tables">

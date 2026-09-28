@@ -184,6 +184,8 @@ class FollowUpController extends Controller
 
     public function updateStatus(Request $request, Enquiry $enquiry): RedirectResponse
     {
+        abort_unless($enquiry->isEditableBy($request->user()), 403, 'You can only edit your own leads.');
+
         abort_unless($enquiry->isVisibleTo($request->user()), 403);
 
         if ($enquiry->isTerminalLead()) {

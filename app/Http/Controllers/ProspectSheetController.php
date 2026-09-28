@@ -84,6 +84,8 @@ class ProspectSheetController extends Controller
 
     public function store(Request $request, Enquiry $enquiry)
     {
+        abort_unless($enquiry->isEditableBy($request->user()), 403, 'You can only edit your own leads.');
+
         $enquiry->loadMissing(['customer', 'vehicle']);
         abort_unless($enquiry->isVisibleTo($request->user()), 403);
 
@@ -106,6 +108,7 @@ class ProspectSheetController extends Controller
         $requiresStep = fn(int $step): bool => $requestedStep === $step && !$isSaveExit;
 
         $validated = $request->validate([
+            ...\App\Support\ExchangeAssessment::rules(),
             'title' => ['required', 'string', 'max:20'],
             'name' => ['required', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255'],
@@ -126,6 +129,7 @@ class ProspectSheetController extends Controller
             'interested_vehicle_color' => ['nullable', 'string', 'max:50'],
             'lead_source' => ['nullable', Rule::in(['Walk-In', 'Tele-In', 'Activity', 'Digital', 'Referral', 'Press'])],
             'source_of_information' => ['nullable', 'string', 'max:255'],
+            'source_of_information_other' => ['nullable', 'string', 'max:255', Rule::requiredIf(fn() => $request->input('source_of_information') === 'Event')],
 
             'quote_taken' => ['nullable', Rule::in(['yes', 'no'])],
             'quote_date' => ['nullable', 'date', Rule::requiredIf(fn() => $requiresStep(2) && $request->input('quote_taken') === 'yes')],
@@ -150,7 +154,7 @@ class ProspectSheetController extends Controller
 
             'interested_in_exchange' => ['nullable', Rule::in(['yes', 'no'])],
             'exchange_vehicle_brand' => ['nullable', 'string', 'max:255'],
-            'exchange_vehicle_model' => ['nullable', 'string', 'max:255'],
+            'exchange_vehicle_model' => ['nullable', Rule::in(\App\Support\ExchangeAssessment::VEHICLES)],
             'exchange_manufacture_year' => ['nullable', 'integer', 'between:1950,2100', Rule::requiredIf(fn() => $requiresStep(3) && $request->input('interested_in_exchange') === 'yes')],
             'exchange_ownership' => ['nullable', 'string', 'max:50'],
             'exchange_insurance_validity' => ['nullable', 'date'],
@@ -209,6 +213,10 @@ class ProspectSheetController extends Controller
             'active_step' => ['nullable', 'integer', 'between:1,5'],
             'exit_after_save' => ['nullable', 'in:0,1'],
         ]);
+        if (in_array($validated['exchange_vehicle_model'] ?? null, \App\Support\ExchangeAssessment::VEHICLES, true)) {
+            $validated['exchange_vehicle_brand'] = 'Mahindra';
+        }
+
 
         $currentStep = (int) ($validated['active_step'] ?? 1);
         if ($currentStep >= 5 && empty($validated['lead_status'])) {
@@ -265,7 +273,20 @@ class ProspectSheetController extends Controller
         }
 
         if (array_key_exists('source_of_information', $validated)) {
-            $enquiry->source_of_information = $validated['source_of_information'] ?: null;
+            $selectedSourceInfo = trim((string) ($validated['source_of_information'] ?? ''));
+            $otherInfo = trim((string) ($validated['source_of_information_other'] ?? ''));
+            if ($selectedSourceInfo === 'Other') {
+                $finalSourceInfo = $otherInfo !== '' ? $otherInfo : null;
+            } elseif ($selectedSourceInfo === 'Event') {
+                $finalSourceInfo = $otherInfo !== '' ? ('Event - ' . $otherInfo) : 'Event';
+            } else {
+                $finalSourceInfo = $selectedSourceInfo !== '' ? $selectedSourceInfo : null;
+            }
+
+            // overwrite validated value so prospect save uses the resolved string
+            $validated['source_of_information'] = $finalSourceInfo;
+
+            $enquiry->source_of_information = $finalSourceInfo;
             $enquiry->save();
         }
 
@@ -575,6 +596,7 @@ class ProspectSheetController extends Controller
                 'test_drive_not_given_reason' => $testDriveNotGivenReason,
                 'purchase_mode' => $purchaseMode,
                 'interested_in_exchange' => $interestedInExchange,
+                'exchange_assessment' => \App\Support\ExchangeAssessment::resolve($validated, $existingProspect->exchange_assessment, $interestedInExchange),
                 'exchange_vehicle_brand' => $exchangeVehicleBrand,
                 'exchange_vehicle_model' => $exchangeVehicleModel,
                 'exchange_manufacture_year' => $exchangeManufactureYear,
@@ -617,6 +639,7 @@ class ProspectSheetController extends Controller
             ]
         );
         $this->syncSharedWorkflowDataFromProspect($enquiry, $savedProspect, $customer);
+        \App\Support\ExchangeAssessment::sync($enquiry, $savedProspect);
 
         if (($validated['exit_after_save'] ?? '0') === '1') {
             $routeParameters = $savedCurrentStep >= 5 ? [] : ['registration' => 'pending'];

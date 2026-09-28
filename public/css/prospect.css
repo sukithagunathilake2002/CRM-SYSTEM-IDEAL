@@ -5987,3 +5987,23 @@ body {
         font-size: 11px;
     }
 }
+
+/* Persistent headings for exchange price fields. */
+.exchange-price-heading {
+    display: block;
+    margin: 0 0 8px;
+    color: #111827;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+/* Competition brand and model inputs shown after selecting Other. */
+.buying-competition-grid .competition-other-fields {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+.competition-other-fields.hidden { display: none !important; }
+@media (max-width: 600px) { .buying-competition-grid .competition-other-fields { grid-template-columns: 1fr; } }

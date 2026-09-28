@@ -2,7 +2,7 @@
 
 @section('content')
 <section class="card dashboard-header-card">
-    <h1>{{ auth()->user()->role === \App\Models\User::ROLE_ADMIN ? 'Admin Dashboard' : 'Head Of Sales Dashboard' }}</h1>
+    <h1 class="management-dashboard-title"><span class="management-dashboard-title-icon">@include('partials.dashboard-icon')</span><span>{{ auth()->user()->role === \App\Models\User::ROLE_ADMIN ? 'Admin Dashboard' : 'Head Of Sales Dashboard' }}</span></h1>
     @if(auth()->user()->role === \App\Models\User::ROLE_ADMIN)
         <p>Assigned Head Of Sales: {{ auth()->user()->manager?->name }}</p>
     @endif
@@ -95,6 +95,8 @@
     <a class="hierarchy-metric-btn closed" href="{{ route('dashboard.analytics.detail', 'closed') }}">Closed Lead</a>
     <a class="hierarchy-metric-btn followup" href="{{ route('dashboard.followup_tracker') }}">FollowUp</a>
 </div>
+
+@include('dashboards.partials.geography-filters')
 
 <section id="districtOverviewCard" class="card district-card">
     <h2>Sri Lanka District Lead Overview</h2>

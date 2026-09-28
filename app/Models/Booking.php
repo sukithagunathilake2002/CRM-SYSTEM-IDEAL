@@ -12,6 +12,7 @@ class Booking extends Model
     protected $table = 'bookings';
 
     protected $fillable = [
+        'exchange_assessment',
         'enquiry_id',
         'booking_same_as_customer',
         'title',
@@ -90,6 +91,7 @@ class Booking extends Model
     ];
 
     protected $casts = [
+        'exchange_assessment' => 'array',
         'booking_same_as_customer' => 'boolean',
         'competition_model_year' => 'integer',
         'exchange_purchase_value' => 'decimal:2',

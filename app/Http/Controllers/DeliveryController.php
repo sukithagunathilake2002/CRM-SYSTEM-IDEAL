@@ -40,7 +40,7 @@ class DeliveryController extends Controller
     {
         $enquiry->load(['customer', 'vehicle', 'prospectSheet', 'booking', 'delivery', 'user']);
         $viewer = request()->user();
-        $isApprovalReview = $viewer?->role === User::ROLE_AREA_MANAGER;
+        $isApprovalReview = $viewer?->role === User::ROLE_AREA_MANAGER && !$enquiry->isEditableBy($viewer);
         if ($isApprovalReview) {
             // Use the same ownership and status rules as the approvals list.
             abort_unless(
@@ -79,7 +79,7 @@ class DeliveryController extends Controller
         $currentStep = max(1, min(6, $currentStep));
         $firstTimeBuyerForNavigation = old('first_time_buyer', $delivery->first_time_buyer ?: $booking?->first_time_buyer ?: $prospect?->first_time_buyer);
         if ($currentStep === 3 && $firstTimeBuyerForNavigation === 'yes') {
-            return redirect()->route('delivery.show', ['enquiry' => $enquiry->id, 'step' => 4]);
+            return redirect()->route('delivery.show', ['enquiry' => $enquiry->id, 'step' => 4, 'edit' => request()->boolean('edit') ? 1 : null]);
         }
         $viewer = request()->user();
         $vehicleModels = Vehicle::visibleTo($viewer)
@@ -219,7 +219,14 @@ class DeliveryController extends Controller
 
     public function store(Request $request, Enquiry $enquiry)
     {
-        abort_if($request->user()?->role === User::ROLE_AREA_MANAGER, 403, 'Area Managers can only review delivery details.');
+        return \App\Support\WorkflowSubmission::save($request, $enquiry, 'delivery',
+            fn (Enquiry $locked) => $this->saveRecord($request, $locked));
+    }
+
+    private function saveRecord(Request $request, Enquiry $enquiry)
+    {
+        abort_unless($enquiry->isEditableBy($request->user()), 403, 'You can only edit your own leads.');
+
 
         $enquiry->load(['delivery', 'booking', 'prospectSheet', 'vehicle']);
         abort_unless($enquiry->isVisibleTo($request->user()), 403);
@@ -251,6 +258,7 @@ class DeliveryController extends Controller
         }
 
         $validated = $request->validate([
+            ...\App\Support\ExchangeAssessment::rules(),
             'action_type' => ['nullable', Rule::in(['save_exit', 'save_next', 'submit'])],
             'delivery_step' => ['nullable', 'integer', 'between:1,6'],
             'edit_personal_details' => ['nullable', 'in:1'],
@@ -301,7 +309,7 @@ class DeliveryController extends Controller
             'exchange_type' => ['nullable', Rule::in(['in_house', 'outhouse'])],
             'exchange_purchase_value' => ['nullable', 'numeric', 'min:0'],
             'exchange_vehicle_brand' => ['nullable', 'string', 'max:255'],
-            'exchange_vehicle_model' => ['nullable', 'string', 'max:255'],
+            'exchange_vehicle_model' => ['nullable', Rule::in(\App\Support\ExchangeAssessment::VEHICLES)],
             'exchange_manufacture_year' => ['nullable', 'integer', 'between:1950,2100'],
             'exchange_ownership' => ['nullable', 'string', 'max:50'],
             'exchange_insurance_validity' => ['nullable', 'date'],
@@ -641,7 +649,11 @@ class DeliveryController extends Controller
         }
         $payload['exchange_extra_images'] = $exchangeExtraImages;
 
-        Delivery::updateOrCreate(
+        $payload['exchange_assessment'] = \App\Support\ExchangeAssessment::resolve($validated, $existingDelivery?->exchange_assessment ?? $enquiry->booking?->exchange_assessment ?? $enquiry->prospectSheet?->exchange_assessment, $payload['interested_in_exchange'] ?? $existingDelivery?->interested_in_exchange);
+        if (isset($payload['exchange_assessment']['purchased_price'])) {
+            $payload['exchange_purchase_value'] = $payload['exchange_assessment']['purchased_price'];
+        }
+        $savedDelivery = Delivery::updateOrCreate(
             ['enquiry_id' => $enquiry->id],
             $payload
         );
@@ -658,6 +670,7 @@ class DeliveryController extends Controller
             $sharedWorkflowPayload['exchange_tyre_replacements'] = [];
         }
         $this->syncSharedWorkflowDataFromDelivery($enquiry, $sharedWorkflowPayload);
+        \App\Support\ExchangeAssessment::sync($enquiry, $savedDelivery);
 
         $bookingVehicleSync = [];
         if (array_key_exists('interested_model', $payload)) {
@@ -812,7 +825,7 @@ class DeliveryController extends Controller
             return redirect()
                 ->route('delivery.show', ['enquiry' => $enquiry->id, 'step' => 4])
                 ->with('delivery_offer_summary_popup', true)
-                ->with('delivery_offer_summary_next_url', route('delivery.show', ['enquiry' => $enquiry->id, 'step' => 5]))
+                ->with('delivery_offer_summary_next_url', route('delivery.show', ['enquiry' => $enquiry->id, 'step' => 5, 'edit' => $request->boolean('edit') ? 1 : null]))
                 ->with('success', 'Offer details saved.');
         }
 
@@ -864,6 +877,10 @@ class DeliveryController extends Controller
         return view('delivery.approvals', [
             'deliveries' => $deliveries,
         ]);
+        if (in_array($validated['exchange_vehicle_model'] ?? null, \App\Support\ExchangeAssessment::VEHICLES, true)) {
+            $validated['exchange_vehicle_brand'] = 'Mahindra';
+        }
+
     }
 
     public function approve(Request $request, Delivery $delivery): RedirectResponse

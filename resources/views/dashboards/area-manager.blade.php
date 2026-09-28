@@ -2,7 +2,7 @@
 
 @section('content')
 <section class="card dashboard-header-card">
-    <h1>Area Manager Dashboard</h1>
+    <h1 class="management-dashboard-title"><span class="management-dashboard-title-icon">@include('partials.dashboard-icon')</span><span>Area Manager Dashboard</span></h1>
     <p>You manage Sales Consultants and leads in your area hierarchy.</p>
 
     <div class="quick-links">
@@ -207,6 +207,8 @@
         Province Lead Overview
     </button>
 </div>
+
+@include('dashboards.partials.geography-filters')
 
 <section id="districtOverviewCard" class="card district-card lead-overview-panel" data-lead-overview-panel>
     <h2>Sri Lanka District Lead Overview</h2>

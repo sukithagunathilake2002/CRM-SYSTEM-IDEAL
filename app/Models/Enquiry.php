@@ -221,6 +221,19 @@ class Enquiry extends Model
             ->implode(', ');
     }
 
+    public function isEditableBy(?User $viewer): bool
+    {
+        if (!$viewer || !$viewer->id) {
+            return false;
+        }
+
+        if (in_array($viewer->role, [User::ROLE_ADMIN, User::ROLE_AREA_MANAGER, User::ROLE_HEAD_OF_SALES], true)) {
+            return $this->user_id !== null && (int) $this->user_id === (int) $viewer->id;
+        }
+
+        return $this->isVisibleTo($viewer);
+    }
+
     public function isVisibleTo(?User $viewer): bool
     {
         if (!$viewer) {
