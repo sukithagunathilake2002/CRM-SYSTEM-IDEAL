@@ -165,11 +165,9 @@ $viewerId = (int) ($user?->id ?? 0);
                                 </svg>
                             </a>
 
-                            @if(in_array($user?->role, [\App\Models\User::ROLE_ADMIN, \App\Models\User::ROLE_HEAD_OF_SALES, \App\Models\User::ROLE_AREA_MANAGER], true))
-                            <a href="{{ route('dashboard.home') }}" class="crm-home-nav crm-management-dashboard-nav" aria-label="{{ $roleLabel }} Dashboard" title="{{ $roleLabel }} Dashboard">
+                            <a href="{{ route('dashboard.home') }}" class="crm-home-nav crm-role-dashboard-nav" aria-label="Open role dashboard" title="Role Dashboard">
                                 @include('partials.dashboard-icon')
                             </a>
-                            @endif
 
                             <details class="crm-notifications">
                                 <summary class="crm-notify-btn" aria-label="Due follow-up notifications">
