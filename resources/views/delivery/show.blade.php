@@ -1,10 +1,16 @@
+@php
+    $workflowOwner = auth()->id() && (int) $enquiry->user_id === (int) auth()->id();
+    $workflowSubmitted = $delivery->submitted_at !== null;
+    $workflowEditing = $workflowSubmitted && $workflowOwner && request()->boolean('edit');
+    $workflowReadOnly = !$workflowOwner || ($workflowSubmitted && !$workflowEditing);
+@endphp
 @extends('layouts.app')
 
 @section('content')
 <link rel="stylesheet" href="{{ asset('css/delivery.css') }}">
 
 @php
-    $isReadOnly = auth()->user()?->role === \App\Models\User::ROLE_AREA_MANAGER;
+    $isReadOnly = $workflowReadOnly;
     $summaryName = trim(($customer?->title ? $customer->title . ' ' : '') . ($customer?->name ?? 'N/A'));
     $summaryMobile = collect($customer?->mobile_numbers ?? [])->filter()->values()->implode(', ') ?: 'N/A';
     $summaryAddress = collect([$customer?->address1, $customer?->address2, $customer?->location, $customer?->district, $customer?->state])->filter()->implode(', ');
@@ -180,6 +186,7 @@
     );
     $competitionMap = collect($competitionMap ?? []);
     $competitionBrands = $competitionMap->keys()->values()->all();
+    $isCustomCompetition = $selectedCompetitionBrand && !in_array($selectedCompetitionBrand, $competitionBrands, true);
     $selectingBrandReasonOptions = [
         'Design',
         'Performance',
@@ -288,8 +295,8 @@
     </header>
 
     <h1 class="workflow-form-heading">Delivery</h1>
-    @if($isReadOnly)
-        <p>Review only. Delivery details cannot be edited by Area Managers.</p>
+    @if(!$workflowOwner)
+        <p>Review only. Only the enquiry creator can edit this delivery.</p>
     @endif
 
     <div class="delivery-stepper" aria-label="Delivery workflow">
@@ -377,8 +384,13 @@
             </section>
         @endif
 
-        <form id="deliveryForm" method="POST" action="{{ route('delivery.store', $enquiry->id) }}" enctype="multipart/form-data" class="delivery-form {{ $currentStep === 6 ? 'delivery-form-review' : '' }}">
+        @include('partials.workflow-submission-status', ['workflowType' => 'delivery'])
+        @if($isReadOnly)
+            @include('partials.review-navigation', ['reviewRoute' => 'delivery.show', 'reviewCurrentStep' => $currentStep])
+        @endif
+<form id="deliveryForm" method="POST" action="{{ route('delivery.store', $enquiry->id) }}" enctype="multipart/form-data" class="delivery-form {{ $currentStep === 6 ? 'delivery-form-review' : '' }}">
             @csrf
+            @if($workflowEditing)<input type="hidden" name="edit" value="1">@endif
             <input type="hidden" name="delivery_step" value="{{ $currentStep }}">
             @if($isReadOnly && $currentStep !== 6)
                 <fieldset disabled style="display: contents;">
@@ -649,14 +661,19 @@
                             @foreach($competitionBrands as $brandOption)
                                 <option value="{{ $brandOption }}" @selected($selectedCompetitionBrand === $brandOption)>{{ $brandOption }}</option>
                             @endforeach
+                            <option value="__other__" @selected($isCustomCompetition)>Other</option>
                         </select>
                     </label>
                     <label class="delivery-pill">
                         <span>Model</span>
-                        <select name="competition_model" id="deliveryCompetitionModel" data-selected-model="{{ $selectedCompetitionModel }}">
+                        <select name="competition_model" id="deliveryCompetitionModel" data-selected-model="{{ $selectedCompetitionModel }}" @disabled($isCustomCompetition)>
                             <option value="">Select Model</option>
                         </select>
                     </label>
+                    <div class="competition-other-fields {{ $isCustomCompetition ? '' : 'hidden' }}" id="deliveryCompetitionOtherFields">
+                        <label class="delivery-pill"><span>Other Brand</span><input type="text" data-competition-other-brand @if($isCustomCompetition) name="competition_brand" @endif value="{{ $isCustomCompetition ? $selectedCompetitionBrand : '' }}" placeholder="Type brand"></label>
+                        <label class="delivery-pill"><span>Other Model</span><input type="text" data-competition-other-model @if($isCustomCompetition) name="competition_model" @endif value="{{ $isCustomCompetition ? $selectedCompetitionModel : '' }}" placeholder="Type model"></label>
+                    </div>
                 </div>
             </div>
 
@@ -722,10 +739,7 @@
                 <label><input type="radio" name="exchange_type" value="outhouse" @checked($selectedExchangeType === 'outhouse')><span>Out- House</span></label>
             </div>
 
-            <label class="delivery-pill delivery-exchange-purchase-row" id="deliveryExchangePurchaseRow">
-                <span>Purchase Value</span>
-                <input type="number" step="0.01" min="0" name="exchange_purchase_value" value="{{ $selectedExchangePurchaseValue }}" data-exchange-lockable>
-            </label>
+
 
             <label class="delivery-exchange-question-label">Interested in Exchange?</label>
             <div class="delivery-segment delivery-exchange-interest-segment">
@@ -739,26 +753,7 @@
                         <span>{{ strtoupper(collect([$selectedExchangeBrand, $selectedExchangeModel])->filter()->implode(' ') ?: 'Not selected') }}</span>
                     </div>
 
-                    <div class="delivery-exchange-brand-model-row hidden" id="deliveryExchangeBrandModelRow">
-                        <label class="delivery-pill">
-                            <span>Select Brand</span>
-                            <select name="exchange_vehicle_brand" id="deliveryExchangeBrand" data-exchange-lockable>
-                                <option value="">Select Brand</option>
-                                @foreach($competitionBrands as $brandOption)
-                                    <option value="{{ $brandOption }}" @selected($selectedExchangeBrand === $brandOption)>{{ $brandOption }}</option>
-                                @endforeach
-                                @if(!empty($selectedExchangeBrand) && !in_array($selectedExchangeBrand, $competitionBrands, true))
-                                    <option value="{{ $selectedExchangeBrand }}" selected>{{ $selectedExchangeBrand }}</option>
-                                @endif
-                            </select>
-                        </label>
-                        <label class="delivery-pill">
-                            <span>Select Model</span>
-                            <select name="exchange_vehicle_model" id="deliveryExchangeModel" data-selected-model="{{ $selectedExchangeModel }}" data-exchange-lockable>
-                                <option value="">Select Model</option>
-                            </select>
-                        </label>
-                    </div>
+                    @include('partials.exchange-assessment', ['exchangeRecord' => $delivery, 'exchangeFallback' => $booking ?? $prospect])
 
                     <div class="delivery-exchange-two-col">
                         <label class="delivery-pill">
@@ -774,23 +769,6 @@
                                 <option value="3rd Owner" @selected($selectedExchangeOwnership === '3rd Owner')>3rd Owner</option>
                             </select>
                         </label>
-                    </div>
-
-                    <label class="delivery-pill delivery-exchange-wide">
-                        <span>Insurance Validity</span>
-                        <input type="date" name="exchange_insurance_validity" value="{{ $selectedExchangeInsuranceValidity }}" data-exchange-lockable>
-                    </label>
-
-                    <div class="delivery-exchange-tyre-row">
-                        <span>Tyre Replacement</span>
-                    </div>
-
-                    <div class="delivery-segment delivery-exchange-tyre-segment">
-                        <input type="hidden" name="exchange_tyre_replacements_present" value="1">
-                        <label><input type="checkbox" name="exchange_tyre_replacements[]" value="front_lhs" @checked(in_array('front_lhs', $selectedExchangeTyreReplacements, true))><span>Front LHS</span></label>
-                        <label><input type="checkbox" name="exchange_tyre_replacements[]" value="front_rhs" @checked(in_array('front_rhs', $selectedExchangeTyreReplacements, true))><span>Front RHS</span></label>
-                        <label><input type="checkbox" name="exchange_tyre_replacements[]" value="rear_lhs" @checked(in_array('rear_lhs', $selectedExchangeTyreReplacements, true))><span>Rear LHS</span></label>
-                        <label><input type="checkbox" name="exchange_tyre_replacements[]" value="rear_rhs" @checked(in_array('rear_rhs', $selectedExchangeTyreReplacements, true))><span>Rear RHS</span></label>
                     </div>
 
                     <div class="delivery-exchange-two-col">
@@ -810,9 +788,18 @@
                     </label>
 
                     <div class="delivery-exchange-price-row">
-                        <input type="number" step="0.01" min="0" name="exchange_expected_price" id="deliveryExchangeExpectedPrice" value="{{ $selectedExchangeExpectedPrice }}" placeholder="Expected Price" data-exchange-lockable>
-                        <input type="number" step="0.01" min="0" name="exchange_quoted_price" id="deliveryExchangeQuotedPrice" value="{{ $selectedExchangeQuotedPrice }}" placeholder="Quoted Price" data-exchange-lockable>
-                        <input type="number" step="0.01" name="exchange_price_difference" id="deliveryExchangeDifference" value="{{ $selectedExchangeDifference }}" placeholder="Difference" readonly>
+                        <div>
+                            <div id="delivery_exchange_expected_price_heading" class="exchange-price-heading">Expected Price</div>
+                            <input aria-labelledby="delivery_exchange_expected_price_heading" type="number" step="0.01" min="0" name="exchange_expected_price" id="deliveryExchangeExpectedPrice" value="{{ $selectedExchangeExpectedPrice }}" placeholder="Expected Price" data-exchange-lockable>
+                        </div>
+                        <div>
+                            <div id="delivery_exchange_quoted_price_heading" class="exchange-price-heading">Quoted Price</div>
+                            <input aria-labelledby="delivery_exchange_quoted_price_heading" type="number" step="0.01" min="0" name="exchange_quoted_price" id="deliveryExchangeQuotedPrice" value="{{ $selectedExchangeQuotedPrice }}" placeholder="Quoted Price" data-exchange-lockable>
+                        </div>
+                        <div>
+                            <div id="delivery_exchange_price_difference_heading" class="exchange-price-heading">Difference</div>
+                            <input aria-labelledby="delivery_exchange_price_difference_heading" type="number" step="0.01" name="exchange_price_difference" id="deliveryExchangeDifference" value="{{ $selectedExchangeDifference }}" placeholder="Difference" readonly>
+                        </div>
                     </div>
                 </div>
 
@@ -1245,30 +1232,21 @@
             @endif
         </form>
 
+        @if(!$isReadOnly)
         <div class="delivery-actions {{ $currentStep === 1 ? 'no-back' : '' }} {{ $currentStep === 6 ? 'delivery-final-actions' : '' }}">
             @if($currentStep > 1)
-                @if($isReadOnly)
-                    <button type="button" class="delivery-action back" disabled>Back</button>
-                @else
-                <a href="{{ route('delivery.show', ['enquiry' => $enquiry->id, 'step' => $deliveryBackStep]) }}" class="delivery-action back">Back</a>
-                @endif
+                <a href="{{ route('delivery.show', ['enquiry' => $enquiry->id, 'step' => $deliveryBackStep, 'edit' => $workflowEditing ? 1 : null]) }}" class="delivery-action back">Back</a>
             @endif
-            @if($isReadOnly)
-                <button type="button" class="delivery-action save-exit" disabled>Back to Approvals</button>
-                @if($currentStep < 6)
-                    <a href="{{ route('delivery.show', ['enquiry' => $enquiry->id, 'step' => $currentStep === 2 && $selectedFirstTimeBuyer === 'yes' ? 4 : $currentStep + 1]) }}" class="delivery-action save-next">Next</a>
-                @endif
-            @else
             @if($currentStep !== 6)
                 <button type="submit" form="deliveryForm" name="action_type" value="save_exit" class="delivery-action save-exit">Save &amp; Exit</button>
             @endif
             @if($currentStep === 6)
-                <button type="submit" form="deliveryForm" name="action_type" value="submit" class="delivery-action save-next delivery-submit-action">Deliver Now</button>
+                <button type="submit" form="deliveryForm" name="action_type" value="{{ $workflowEditing ? 'save_exit' : 'submit' }}" class="delivery-action save-next delivery-submit-action">{{ $workflowEditing ? 'Save Changes' : 'Deliver Now' }}</button>
             @else
                 <button type="submit" form="deliveryForm" name="action_type" value="save_next" class="delivery-action save-next" id="deliverySaveNextButton" @if($currentStep === 5) data-requires-pending-zero="1" title="Pending Amount must be 0 before Save & Next" aria-disabled="{{ (float) ($selectedPaymentPendingAmount ?? 0) > 0 ? 'true' : 'false' }}" @endif>Save &amp; Next</button>
             @endif
-            @endif
         </div>
+        @endif
     </main>
 </div>
 
@@ -2242,8 +2220,34 @@
         }
     };
 
+    const syncDeliveryCompetitionOtherFields = () => {
+        const brand = document.getElementById('deliveryCompetitionBrand');
+        const model = document.getElementById('deliveryCompetitionModel');
+        const fields = document.getElementById('deliveryCompetitionOtherFields');
+        const otherBrand = fields?.querySelector('[data-competition-other-brand]');
+        const otherModel = fields?.querySelector('[data-competition-other-model]');
+        if (!brand || !model || !fields || !otherBrand || !otherModel) return;
+        const isOther = brand.value === '__other__';
+        fields.classList.toggle('hidden', !isOther);
+        model.disabled = isOther;
+        if (isOther) {
+            brand.removeAttribute('name');
+            otherBrand.name = 'competition_brand';
+            otherModel.name = 'competition_model';
+        } else {
+            brand.name = 'competition_brand';
+            otherBrand.removeAttribute('name');
+            otherModel.removeAttribute('name');
+        }
+    };
+
     fillModelSelect('deliveryCompetitionBrand', 'deliveryCompetitionModel');
     fillModelSelect('deliveryExistingBrand', 'deliveryExistingModel');
+    syncDeliveryCompetitionOtherFields();
+    document.getElementById('deliveryCompetitionBrand')?.addEventListener('change', (event) => {
+        syncDeliveryCompetitionOtherFields();
+        if (event.target.value !== '__other__') fillModelSelect('deliveryCompetitionBrand', 'deliveryCompetitionModel');
+    });
     fillModelSelect('deliveryExchangeBrand', 'deliveryExchangeModel');
     document.getElementById('deliveryCompetitionBrand')?.addEventListener('change', () => {
         const modelSelect = document.getElementById('deliveryCompetitionModel');

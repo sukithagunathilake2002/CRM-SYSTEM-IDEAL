@@ -165,6 +165,10 @@ $viewerId = (int) ($user?->id ?? 0);
                                 </svg>
                             </a>
 
+                            <a href="{{ route('dashboard.home') }}" class="crm-home-nav crm-role-dashboard-nav" aria-label="Open role dashboard" title="Role Dashboard">
+                                @include('partials.dashboard-icon')
+                            </a>
+
                             <details class="crm-notifications">
                                 <summary class="crm-notify-btn" aria-label="Due follow-up notifications">
                                     <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">

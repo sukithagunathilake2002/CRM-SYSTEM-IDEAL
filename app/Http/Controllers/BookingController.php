@@ -46,7 +46,7 @@ class BookingController extends Controller
         $currentStep = max(1, min(5, $currentStep));
         $firstTimeBuyerForNavigation = old('first_time_buyer', $booking->first_time_buyer ?: $prospect?->first_time_buyer);
         if ($currentStep === 3 && $firstTimeBuyerForNavigation === 'yes') {
-            return redirect()->route('booking.show', ['enquiry' => $enquiry->id, 'step' => 4]);
+            return redirect()->route('booking.show', ['enquiry' => $enquiry->id, 'step' => 4, 'edit' => request()->boolean('edit') ? 1 : null]);
         }
         $viewer = request()->user();
         $vehicleModels = Vehicle::visibleTo($viewer)
@@ -192,6 +192,14 @@ class BookingController extends Controller
 
     public function store(Request $request, Enquiry $enquiry)
     {
+        return \App\Support\WorkflowSubmission::save($request, $enquiry, 'booking',
+            fn (Enquiry $locked) => $this->saveRecord($request, $locked));
+    }
+
+    private function saveRecord(Request $request, Enquiry $enquiry)
+    {
+        abort_unless($enquiry->isEditableBy($request->user()), 403, 'You can only edit your own leads.');
+
         $enquiry->load(['customer', 'vehicle', 'prospectSheet', 'booking', 'user']);
         abort_unless($enquiry->isVisibleTo($request->user()), 403);
 
@@ -225,6 +233,7 @@ class BookingController extends Controller
             ?: ($requestedStep === 5 ? 'submit' : 'next');
 
         $validated = $request->validate([
+            ...\App\Support\ExchangeAssessment::rules(),
             'booking_same_as_customer' => ['nullable', 'in:0,1'],
             'title' => ['nullable', 'string', 'max:20'],
             'name' => ['nullable', 'string', 'max:255', 'required_if:booking_same_as_customer,0'],
@@ -290,8 +299,8 @@ class BookingController extends Controller
             'exchange_type' => ['nullable', Rule::in(['in_house', 'outhouse'])],
             'exchange_purchase_value' => ['nullable', 'numeric', 'min:0'],
             'exchange_vehicle_brand' => ['nullable', 'string', 'max:255'],
-            'exchange_vehicle_model' => ['nullable', 'string', 'max:255'],
-            'exchange_vehicle_model_backup' => ['nullable', 'string', 'max:255'],
+            'exchange_vehicle_model' => ['nullable', Rule::in(\App\Support\ExchangeAssessment::VEHICLES)],
+            'exchange_vehicle_model_backup' => ['nullable', Rule::in(\App\Support\ExchangeAssessment::VEHICLES)],
             'exchange_manufacture_year' => ['nullable', 'integer', 'between:1950,2100'],
             'exchange_ownership' => ['nullable', 'string', 'max:50'],
             'exchange_insurance_validity' => ['nullable', 'date'],
@@ -343,6 +352,10 @@ class BookingController extends Controller
             'action_type' => ['nullable', Rule::in(['next', 'save_exit', 'save', 'submit'])],
             'action_type_fallback' => ['nullable', Rule::in(['next', 'save_exit', 'save', 'submit'])],
         ]);
+        if (in_array($validated['exchange_vehicle_model'] ?? null, \App\Support\ExchangeAssessment::VEHICLES, true)) {
+            $validated['exchange_vehicle_brand'] = 'Mahindra';
+        }
+
 
         $currentStep = (int) ($validated['booking_step'] ?? 1);
         $currentStep = max(1, min(5, $currentStep));
@@ -719,6 +732,11 @@ class BookingController extends Controller
             $payload['exchange_extra_images'] = $extraImages;
         }
 
+        $payload['exchange_assessment'] = \App\Support\ExchangeAssessment::resolve($validated, $booking->exchange_assessment ?? $prospect?->exchange_assessment, $payload['interested_in_exchange'] ?? null);
+        if (isset($payload['exchange_assessment']['purchased_price'])) {
+            $payload['exchange_purchase_value'] = $payload['exchange_assessment']['purchased_price'];
+        }
+
         $bookingComplete = $this->bookingPayloadIsComplete($payload);
         if ($actionType === 'submit') {
             $payload['booking_completed_at'] = $bookingComplete
@@ -753,6 +771,7 @@ class BookingController extends Controller
             $payload
         );
         $this->syncSharedWorkflowDataFromBooking($enquiry, $savedBooking);
+        \App\Support\ExchangeAssessment::sync($enquiry, $savedBooking);
 
         $exchangeErrors = $this->missingExchangeRequiredErrors($payload);
         if (!empty($exchangeErrors) && (($actionType === 'next' && $currentStep === 3) || $actionType === 'submit')) {
@@ -839,11 +858,9 @@ class BookingController extends Controller
         if (($payload['interested_in_exchange'] ?? null) === 'yes') {
             foreach ([
                 'exchange_type',
-                'exchange_vehicle_brand',
                 'exchange_vehicle_model',
                 'exchange_manufacture_year',
                 'exchange_ownership',
-                'exchange_insurance_validity',
                 'exchange_color',
                 'exchange_mileage_km',
                 'exchange_registration_no',

@@ -112,6 +112,7 @@ class BookingController extends Controller
 
         // Build default values - prioritize booking data over customer data
         $defaultValues = [
+            'exchange_assessment' => $booking->exchange_assessment ?? $prospect?->exchange_assessment,
             // Personal Details - Use booking data if exists, otherwise customer data
             'title' => $booking->title ?? $customer?->title,
             'name' => $booking->name ?? $customer?->name,
@@ -192,6 +193,8 @@ class BookingController extends Controller
 
         return response()->json([
             'enquiry' => $enquiry,
+            'already_submitted' => $booking->booking_completed_at !== null,
+            'can_edit' => (int) $enquiry->user_id === (int) $viewer->id,
             'booking' => $booking,
             'customer' => $customer,
             'prospect' => $prospect,
@@ -204,6 +207,14 @@ class BookingController extends Controller
 
     public function store(Request $request, Enquiry $enquiry)
     {
+        return \App\Support\WorkflowSubmission::save($request, $enquiry, 'booking',
+            fn (Enquiry $locked) => $this->saveRecord($request, $locked));
+    }
+
+    private function saveRecord(Request $request, Enquiry $enquiry)
+    {
+        abort_unless($enquiry->isEditableBy($request->user()), 403, 'You can only edit your own leads.');
+
         $viewer = $request->user();
         
         // Check access
@@ -237,6 +248,7 @@ class BookingController extends Controller
 
         // Validation
         $validated = $request->validate([
+            ...\App\Support\ExchangeAssessment::rules(),
             'is_edit_mode' => ['nullable', 'in:0,1'],
             'title' => ['nullable', 'string', 'max:20'],
             'name' => ['nullable', 'string', 'max:255'],
@@ -279,7 +291,7 @@ class BookingController extends Controller
             'exchange_type' => ['nullable', 'string', 'max:20'],
             'exchange_purchase_value' => ['nullable', 'numeric'],
             'exchange_vehicle_brand' => ['nullable', 'string', 'max:255'],
-            'exchange_vehicle_model' => ['nullable', 'string', 'max:255'],
+            'exchange_vehicle_model' => ['nullable', Rule::in(\App\Support\ExchangeAssessment::VEHICLES)],
             'exchange_manufacture_year' => ['nullable', 'integer'],
             'exchange_ownership' => ['nullable', 'string', 'max:50'],
             'exchange_insurance_validity' => ['nullable', 'date'],
@@ -314,6 +326,10 @@ class BookingController extends Controller
             'booking_step' => ['nullable', 'integer', 'between:1,5'],
             'action_type' => ['nullable', 'string', 'in:next,save_exit,save,submit,exit'],
         ]);
+        if (in_array($validated['exchange_vehicle_model'] ?? null, \App\Support\ExchangeAssessment::VEHICLES, true)) {
+            $validated['exchange_vehicle_brand'] = 'Mahindra';
+        }
+
 
         $currentStep = (int) ($validated['booking_step'] ?? 1);
         $currentStep = max(1, min(5, $currentStep));
@@ -486,8 +502,10 @@ class BookingController extends Controller
         }
 
         // Save booking - this will store ALL fields, even null values
+        $payload['exchange_assessment'] = \App\Support\ExchangeAssessment::resolve($validated, $booking->exchange_assessment ?? $enquiry->prospectSheet?->exchange_assessment, $payload['interested_in_exchange'] ?? null);
         $booking->fill($payload);
         $booking->save();
+        \App\Support\ExchangeAssessment::sync($enquiry, $booking);
 
         // Reload the booking with fresh data from database
         $booking->refresh();

@@ -5,58 +5,58 @@
 
 <div class="enquiry-page">
     @php
-        $districtOptions = is_array($districtOptions ?? null) && !empty($districtOptions)
-            ? array_values($districtOptions)
-            : \App\Models\User::DISTRICT_OPTIONS;
-        $rawProvinceDistrictMap = \App\Models\User::PROVINCE_DISTRICT_MAP;
-        $permittedDistrictLookup = array_fill_keys($districtOptions, true);
-        $provinceDistrictMap = [];
-        foreach ($rawProvinceDistrictMap as $province => $districts) {
-            $allowedDistricts = array_values(array_filter(
-                $districts,
-                fn(string $district): bool => isset($permittedDistrictLookup[$district])
-            ));
-            if (!empty($allowedDistricts)) {
-                $provinceDistrictMap[$province] = $allowedDistricts;
-            }
-        }
-        $provinceOptions = array_keys($provinceDistrictMap);
-        $selectedDistrict = old('district', '');
-        $selectedProvince = trim((string) old('province', \App\Models\User::provinceForDistrict($selectedDistrict) ?? ''));
-        if ($selectedProvince !== '' && !array_key_exists($selectedProvince, $provinceDistrictMap)) {
-            $selectedProvince = '';
-        }
-        $oldMobiles = old('mobiles', ['']);
-        if (!is_array($oldMobiles) || count($oldMobiles) === 0) {
-            $oldMobiles = [''];
-        }
-        $hasAddressValues = trim((string) old('state')) !== ''
-            || trim((string) old('address1')) !== ''
-            || trim((string) old('address2')) !== '';
-        $sourceInfoMap = is_array($sourceInfoMap ?? null) ? $sourceInfoMap : [
-            'Walk-In' => ['Showroom Visit', 'Road Show', 'Display', 'Existing Customer', 'Other'],
-            'Tele-In' => ['Call Center', 'Hotline', 'Inbound Call', 'Missed Call', 'Other'],
-            'Activity' => ['Event', 'Mall Display', 'Corporate Visit', 'Canvasing', 'Other'],
-            'Digital' => ['Facebook', 'Instagram', 'Google', 'Website', 'YouTube', 'TikTok', 'Other'],
-            'Referral' => ['Customer Referral', 'Employee Referral', 'Dealer Referral', 'Friends/Family', 'Other'],
-            'Press' => ['Newspaper', 'Magazine', 'Radio', 'TV', 'Other'],
-        ];
-        $selectedLeadSourceForForm = old('lead_source', 'Walk-In');
-        $sourceInformationOptionsForSelected = $sourceInfoMap[$selectedLeadSourceForForm] ?? [];
-        $selectedSourceInformationRaw = old('source_of_information', '');
-        $isSelectedSourceInformationOther = $selectedSourceInformationRaw === 'Other'
-            || (trim((string) $selectedSourceInformationRaw) !== '' && !in_array($selectedSourceInformationRaw, $sourceInformationOptionsForSelected, true));
-        $selectedSourceInformation = $isSelectedSourceInformationOther ? 'Other' : $selectedSourceInformationRaw;
-        $selectedSourceInformationOther = old(
-            'source_of_information_other',
-            $isSelectedSourceInformationOther && $selectedSourceInformationRaw !== 'Other' ? $selectedSourceInformationRaw : ''
-        );
-        $selectedFollowTime = old('follow_time')
-            ? substr((string) old('follow_time'), 0, 5)
-            : \Carbon\Carbon::now('Asia/Colombo')->format('H:i');
-        $todayDate = \Carbon\Carbon::now('Asia/Colombo')->toDateString();
-        $selectedInquiryDate = old('inquiry_date', $todayDate);
-        $createdLead = session('created_lead');
+    $districtOptions = is_array($districtOptions ?? null) && !empty($districtOptions)
+    ? array_values($districtOptions)
+    : \App\Models\User::DISTRICT_OPTIONS;
+    $rawProvinceDistrictMap = \App\Models\User::PROVINCE_DISTRICT_MAP;
+    $permittedDistrictLookup = array_fill_keys($districtOptions, true);
+    $provinceDistrictMap = [];
+    foreach ($rawProvinceDistrictMap as $province => $districts) {
+    $allowedDistricts = array_values(array_filter(
+    $districts,
+    fn(string $district): bool => isset($permittedDistrictLookup[$district])
+    ));
+    if (!empty($allowedDistricts)) {
+    $provinceDistrictMap[$province] = $allowedDistricts;
+    }
+    }
+    $provinceOptions = array_keys($provinceDistrictMap);
+    $selectedDistrict = old('district', '');
+    $selectedProvince = trim((string) old('province', \App\Models\User::provinceForDistrict($selectedDistrict) ?? ''));
+    if ($selectedProvince !== '' && !array_key_exists($selectedProvince, $provinceDistrictMap)) {
+    $selectedProvince = '';
+    }
+    $oldMobiles = old('mobiles', ['']);
+    if (!is_array($oldMobiles) || count($oldMobiles) === 0) {
+    $oldMobiles = [''];
+    }
+    $hasAddressValues = trim((string) old('state')) !== ''
+    || trim((string) old('address1')) !== ''
+    || trim((string) old('address2')) !== '';
+    $sourceInfoMap = is_array($sourceInfoMap ?? null) ? $sourceInfoMap : [
+    'Walk-In' => ['Showroom Visit', 'Road Show', 'Display', 'Existing Customer', 'Other'],
+    'Tele-In' => ['Call Center', 'Hotline', 'Inbound Call', 'Missed Call', 'Other'],
+    'Activity' => ['Event', 'Mall Display', 'Corporate Visit', 'Canvasing', 'Other'],
+    'Digital' => ['Facebook', 'Instagram', 'Google', 'Website', 'YouTube', 'TikTok', 'Other'],
+    'Referral' => ['Customer Referral', 'Employee Referral', 'Dealer Referral', 'Friends/Family', 'Other'],
+    'Press' => ['Newspaper', 'Magazine', 'Radio', 'TV', 'Other'],
+    ];
+    $selectedLeadSourceForForm = old('lead_source', 'Walk-In');
+    $sourceInformationOptionsForSelected = $sourceInfoMap[$selectedLeadSourceForForm] ?? [];
+    $selectedSourceInformationRaw = old('source_of_information', '');
+    $isSelectedSourceInformationOther = $selectedSourceInformationRaw === 'Other'
+    || (trim((string) $selectedSourceInformationRaw) !== '' && !in_array($selectedSourceInformationRaw, $sourceInformationOptionsForSelected, true));
+    $selectedSourceInformation = $isSelectedSourceInformationOther ? 'Other' : $selectedSourceInformationRaw;
+    $selectedSourceInformationOther = old(
+    'source_of_information_other',
+    $isSelectedSourceInformationOther && $selectedSourceInformationRaw !== 'Other' ? $selectedSourceInformationRaw : ''
+    );
+    $selectedFollowTime = old('follow_time')
+    ? substr((string) old('follow_time'), 0, 5)
+    : \Carbon\Carbon::now('Asia/Colombo')->format('H:i');
+    $todayDate = \Carbon\Carbon::now('Asia/Colombo')->toDateString();
+    $selectedInquiryDate = old('inquiry_date', $todayDate);
+    $createdLead = session('created_lead');
     @endphp
 
     <header class="topbar">
@@ -68,82 +68,82 @@
 
     <div class="enquiry-shell">
         @if(session('success') && !(is_array($createdLead ?? null) && !empty($createdLead['id'])))
-            <div class="form-flash success">{{ session('success') }}</div>
+        <div class="form-flash success">{{ session('success') }}</div>
         @endif
 
         @if(is_array($createdLead ?? null) && !empty($createdLead['id']))
-            <div class="created-lead-modal" id="createdLeadModal" role="dialog" aria-modal="true" aria-labelledby="createdLeadTitle">
-                <section class="created-lead-card">
-                    <button type="button" class="created-lead-close" id="createdLeadCloseBtn" aria-label="Close">&times;</button>
+        <div class="created-lead-modal" id="createdLeadModal" role="dialog" aria-modal="true" aria-labelledby="createdLeadTitle">
+            <section class="created-lead-card">
+                <button type="button" class="created-lead-close" id="createdLeadCloseBtn" aria-label="Close">&times;</button>
 
-                    <div class="created-lead-head">
-                        <div>
-                            <p class="created-lead-kicker">Lead Created Successfully</p>
-                            <h3 id="createdLeadTitle">{{ $createdLead['customer_name'] ?? 'New Lead' }}</h3>
-                        </div>
-                        <span class="created-lead-id">EPR #{{ $createdLead['id'] }}</span>
+                <div class="created-lead-head">
+                    <div>
+                        <p class="created-lead-kicker">Lead Created Successfully</p>
+                        <h3 id="createdLeadTitle">{{ $createdLead['customer_name'] ?? 'New Lead' }}</h3>
                     </div>
+                    <span class="created-lead-id">EPR #{{ $createdLead['id'] }}</span>
+                </div>
 
-                    <div class="created-lead-grid">
-                        <div>
-                            <span>Contact No</span>
-                            <strong>{{ implode(', ', $createdLead['mobile_numbers'] ?? []) ?: 'N/A' }}</strong>
-                        </div>
-                        <div>
-                            <span>Location</span>
-                            <strong>{{ trim(($createdLead['location'] ?? '') . (($createdLead['district'] ?? '') ? ', ' . $createdLead['district'] : '')) ?: 'N/A' }}</strong>
-                        </div>
-                        <div>
-                            <span>Lead Source</span>
-                            <strong>{{ trim(($createdLead['lead_source'] ?? '') . (($createdLead['source_of_information'] ?? '') ? ' - ' . $createdLead['source_of_information'] : '')) ?: 'N/A' }}</strong>
-                        </div>
-                        <div>
-                            <span>Follow Up</span>
-                            <strong>
-                                {{ $createdLead['follow_type'] ?? 'Followup' }}
-                                @if(!empty($createdLead['follow_date']))
-                                    on {{ \Carbon\Carbon::parse($createdLead['follow_date'])->format('d M Y') }}
-                                @endif
-                                @if(!empty($createdLead['follow_time']))
-                                    at {{ substr((string) $createdLead['follow_time'], 0, 5) }}
-                                @endif
-                            </strong>
-                        </div>
+                <div class="created-lead-grid">
+                    <div>
+                        <span>Contact No</span>
+                        <strong>{{ implode(', ', $createdLead['mobile_numbers'] ?? []) ?: 'N/A' }}</strong>
                     </div>
-
-                    @if(!empty($createdLead['vehicles']))
-                        <div class="created-lead-vehicles">
-                            <span>Selected Vehicle Models</span>
-                            <div>
-                                @foreach($createdLead['vehicles'] as $createdVehicleLabel)
-                                    <small>{{ $createdVehicleLabel }}</small>
-                                @endforeach
-                            </div>
-                        </div>
-                    @endif
-
-                    <div class="created-lead-actions">
-                        <p>Complete the Prospect Sheet before opening Booking.</p>
-                        <div>
-                            <a href="{{ route('prospect.show', $createdLead['id']) }}" class="created-lead-btn primary">Register</a>
-                        </div>
+                    <div>
+                        <span>Location</span>
+                        <strong>{{ trim(($createdLead['location'] ?? '') . (($createdLead['district'] ?? '') ? ', ' . $createdLead['district'] : '')) ?: 'N/A' }}</strong>
                     </div>
-                </section>
-            </div>
+                    <div>
+                        <span>Lead Source</span>
+                        <strong>{{ trim(($createdLead['lead_source'] ?? '') . (($createdLead['source_of_information'] ?? '') ? ' - ' . $createdLead['source_of_information'] : '')) ?: 'N/A' }}</strong>
+                    </div>
+                    <div>
+                        <span>Follow Up</span>
+                        <strong>
+                            {{ $createdLead['follow_type'] ?? 'Followup' }}
+                            @if(!empty($createdLead['follow_date']))
+                            on {{ \Carbon\Carbon::parse($createdLead['follow_date'])->format('d M Y') }}
+                            @endif
+                            @if(!empty($createdLead['follow_time']))
+                            at {{ substr((string) $createdLead['follow_time'], 0, 5) }}
+                            @endif
+                        </strong>
+                    </div>
+                </div>
+
+                @if(!empty($createdLead['vehicles']))
+                <div class="created-lead-vehicles">
+                    <span>Selected Vehicle Models</span>
+                    <div>
+                        @foreach($createdLead['vehicles'] as $createdVehicleLabel)
+                        <small>{{ $createdVehicleLabel }}</small>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
+
+                <div class="created-lead-actions">
+                    <p>Complete the Prospect Sheet before opening Booking.</p>
+                    <div>
+                        <a href="{{ route('prospect.show', $createdLead['id']) }}" class="created-lead-btn primary">Register</a>
+                    </div>
+                </div>
+            </section>
+        </div>
         @endif
 
         @if(session('error'))
-            <div class="form-flash error">{{ session('error') }}</div>
+        <div class="form-flash error">{{ session('error') }}</div>
         @endif
 
         @if($errors->any())
-            <div class="form-flash error">
-                <ul>
-                    @foreach($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
+        <div class="form-flash error">
+            <ul>
+                @foreach($errors->all() as $error)
+                <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
         @endif
 
         <form class="enquiry-form" method="POST" action="{{ route('save.customer') }}" id="enquiryForm">
@@ -153,7 +153,7 @@
                 <select id="model" name="model" class="input-pill">
                     <option value="">Select model</option>
                     @foreach($models as $m)
-                    <option value="{{ $m->model }}" @selected(old('model') === $m->model)>{{ $m->model }}</option>
+                    <option value="{{ $m->model }}" @selected(old('model')===$m->model)>{{ $m->model }}</option>
                     @endforeach
                 </select>
 
@@ -173,7 +173,7 @@
                 </div>
                 <div id="selectedVehicleInputs">
                     @foreach(($selectedVehiclesForForm ?? []) as $selectedVehicle)
-                        <input type="hidden" name="selected_vehicle_ids[]" value="{{ $selectedVehicle['vehicle_id'] ?? '' }}" data-vehicle-id="{{ $selectedVehicle['vehicle_id'] ?? '' }}">
+                    <input type="hidden" name="selected_vehicle_ids[]" value="{{ $selectedVehicle['vehicle_id'] ?? '' }}" data-vehicle-id="{{ $selectedVehicle['vehicle_id'] ?? '' }}">
                     @endforeach
                 </div>
                 <div id="selectedVehicleList" class="selected-vehicle-list"></div>
@@ -199,8 +199,7 @@
                         name="source_of_information"
                         class="input-pill"
                         data-selected-source-info="{{ $selectedSourceInformation }}"
-                        required
-                    >
+                        required>
                         <option value="">Select Source of Information</option>
                     </select>
                     <div id="sourceInformationOtherWrap" style="{{ $selectedSourceInformation === 'Other' ? '' : 'display:none;' }}">
@@ -211,8 +210,7 @@
                             name="source_of_information_other"
                             class="input-pill"
                             value="{{ $selectedSourceInformationOther }}"
-                            placeholder="Enter source details"
-                        >
+                            placeholder="Enter source details">
                     </div>
                 </div>
             </div>
@@ -221,9 +219,9 @@
                 <div class="name-block">
                     <div class="field-row title-name-row">
                         <select name="title" class="input-pill title-select">
-                            <option value="Mr" @selected(old('title', 'Mr') === 'Mr')>Mr</option>
-                            <option value="Mrs" @selected(old('title') === 'Mrs')>Mrs</option>
-                            <option value="Ms" @selected(old('title') === 'Ms')>Ms</option>
+                            <option value="Mr" @selected(old('title', 'Mr' )==='Mr' )>Mr</option>
+                            <option value="Mrs" @selected(old('title')==='Mrs' )>Mrs</option>
+                            <option value="Ms" @selected(old('title')==='Ms' )>Ms</option>
                         </select>
                         <input type="text" name="name" class="input-pill" placeholder="Name" value="{{ old('name') }}" required>
                     </div>
@@ -231,27 +229,26 @@
 
                 <div id="mobile-section" class="mobile-block">
                     @foreach($oldMobiles as $index => $oldMobile)
-                        <div class="mobile-row">
-                            <input
-                                type="text"
-                                name="mobiles[]"
-                                class="input-pill"
-                                placeholder="Contact No"
-                                value="{{ $oldMobile }}"
-                                inputmode="numeric"
-                                maxlength="10"
-                                minlength="10"
-                                pattern="0\d{9}"
-                                title="Contact number must be 10 digits and start with 0."
-                                oninput="this.value = this.value.replace(/\D/g, '').slice(0, 10);"
-                                @if($index === 0) required @endif
-                            >
-                            @if($index === 0)
-                                <button type="button" class="icon-add" onclick="addMobile()">+</button>
-                            @else
-                                <button type="button" class="icon-remove" onclick="removeMobile(this)">-</button>
-                            @endif
-                        </div>
+                    <div class="mobile-row">
+                        <input
+                            type="text"
+                            name="mobiles[]"
+                            class="input-pill"
+                            placeholder="Contact No"
+                            value="{{ $oldMobile }}"
+                            inputmode="numeric"
+                            maxlength="10"
+                            minlength="10"
+                            pattern="0\d{9}"
+                            title="Contact number must be 10 digits and start with 0."
+                            oninput="this.value = this.value.replace(/\D/g, '').slice(0, 10);"
+                            @if($index===0) required @endif>
+                        @if($index === 0)
+                        <button type="button" class="icon-add" onclick="addMobile()">+</button>
+                        @else
+                        <button type="button" class="icon-remove" onclick="removeMobile(this)">-</button>
+                        @endif
+                    </div>
                     @endforeach
                 </div>
             </div>
@@ -260,7 +257,7 @@
                 <select name="province" id="provinceSelect" class="input-pill" required>
                     <option value="">Select Province</option>
                     @foreach($provinceOptions as $provinceOption)
-                        <option value="{{ $provinceOption }}" @selected($selectedProvince === $provinceOption)>{{ $provinceOption }}</option>
+                    <option value="{{ $provinceOption }}" @selected($selectedProvince===$provinceOption)>{{ $provinceOption }}</option>
                     @endforeach
                 </select>
                 <select name="district" id="districtSelect" class="input-pill" required>
@@ -482,7 +479,7 @@
         return true;
     }
 
-    (function () {
+    (function() {
         const provinceSelect = document.getElementById('provinceSelect');
         const districtSelect = document.getElementById('districtSelect');
         if (!provinceSelect || !districtSelect) {
@@ -582,8 +579,13 @@
         }
 
         const selectedLeadSource = String(leadSourceInput.value || '');
-        const selectedFromServer = sourceSelect.dataset.selectedSourceInfo || sourceSelect.value;
+        let selectedFromServer = sourceSelect.dataset.selectedSourceInfo || sourceSelect.value || '';
         const options = Array.isArray(sourceInfoMap[selectedLeadSource]) ? sourceInfoMap[selectedLeadSource] : [];
+        if (selectedFromServer.startsWith && selectedFromServer.startsWith('Event - ')) {
+            selectedFromServer = 'Event';
+        } else if (selectedFromServer !== '' && options.indexOf(selectedFromServer) === -1) {
+            selectedFromServer = 'Other';
+        }
 
         sourceSelect.innerHTML = '<option value="">Select Source of Information</option>';
         options.forEach((sourceOption) => {
@@ -605,10 +607,24 @@
         const sourceSelect = document.getElementById('sourceOfInformationSelect');
         const otherWrap = document.getElementById('sourceInformationOtherWrap');
         const otherInput = document.getElementById('sourceInformationOtherInput');
-        const showOther = sourceSelect && sourceSelect.value === 'Other';
+        const value = sourceSelect ? sourceSelect.value : '';
+        const showOther = sourceSelect && (value === 'Other' || value === 'Event');
 
         if (otherWrap) {
             otherWrap.style.display = showOther ? '' : 'none';
+        }
+
+        if (otherWrap) {
+            const label = otherWrap.querySelector('label');
+            if (label) {
+                if (value === 'Event') {
+                    label.textContent = 'Event Name';
+                    if (otherInput) otherInput.placeholder = 'Enter event name';
+                } else {
+                    label.textContent = 'Other Details';
+                    if (otherInput) otherInput.placeholder = 'Enter source details';
+                }
+            }
         }
 
         if (!showOther && otherInput) {
@@ -658,7 +674,7 @@
         });
     })();
 
-    document.getElementById('enquiryForm').addEventListener('submit', function (event) {
+    document.getElementById('enquiryForm').addEventListener('submit', function(event) {
         const firstMobile = document.querySelector('input[name="mobiles[]"]');
         if (firstMobile) {
             firstMobile.value = firstMobile.value.trim();
@@ -672,7 +688,7 @@
         }
     });
 
-    document.getElementById('enquiryForm').addEventListener('reset', function () {
+    document.getElementById('enquiryForm').addEventListener('reset', function() {
         setTimeout(() => {
             selectedVehicles = [];
             renderSelectedVehicles();
@@ -694,18 +710,17 @@
         }
 
         closeBtn?.addEventListener('click', closeModal);
-        modal.addEventListener('click', function (event) {
+        modal.addEventListener('click', function(event) {
             if (event.target === modal) {
                 closeModal();
             }
         });
 
-        document.addEventListener('keydown', function (event) {
+        document.addEventListener('keydown', function(event) {
             if (event.key === 'Escape') {
                 closeModal();
             }
         });
     })();
-
 </script>
 @endsection

@@ -186,6 +186,11 @@
 
         <section class="followup-card">
             <form method="POST" action="{{ route('followup.update_status', $enquiry->id) }}" enctype="multipart/form-data" id="followupForm">
+        @if(!$enquiry->isEditableBy(auth()->user()))
+            <p>Review only. You can only edit your own leads.</p>
+            <style>#followupForm button[type="submit"], #followupForm input[type="submit"], button[form="followupForm"][type="submit"] { display: none !important; }</style>
+        @endif
+        <fieldset @disabled(!$enquiry->isEditableBy(auth()->user())) style="border:0;padding:0;margin:0;min-width:0">
                 @csrf
                 <input type="hidden" name="followup_status" id="followupStatusInput" value="{{ $selectedFollowupStatus }}">
                 <input type="hidden" name="is_home_visit" id="isHomeVisit" value="{{ $isHomeVisit ? '1' : '0' }}">
@@ -503,7 +508,8 @@
                     <a href="{{ url('/epr') }}" class="status-btn cancel-btn">Cancel</a>
                     <button type="submit" class="status-btn save-btn">Save</button>
                 </div>
-            </form>
+            </fieldset>
+        </form>
             <div class="dial-now-row">
                 <a href="{{ $dialPhone !== '' ? 'tel:' . $dialPhone : '#' }}" class="dial-now-btn">Dial Now</a>
             </div>

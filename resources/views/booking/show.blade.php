@@ -1,3 +1,9 @@
+@php
+    $workflowOwner = auth()->id() && (int) $enquiry->user_id === (int) auth()->id();
+    $workflowSubmitted = $booking->booking_completed_at !== null;
+    $workflowEditing = $workflowSubmitted && $workflowOwner && request()->boolean('edit');
+    $workflowReadOnly = !$workflowOwner || ($workflowSubmitted && !$workflowEditing);
+@endphp
 @extends('layouts.app')
 
 @section('content')
@@ -336,7 +342,7 @@ default => 'N/A',
 $money = fn($value) => $value === null ? 'N/A' : number_format((float) $value, 2);
 
 $backUrl = $currentStep > 1
-? route('booking.show', ['enquiry' => $enquiry->id, 'step' => ($currentStep === 4 && $selectedFirstTimeBuyer === 'yes') ? 2 : $currentStep - 1])
+? route('booking.show', ['enquiry' => $enquiry->id, 'edit' => $workflowEditing ? 1 : null, 'step' => ($currentStep === 4 && $selectedFirstTimeBuyer === 'yes') ? 2 : $currentStep - 1])
 : route('prospect.show', ['enquiry' => $enquiry->id, 'step' => 4]);
 $showExchangeDetails = $selectedInterestedExchange === 'yes' && in_array($selectedExchangeType, ['in_house', 'outhouse'], true);
 $isExchangeDetailsOpen = $showExchangeDetails && $isExchangeEdit;
@@ -448,6 +454,7 @@ $exchangeVehicleLine = $exchangeVehicleLine ?: 'Not selected';
 $vehicleColorOptions = $vehicleColorOptions ?? [];
 $competitionMap = collect($competitionMap ?? []);
 $competitionBrands = $competitionMap->keys()->values()->all();
+$isCustomCompetition = $selectedCompetitionBrand && !in_array($selectedCompetitionBrand, $competitionBrands, true);
 $stepTitleMap = [
 1 => 'Personal Details',
 2 => 'Buying Details',
@@ -531,7 +538,6 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
             <div class="exchange-summary-row exchange-summary-model"><span>Exchange Model</span><strong id="exchangeSummaryModel">{{ $selectedExchangeModel ?: '-' }}</strong></div>
             <div class="exchange-summary-row exchange-summary-year"><span>Model Year</span><strong id="exchangeSummaryYear">{{ $selectedExchangeYear ?: '-' }}</strong></div>
             <div class="exchange-summary-row exchange-summary-ownership"><span>Ownership</span><strong id="exchangeSummaryOwnership">{{ $selectedExchangeOwnership ?: '-' }}</strong></div>
-            <div class="exchange-summary-row exchange-summary-insurance"><span>Insurance Validity</span><strong id="exchangeSummaryInsurance">{{ $selectedExchangeInsuranceLabel ?: '-' }}</strong></div>
             <div class="exchange-summary-row exchange-summary-color"><span>Color</span><strong id="exchangeSummaryColor">{{ $selectedExchangeColor ?: '-' }}</strong></div>
             <div class="exchange-summary-row exchange-summary-mileage"><span>Total KM</span><strong id="exchangeSummaryMileage">{{ $selectedExchangeMileage !== null && $selectedExchangeMileage !== '' ? number_format((float) $selectedExchangeMileage, 0) : '-' }}</strong></div>
             <div class="exchange-summary-row exchange-summary-registration"><span>Registration No</span><strong id="exchangeSummaryRegistration">{{ $selectedExchangeRegNo ?: '-' }}</strong></div>
@@ -551,10 +557,18 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
         @endif
         @endif
 
-        <form method="POST" action="{{ route('booking.store', $enquiry->id) }}" enctype="multipart/form-data" id="bookingForm" novalidate>
+        @include('partials.workflow-submission-status', ['workflowType' => 'booking'])
+<form method="POST" action="{{ route('booking.store', $enquiry->id) }}" enctype="multipart/form-data" id="bookingForm" novalidate>
+        @if($workflowReadOnly)
+            @if(!$workflowOwner)<p>Review only. Only the enquiry creator can edit this booking.</p>@endif
+            <style>#bookingForm button[type="submit"], #bookingForm input[type="submit"], button[form="bookingForm"][type="submit"] { display: none !important; }</style>
+            @include('partials.review-navigation', ['reviewRoute' => 'booking.show', 'reviewCurrentStep' => $currentStep])
+        @endif
+        <fieldset @disabled($workflowReadOnly) style="border:0;padding:0;margin:0;min-width:0">
             @csrf
+            @if($workflowEditing)<input type="hidden" name="edit" value="1">@endif
             <input type="hidden" name="booking_step" value="{{ $currentStep }}">
-            <input type="hidden" name="action_type_fallback" id="bookingActionTypeFallback" value="{{ $currentStep === 5 ? 'submit' : 'next' }}">
+            <input type="hidden" name="action_type_fallback" id="bookingActionTypeFallback" value="{{ $currentStep === 5 ? ($workflowEditing ? 'save_exit' : 'submit') : 'next' }}">
 
             <div class="personal-edit-button-row personal-edit-button-row-outside {{ $currentStep === 1 ? 'active' : '' }}">
                 <input type="hidden" id="bookingSameAsCustomer" name="booking_same_as_customer" value="{{ $isPersonalEdit ? '0' : '1' }}">
@@ -668,6 +682,11 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
                         <label><input type="radio" name="profession" value="other" data-personal-editable @checked($selectedProfession==='other' )><span>Other</span></label>
                         <label><input type="radio" name="profession" value="not_asked" data-personal-editable @checked($selectedProfession==='not_asked' )><span>I Did Not Ask</span></label>
                     </div>
+
+                </div>
+            </section>
+
+            <section class="booking-section {{ $currentStep === 1 ? 'active' : '' }}" id="bookingPurchaseOrderSection">
                     <div class="purchase-order-box personal-purchase-order">
                         <label for="purchase_order_image">Purchase Order</label>
                         <input type="hidden" id="remove_purchase_order_image" name="remove_purchase_order_image" value="0">
@@ -696,7 +715,11 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
                             <button type="button" id="purchaseOrderClear" @disabled(empty($booking->purchase_order_image))>Clear</button>
                         </div>
                     </div>
-                </div>
+                <p>JPG, PNG or WebP, up to 5 MB. Click Save &amp; Next or Save &amp; Exit to save the selected image.</p>
+                @if(!empty($booking->purchase_order_image))
+                    <p>Saved purchase order: <a href="{{ asset('storage/' . $booking->purchase_order_image) }}" target="_blank" rel="noopener">Open image</a></p>
+                @endif
+                @error('purchase_order_image')<p role="alert">{{ $message }}</p>@enderror
             </section>
 
             <section class="booking-section buying-section {{ $currentStep === 2 ? 'active' : '' }}">
@@ -843,15 +866,21 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
                                     @foreach($competitionBrands as $brandOption)
                                     <option value="{{ $brandOption }}" @selected($selectedCompetitionBrand===$brandOption)>{{ $brandOption }}</option>
                                     @endforeach
-                                    @if(!empty($selectedCompetitionBrand) && !in_array($selectedCompetitionBrand, $competitionBrands, true))
-                                    <option value="{{ $selectedCompetitionBrand }}" selected>{{ $selectedCompetitionBrand }}</option>
-                                    @endif
+                                    <option value="__other__" @selected($isCustomCompetition)>Other</option>
                                 </select>
                             </div>
                             <div>
-                                <select id="competition_model" name="competition_model" class="buying-select" data-selected-model="{{ $selectedCompetitionModel }}">
+                                <select id="competition_model" name="competition_model" class="buying-select" data-selected-model="{{ $selectedCompetitionModel }}" @disabled($isCustomCompetition)>
                                     <option value="">Select model</option>
                                 </select>
+                            </div>
+                            <div class="competition-other-fields {{ $isCustomCompetition ? '' : 'hidden' }}" id="competitionOtherFields">
+                                <label>Other Brand
+                                    <input type="text" id="competition_brand_other" data-competition-other-brand @if($isCustomCompetition) name="competition_brand" @endif value="{{ $isCustomCompetition ? $selectedCompetitionBrand : '' }}" placeholder="Type other brand">
+                                </label>
+                                <label>Other Model
+                                    <input type="text" id="competition_model_other" data-competition-other-model @if($isCustomCompetition) name="competition_model" @endif value="{{ $isCustomCompetition ? $selectedCompetitionModel : '' }}" placeholder="Type other model">
+                                </label>
                             </div>
                             <div>
                                 <select id="competition_model_year" name="competition_model_year" class="buying-select" aria-label="Competition model year">
@@ -936,10 +965,7 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
                     <label><input type="radio" name="exchange_type" value="outhouse" @checked($selectedExchangeType==='outhouse' )><span>Out- House</span></label>
                 </div>
 
-                <div id="exchangePurchaseRow" class="exchange-purchase-row {{ $selectedExchangeType === 'outhouse' ? 'hidden' : '' }}">
-                    <label>Purchase Value</label>
-                    <input id="exchangePurchaseValueInput" type="number" step="0.01" min="0" name="exchange_purchase_value" value="{{ $selectedExchangePurchaseValue }}">
-                </div>
+
 
                 <label class="exchange-question-label">Interested in Exchange?</label>
                 <div class="segment-row two exchange-interest-segment">
@@ -964,30 +990,7 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
                             </div>
                         </div>
 
-                        <div
-                            id="exchangeBrandModelRow"
-                            class="row split {{ $isExchangeEdit ? '' : 'hidden' }}"
-                            data-requires-input="{{ $exchangeNeedsVehicleInput ? '1' : '0' }}">
-                            <div>
-                                <label>Select Brand</label>
-                                <select id="exchange_vehicle_brand" name="exchange_vehicle_brand" class="buying-select">
-                                    <option value="">Select Brand</option>
-                                    @foreach($competitionBrands as $brandOption)
-                                    <option value="{{ $brandOption }}" @selected($selectedExchangeBrand===$brandOption)>{{ $brandOption }}</option>
-                                    @endforeach
-                                    @if(!empty($selectedExchangeBrand) && !in_array($selectedExchangeBrand, $competitionBrands, true))
-                                    <option value="{{ $selectedExchangeBrand }}" selected>{{ $selectedExchangeBrand }}</option>
-                                    @endif
-                                </select>
-                            </div>
-                            <div>
-                                <label>Select Model</label>
-                                <select id="exchange_vehicle_model" name="exchange_vehicle_model" class="buying-select" data-selected-model="{{ $selectedExchangeModel }}">
-                                    <option value="">Select Model</option>
-                                </select>
-                                <input type="hidden" id="exchange_vehicle_model_backup" name="exchange_vehicle_model_backup" value="{{ $selectedExchangeModel }}">
-                            </div>
-                        </div>
+                        @include('partials.exchange-assessment', ['exchangeRecord' => $booking, 'exchangeFallback' => $prospect])
 
                         <div class="row split">
                             <div>
@@ -1010,25 +1013,6 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
                             </div>
                         </div>
 
-                        <div class="row exchange-wide-field exchange-insurance-row">
-                            <div class="exchange-insurance-field">
-                                <div id="exchange_insurance_validity_label" class="exchange-insurance-heading">Insurance Validity</div>
-                                <input type="date" id="exchange_insurance_validity" name="exchange_insurance_validity" value="{{ $selectedExchangeInsuranceValidity }}" aria-labelledby="exchange_insurance_validity_label">
-                            </div>
-                        </div>
-
-                        <div class="exchange-tyre-row">
-                            <label>Tyre Replacement</label>
-                        </div>
-
-                        <div class="segment-row four exchange-tyre-segment">
-                            <input type="hidden" name="exchange_tyre_replacements_present" value="1">
-                            <label><input type="checkbox" name="exchange_tyre_replacements[]" value="front_lhs" @checked(in_array('front_lhs', $selectedExchangeTyreReplacements, true))><span>Front LHS</span></label>
-                            <label><input type="checkbox" name="exchange_tyre_replacements[]" value="front_rhs" @checked(in_array('front_rhs', $selectedExchangeTyreReplacements, true))><span>Front RHS</span></label>
-                            <label><input type="checkbox" name="exchange_tyre_replacements[]" value="rear_lhs" @checked(in_array('rear_lhs', $selectedExchangeTyreReplacements, true))><span>Rear LHS</span></label>
-                            <label><input type="checkbox" name="exchange_tyre_replacements[]" value="rear_rhs" @checked(in_array('rear_rhs', $selectedExchangeTyreReplacements, true))><span>Rear RHS</span></label>
-                        </div>
-
                         <div class="row split">
                             <div>
                                 <label>Color</label>
@@ -1049,13 +1033,16 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
 
                         <div class="row triple">
                             <div>
-                                <input type="number" step="0.01" min="0" id="exchange_expected_price" name="exchange_expected_price" value="{{ $selectedExchangeExpectedPrice }}" placeholder="Expected Price">
+                                <div id="booking_exchange_expected_price_heading" class="exchange-price-heading">Expected Price</div>
+                                <input aria-labelledby="booking_exchange_expected_price_heading" type="number" step="0.01" min="0" id="exchange_expected_price" name="exchange_expected_price" value="{{ $selectedExchangeExpectedPrice }}" placeholder="Expected Price">
                             </div>
                             <div>
-                                <input type="number" step="0.01" min="0" id="exchange_quoted_price" name="exchange_quoted_price" value="{{ $selectedExchangeQuotedPrice }}" placeholder="Quoted Price">
+                                <div id="booking_exchange_quoted_price_heading" class="exchange-price-heading">Quoted Price</div>
+                                <input aria-labelledby="booking_exchange_quoted_price_heading" type="number" step="0.01" min="0" id="exchange_quoted_price" name="exchange_quoted_price" value="{{ $selectedExchangeQuotedPrice }}" placeholder="Quoted Price">
                             </div>
                             <div>
-                                <input type="number" step="0.01" id="exchange_price_difference" name="exchange_price_difference" class="exchange-difference-input" value="{{ $selectedExchangeDifference }}" placeholder="Difference" readonly>
+                                <div id="booking_exchange_price_difference_heading" class="exchange-price-heading">Difference</div>
+                                <input aria-labelledby="booking_exchange_price_difference_heading" type="number" step="0.01" id="exchange_price_difference" name="exchange_price_difference" class="exchange-difference-input" value="{{ $selectedExchangeDifference }}" placeholder="Difference" readonly>
                             </div>
                         </div>
 
@@ -1301,7 +1288,6 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
                 <p><i></i><strong>Model</strong><em>:</em><span>{{ $selectedExchangeModel ?: 'N/A' }}</span></p>
                 <p><i></i><strong>Model Year</strong><em>:</em><span>{{ $selectedExchangeYear ?: 'N/A' }}</span></p>
                 <p><i></i><strong>Ownership</strong><em>:</em><span>{{ $selectedExchangeOwnership ?: 'N/A' }}</span></p>
-                <p><i></i><strong>Insurance Validity</strong><em>:</em><span>{{ $selectedExchangeInsuranceLabel ?: 'N/A' }}</span></p>
                 <p><i></i><strong>Registration No</strong><em>:</em><span>{{ $selectedExchangeRegNo ?: 'N/A' }}</span></p>
                 <p><i></i><strong>Total Km</strong><em>:</em><span>{{ $selectedExchangeMileage !== null && $selectedExchangeMileage !== '' ? number_format((float) $selectedExchangeMileage, 0) : 'N/A' }}</span></p>
                 @endif
@@ -1411,7 +1397,7 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
 <div id="actionRow" class="action-row {{ $currentStep === 1 ? 'no-back' : '' }} {{ $currentStep === 5 ? 'step-five' : '' }}">
     @if($currentStep === 5)
     <a id="backAction" href="{{ $backUrl }}" class="booking-form-nav-btn">Back</a>
-    <button type="submit" name="action_type" value="submit" class="booking-book-now-btn">Book Now</button>
+    <button type="submit" name="action_type" value="{{ $workflowEditing ? 'save_exit' : 'submit' }}" class="booking-book-now-btn">{{ $workflowEditing ? 'Save Changes' : 'Book Now' }}</button>
     @else
     @if($currentStep > 1)
     <a id="backAction" href="{{ $backUrl }}" class="action-btn back-btn">Back</a>
@@ -1420,7 +1406,8 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
     <button type="submit" name="action_type" value="next" class="action-btn next-action-btn">Save & Next</button>
     @endif
 </div>
-</form>
+</fieldset>
+        </form>
 </main>
 </div>
 
@@ -1551,7 +1538,7 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
         const exchangeEditFields = document.getElementById('exchangeEditFields');
         const exchangeBrandModelRow = document.getElementById('exchangeBrandModelRow');
         const exchangeBrandSelect = document.getElementById('exchange_vehicle_brand');
-        const exchangeModelSelect = document.getElementById('exchange_vehicle_model');
+        const exchangeModelSelect = document.getElementById('exchangeAssessmentVehicle');
         const exchangeModelBackupInput = document.getElementById('exchange_vehicle_model_backup');
         const exchangeExpectedPriceInput = document.getElementById('exchange_expected_price');
         const exchangeQuotedPriceInput = document.getElementById('exchange_quoted_price');
@@ -1921,7 +1908,12 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
             }
 
             if (competition === 'yes') {
-                const competitionVehicle = [selectText('competition_brand'), selectText('competition_model'), selectText('competition_model_year')].filter(Boolean).join(' ');
+                const isOtherCompetition = competitionBrandSelect?.value === '__other__';
+                const competitionVehicle = [
+                    isOtherCompetition ? fieldValue('input[data-competition-other-brand]') : selectText('competition_brand'),
+                    isOtherCompetition ? fieldValue('input[data-competition-other-model]') : selectText('competition_model'),
+                    selectText('competition_model_year'),
+                ].filter(Boolean).join(' ');
                 setSummaryText(buyingSummaryCompetition, competitionVehicle ? `Yes - ${competitionVehicle}` : 'Yes');
             } else if (competition === 'not_asked') {
                 setSummaryText(buyingSummaryCompetition, 'I did not ask');
@@ -2314,6 +2306,25 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
             setSelectOptions(competitionModelSelect, models, 'Select Model', selectedModel);
             competitionModelSelect.dataset.selectedModel = '';
             syncBuyingDetailsSummary();
+        }
+
+        function syncCompetitionOtherFields() {
+            const otherFields = document.getElementById('competitionOtherFields');
+            const otherBrand = document.querySelector('[data-competition-other-brand]');
+            const otherModel = document.querySelector('[data-competition-other-model]');
+            if (!competitionBrandSelect || !competitionModelSelect || !otherFields || !otherBrand || !otherModel) return;
+            const isOther = competitionBrandSelect.value === '__other__';
+            otherFields.classList.toggle('hidden', !isOther);
+            competitionModelSelect.disabled = isOther;
+            if (isOther) {
+                competitionBrandSelect.removeAttribute('name');
+                otherBrand.name = 'competition_brand';
+                otherModel.name = 'competition_model';
+            } else {
+                competitionBrandSelect.name = 'competition_brand';
+                otherBrand.removeAttribute('name');
+                otherModel.removeAttribute('name');
+            }
         }
 
         function syncExistingVehicleModels() {
@@ -2874,12 +2885,14 @@ $pageTitle = $stepTitleMap[$currentStep] ?? 'Booking Detail';
 
         if (competitionBrandSelect) {
             competitionBrandSelect.addEventListener('change', function() {
+                syncCompetitionOtherFields();
                 if (competitionModelSelect) {
                     competitionModelSelect.dataset.selectedModel = '';
                     competitionModelSelect.value = '';
                 }
-                syncCompetitionModels();
+                if (competitionBrandSelect.value !== '__other__') syncCompetitionModels();
             });
+            syncCompetitionOtherFields();
         }
 
         competitionModelSelect?.addEventListener('change', syncBuyingDetailsSummary);

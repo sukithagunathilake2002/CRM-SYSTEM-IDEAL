@@ -24,7 +24,7 @@
     const addMoreExchangeImagesBtn = document.getElementById('addMoreExchangeImagesBtn');
     const extraExchangeImagesContainer = document.getElementById('extraExchangeImagesContainer');
     const exchangeBrandSelect = document.getElementById('exchange_vehicle_brand');
-    const exchangeModelSelect = document.getElementById('exchange_vehicle_model');
+    const exchangeModelSelect = document.getElementById('exchangeAssessmentVehicle');
     const existingBrandSelect = document.getElementById('existing_vehicle_brand');
     const existingModelSelect = document.getElementById('existing_vehicle_model');
 
@@ -200,7 +200,14 @@
         const currentVehicle = editedVehicle || document.querySelector('.buying-step .vehicle-pill')?.textContent?.replace(/\s*\/\s*/g, ' ').trim() || '';
 
         const leadSource = selectedValue('lead_source');
-        const sourceInfo = sourceInfoSelect?.value || '';
+        let sourceInfo = sourceInfoSelect?.value || '';
+        if (sourceInfo === 'Event') {
+            const eventName = document.getElementById('sourceInformationOtherInput')?.value || '';
+            sourceInfo = eventName ? ('Event - ' + eventName) : 'Event';
+        } else if (sourceInfo === 'Other') {
+            const otherVal = document.getElementById('sourceInformationOtherInput')?.value || '';
+            sourceInfo = otherVal || 'Other';
+        }
         const quoteTaken = selectedValue('quote_taken');
         const quoteDate = fieldValue('input[name="quote_date"]');
         const testDriveGiven = selectedValue('test_drive_given');
@@ -210,8 +217,13 @@
             ? fieldValue('input[name="test_drive_not_given_reason_other"]')
             : selectedText(testDriveReasonSelect);
         const competitionInterest = selectedValue('interested_in_competition');
-        const competitionBrand = selectedText(document.getElementById('competition_brand'));
-        const competitionModel = selectedText(document.getElementById('competition_model'));
+        const isOtherCompetition = document.getElementById('competition_brand')?.value === '__other__';
+        const competitionBrand = isOtherCompetition
+            ? fieldValue('[data-competition-other-brand]')
+            : selectedText(document.getElementById('competition_brand'));
+        const competitionModel = isOtherCompetition
+            ? fieldValue('[data-competition-other-model]')
+            : selectedText(document.getElementById('competition_model'));
         const firstTimeBuyer = selectedValue('first_time_buyer');
         const existingVehicleDetails = [
             selectedText(existingBrandSelect),
@@ -433,7 +445,12 @@
         const selectedLeadSource = selectedValue('lead_source');
         const sourceMap = window.PROSPECT_SOURCE_INFO_MAP || {};
         const sourceOptions = sourceMap[selectedLeadSource] || [];
-        const selectedFromServer = sourceInfoSelect.dataset.selectedSourceInfo || sourceInfoSelect.value;
+        let selectedFromServer = sourceInfoSelect.dataset.selectedSourceInfo || sourceInfoSelect.value || '';
+        if (selectedFromServer.startsWith && selectedFromServer.startsWith('Event - ')) {
+            selectedFromServer = 'Event';
+        } else if (selectedFromServer !== '' && sourceOptions.indexOf(selectedFromServer) === -1) {
+            selectedFromServer = 'Other';
+        }
 
         sourceInfoSelect.innerHTML = '<option value="">Select Source of Information</option>';
 
@@ -449,6 +466,32 @@
 
         sourceInfoSelect.dataset.selectedSourceInfo = '';
         sourceInfoSelect.disabled = selectedLeadSource === '';
+        updateSourceInformationOtherField();
+    }
+
+    function updateSourceInformationOtherField() {
+        const otherWrap = document.getElementById('sourceInformationOtherWrap');
+        const otherInput = document.getElementById('sourceInformationOtherInput');
+        const otherLabel = document.getElementById('sourceInformationOtherLabel');
+        const showOther = sourceInfoSelect && (sourceInfoSelect.value === 'Other' || sourceInfoSelect.value === 'Event');
+
+        if (otherWrap) {
+            otherWrap.style.display = showOther ? '' : 'none';
+        }
+
+        if (otherLabel) {
+            if (sourceInfoSelect && sourceInfoSelect.value === 'Event') {
+                otherLabel.textContent = 'Event Name';
+                if (otherInput) otherInput.placeholder = 'Enter event name';
+            } else {
+                otherLabel.textContent = 'Other Details';
+                if (otherInput) otherInput.placeholder = 'Enter source details';
+            }
+        }
+
+        if (!showOther && otherInput) {
+            otherInput.value = '';
+        }
     }
 
     function setPersonalEditable(isEditable) {
@@ -1171,9 +1214,35 @@
         updateProspectSummary();
     });
 
+    sourceInfoSelect?.addEventListener('change', () => {
+        updateSourceInformationOtherField();
+        updateProspectSummary();
+    });
+
     const brandSelect = document.getElementById('competition_brand');
+    const competitionOtherFields = document.getElementById('competitionOtherFields');
+    const competitionOtherBrand = document.querySelector('[data-competition-other-brand]');
+    const competitionOtherModel = document.querySelector('[data-competition-other-model]');
+    const syncCompetitionOtherFields = () => {
+        if (!brandSelect || !competitionOtherFields || !competitionOtherBrand || !competitionOtherModel) return;
+        const isOther = brandSelect.value === '__other__';
+        competitionOtherFields.classList.toggle('hidden', !isOther);
+        document.getElementById('competition_model').disabled = isOther;
+        if (isOther) brandSelect.removeAttribute('name');
+        else brandSelect.name = 'competition_brand';
+        competitionOtherBrand.toggleAttribute('name', isOther);
+        competitionOtherModel.toggleAttribute('name', isOther);
+        if (isOther) {
+            competitionOtherBrand.name = 'competition_brand';
+            competitionOtherModel.name = 'competition_model';
+        }
+    };
     if (brandSelect) {
-        brandSelect.addEventListener('change', updateCompetitionModels);
+        brandSelect.addEventListener('change', () => {
+            syncCompetitionOtherFields();
+            if (brandSelect.value !== '__other__') updateCompetitionModels();
+        });
+        syncCompetitionOtherFields();
     }
 
     if (exchangeBrandSelect) {

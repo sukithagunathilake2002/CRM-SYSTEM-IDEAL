@@ -15,6 +15,7 @@ class Delivery extends Model
     public const APPROVAL_REJECTED = 'rejected';
 
     protected $fillable = [
+        'exchange_assessment',
         'enquiry_id',
         'title',
         'name',
@@ -109,6 +110,7 @@ class Delivery extends Model
     ];
 
     protected $casts = [
+        'exchange_assessment' => 'array',
         'extra_images' => 'array',
         'quote_date' => 'date',
         'test_drive_date' => 'date',

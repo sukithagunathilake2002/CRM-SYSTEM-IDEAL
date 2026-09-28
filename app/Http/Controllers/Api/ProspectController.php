@@ -24,7 +24,10 @@ class ProspectController extends Controller
 
     public function store(Request $request, Enquiry $enquiry)
     {
+        abort_unless($enquiry->isEditableBy($request->user()), 403, 'You can only edit your own leads.');
+
         $validated = $request->validate([
+            ...\App\Support\ExchangeAssessment::rules(),
             'title' => ['required', 'string', 'max:20'],
             'name' => ['required', 'string', 'max:255'],
             'mobile_numbers' => ['required', 'string', 'max:255'],
@@ -53,7 +56,7 @@ class ProspectController extends Controller
             'purchase_mode' => ['nullable', Rule::in(['cash', 'finance'])],
             'interested_in_exchange' => ['nullable', Rule::in(['yes', 'no'])],
             'exchange_vehicle_brand' => ['nullable', 'string', 'max:255'],
-            'exchange_vehicle_model' => ['nullable', 'string', 'max:255'],
+            'exchange_vehicle_model' => ['nullable', Rule::in(\App\Support\ExchangeAssessment::VEHICLES)],
             'exchange_manufacture_year' => ['nullable', 'integer', 'between:1950,2100'],
             'exchange_color' => ['nullable', 'string', 'max:255'],
             'exchange_mileage_km' => ['nullable', 'integer', 'min:0'],
@@ -75,6 +78,10 @@ class ProspectController extends Controller
             'lead_status' => ['nullable', Rule::in(['hot', 'warm', 'cold'])],
             'customer_remark' => ['nullable', 'string', 'max:1000'],
         ]);
+        if (in_array($validated['exchange_vehicle_model'] ?? null, \App\Support\ExchangeAssessment::VEHICLES, true)) {
+            $validated['exchange_vehicle_brand'] = 'Mahindra';
+        }
+
 
         $customer = $enquiry->customer;
 
@@ -137,6 +144,7 @@ class ProspectController extends Controller
                 'test_drive_not_given_reason' => $validated['test_drive_not_given_reason'] ?? null,
                 'purchase_mode' => $validated['purchase_mode'] ?? null,
                 'interested_in_exchange' => $validated['interested_in_exchange'] ?? null,
+                'exchange_assessment' => \App\Support\ExchangeAssessment::resolve($validated, $enquiry->prospectSheet?->exchange_assessment, $validated['interested_in_exchange'] ?? null),
                 'exchange_vehicle_brand' => $validated['exchange_vehicle_brand'] ?? null,
                 'exchange_vehicle_model' => $validated['exchange_vehicle_model'] ?? null,
                 'exchange_manufacture_year' => $validated['exchange_manufacture_year'] ?? null,
@@ -158,6 +166,8 @@ class ProspectController extends Controller
                 'customer_remark' => $validated['customer_remark'] ?? null,
             ]
         );
+
+        \App\Support\ExchangeAssessment::sync($enquiry, $prospect);
 
         return response()->json([
             'message' => 'Prospect sheet saved successfully',

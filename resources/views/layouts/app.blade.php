@@ -22,7 +22,8 @@
         $globalHeaderUserName = (string) ($globalHeaderUser?->name ?? 'User');
         $globalHeaderUserEmail = (string) ($globalHeaderUser?->email ?? 'No email');
         $globalHeaderUserRole = (string) ($globalHeaderUser?->role_label ?? 'User');
-        $globalHeaderShowAnalyticsIcon = !in_array($globalHeaderUser?->role, [\App\Models\User::ROLE_AREA_MANAGER, \App\Models\User::ROLE_SALES_CONSULTANT], true);
+        $globalManagementDashboard = in_array($globalHeaderUser?->role, [\App\Models\User::ROLE_ADMIN, \App\Models\User::ROLE_HEAD_OF_SALES, \App\Models\User::ROLE_AREA_MANAGER], true);
+        $globalHeaderShowAnalyticsIcon = !$globalManagementDashboard && !in_array($globalHeaderUser?->role, [\App\Models\User::ROLE_AREA_MANAGER, \App\Models\User::ROLE_SALES_CONSULTANT], true);
     @endphp
 
     @yield('content')
@@ -39,6 +40,12 @@
                 <p>Leads and Bookings</p>
                 @include('layouts.partials.lead-sidebar-links')
             </div>
+            <form method="POST" action="{{ route('auth.logout') }}" class="global-sidebar-logout-form">
+                @csrf
+                <button type="submit">
+                    <span>Logout</span>
+                </button>
+            </form>
         </aside>
         <button type="button" id="globalLeadSidebarOverlay" class="global-lead-sidebar-overlay" aria-label="Close sidebar"></button>
     @endauth
@@ -108,7 +115,9 @@
             width: 230px;
             z-index: 1450;
             box-sizing: border-box;
-            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
             background: #060606;
             color: #ffffff;
             border-right: 1px solid #1a1a1a;
@@ -143,6 +152,43 @@
         .global-lead-sidebar .crm-left-group {
             display: grid;
             gap: 6px;
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            align-content: start;
+            overscroll-behavior: contain;
+        }
+
+        .global-sidebar-logout-form {
+            flex-shrink: 0;
+            margin: 10px 0 0;
+            padding: 20px 0 0;
+            border-top: 1px solid #535353;
+        }
+
+        .global-sidebar-logout-form button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            min-height: 35px;
+            padding: 8px 12px;
+            border: 0;
+            border-radius: 8px;
+            background: #ed0000;
+            color: #fff;
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .global-sidebar-logout-form button:hover {
+            background: #c90000;
+        }
+
+        .global-sidebar-logout-form button:focus-visible {
+            outline: 3px solid #fff;
+            outline-offset: 2px;
         }
 
         .global-lead-sidebar .crm-left-group p {
@@ -230,6 +276,10 @@
                 const notificationMarkup = notificationTemplate ? notificationTemplate.innerHTML : '';
                 const quickIcons = document.createElement('div');
                 quickIcons.className = 'global-quick-icons';
+                const managementIconMarkup = @json($globalManagementDashboard) ? `
+                    <a href="${analyticsUrl}" class="global-quick-icon" aria-label="Open management dashboard" title="Management Dashboard">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+                    </a>` : '';
                 const analyticsIconMarkup = showAnalyticsIcon ? `
                     <a href="${analyticsUrl}" class="global-quick-icon" aria-label="Dashboard analytics" title="Dashboard analytics">
                         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -248,7 +298,7 @@
                             <path d="M10 20v-5h4v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
                         </svg>
                     </a>
-                    ${analyticsIconMarkup}
+                    ${managementIconMarkup}${analyticsIconMarkup}
                     <details class="global-quick-profile">
                         <summary class="global-quick-icon" aria-label="Profile" title="Profile">
                             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">

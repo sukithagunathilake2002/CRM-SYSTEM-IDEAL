@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\DB;
+
 use App\Models\Enquiry;
 use App\Models\Delivery;
 use App\Models\FollowupAttempt;
@@ -146,7 +148,7 @@ class DashboardController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'email', 'employee_number', 'phone', 'role', 'manager_id']);
 
-        $analytics = $this->buildDashboardGeographyAnalytics($user);
+        $analytics = $this->buildAnalytics($user, $request, true);
         $followupEscalations = $this->buildFollowupEscalations($user);
         
         $dashboardEpds = $this->getDashboardEpData($user);
@@ -217,7 +219,10 @@ class DashboardController extends Controller
         $hierarchyCounts['dependent_users'] = $hierarchyCounts['area_managers']
             + $hierarchyCounts['sales_consultants'];
 
-        $analytics = (new \App\Support\HeadOfSalesOverview)->build($user);
+        $analytics = array_merge(
+            (new \App\Support\HeadOfSalesOverview)->build($user),
+            $this->buildAnalytics($user, $request, true)
+        );
 
         return view('dashboards.head-of-sales', compact('hierarchy', 'hierarchyCounts', 'analytics'));
     }
@@ -678,6 +683,21 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
                 $districtCounts[$district] += (int) $row->aggregate;
             }
         }
+        $countsQuery = Enquiry::query()
+            ->join('customers', 'customers.id', '=', 'enquiries.customer_id')
+            ->whereIn('enquiries.user_id', $accessibleUserIds)
+            ->pendingRegistration()
+            ->whereRaw("LOWER(COALESCE(followup_status, '')) <> ?", ['done']);
+        $this->applyVehicleVisibility($countsQuery, $viewer, 'enquiries.vehicle_id');
+        $counts = $countsQuery
+            ->selectRaw("LOWER(TRIM(COALESCE(customers.district, ''))) as district_key, COUNT(*) as total")
+            ->groupByRaw("LOWER(TRIM(COALESCE(customers.district, '')))")
+            ->pluck('total', 'district_key');
+
+        $districtCounts = [];
+        foreach (User::DISTRICT_OPTIONS as $district) {
+            $districtCounts[$district] = (int) ($counts[strtolower($district)] ?? 0);
+        }
 
         $maxCount = max($districtCounts) ?: 1;
         
@@ -741,6 +761,15 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
         $callCount = (int) ($followupCounts?->call_count ?? 0);
         $showroomCount = (int) ($followupCounts?->showroom_count ?? 0);
         $homeCount = (int) ($followupCounts?->home_count ?? 0);
+        $typeCounts = (clone $dueFollowupQuery)->toBase()
+            ->selectRaw("SUM(CASE WHEN LOWER(COALESCE(follow_type, '')) LIKE ? THEN 1 ELSE 0 END) as call_count,
+                SUM(CASE WHEN LOWER(COALESCE(follow_type, '')) LIKE ? THEN 1 ELSE 0 END) as showroom_count,
+                SUM(CASE WHEN LOWER(COALESCE(follow_type, '')) LIKE ? THEN 1 ELSE 0 END) as home_count",
+                ['%call%', '%showroom%', '%home%'])
+            ->first();
+        $callCount = (int) ($typeCounts->call_count ?? 0);
+        $showroomCount = (int) ($typeCounts->showroom_count ?? 0);
+        $homeCount = (int) ($typeCounts->home_count ?? 0);
 
         $totalCount = Enquiry::query()
             ->whereIn('user_id', $accessibleUserIds)
@@ -2224,7 +2253,7 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
         return 'Unassigned';
     }
 
-    private function buildAnalytics(User $viewer, Request $request): array
+    private function buildAnalytics(User $viewer, Request $request, bool $geographyOnly = false): array
     {
         $accessibleUserIds = $this->resolveAccessibleUserIds($viewer);
         $users = User::query()
@@ -2251,7 +2280,7 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
                 'enquiries.status as enquiry_status',
                 'enquiries.lead_source',
                 'enquiries.source_of_information as enquiry_source_of_information',
-                'enquiries.followup_result',
+                DB::raw($this->analyticsLeadResultSql() . ' as followup_result'),
                 'enquiries.followup_lead_temperature',
                 'enquiries.follow_type',
                 'enquiries.follow_date',
@@ -2404,7 +2433,9 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
 
         if ($selectedOwnerRole === 'unassigned') {
             $enquiriesQuery->whereNull('user_id');
-        } elseif ($selectedOwnerRole !== null) {
+        } elseif ($selectedOwnerRole !== null && !($selectedUserId !== null && $selectedUserScope === 'hierarchy')) {
+            // With a selected hierarchy, the role chooses its root user; it must
+            // not exclude descendants who have a different role.
             $roleUserIds = $users->where('role', $selectedOwnerRole)
                 ->pluck('id')
                 ->map(fn($id) => (int) $id)
@@ -2419,7 +2450,7 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
         }
 
         if ($selectedLeadResult !== null) {
-            $enquiriesQuery->whereRaw('LOWER(COALESCE(followup_result, \'\')) = ?', [$selectedLeadResult]);
+            $enquiriesQuery->whereRaw('(' . $this->analyticsLeadResultSql() . ') = ?', [$selectedLeadResult]);
         }
 
         if ($selectedLeadTemperature !== null) {
@@ -2490,6 +2521,78 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
                     strtolower($selectedDistrict),
                 ]);
             }
+        }
+
+        $filterData = [
+            'scope_label' => $viewer->role === User::ROLE_SUPER_ADMIN
+                ? 'All users in the organization'
+                : 'Your leads and your reporting hierarchy',
+            'scope_user_count' => count($accessibleUserIds),
+            'has_active_filters' => false,
+            'filters' => [
+                'from_date' => $fromDate ? $fromDate->toDateString() : '',
+                'to_date' => $toDate ? $toDate->toDateString() : '',
+                'user_id' => $selectedUserId !== null ? (string) $selectedUserId : '',
+                'user_scope' => $selectedUserScope,
+                'owner_role' => $selectedOwnerRole ?? '',
+                'district' => $selectedDistrict ?? '',
+                'lead_result' => $selectedLeadResult ?? '',
+                'lead_temperature' => $selectedLeadTemperature ?? '',
+                'follow_type' => $selectedFollowType ?? '',
+                'followup_status' => $selectedFollowupStatus ?? '',
+            ],
+            'filter_options' => [
+                'users' => $filterableUsers->map(function (User $user): array {
+                    return [
+                        'id' => (int) $user->id,
+                        'name' => $user->name,
+                        'role' => $user->role_label,
+                        'role_key' => $user->role,
+                    ];
+                })->values()->all(),
+                'user_scopes' => $forceHierarchyScope
+                    ? [
+                        ['value' => 'hierarchy', 'label' => 'Selected user + hierarchy'],
+                    ]
+                    : [
+                        ['value' => 'hierarchy', 'label' => 'Selected user + hierarchy'],
+                        ['value' => 'self', 'label' => 'Selected user only'],
+                    ],
+                'owner_roles' => array_values(array_map(
+                    fn(string $role): array => ['value' => $role, 'label' => User::ROLE_LABELS[$role] ?? ucwords(str_replace('_', ' ', $role))],
+                    $allowedOwnerRoles
+                )),
+                'districts' => array_map(
+                    fn(string $district): array => ['value' => $district, 'label' => $district],
+                    $districtOptions
+                ),
+                'lead_results' => [
+                    ['value' => 'active', 'label' => 'Active'],
+                    ['value' => 'lost', 'label' => 'Lost'],
+                    ['value' => 'closed', 'label' => 'Closed'],
+                ],
+                'lead_temperatures' => [
+                    ['value' => 'hot', 'label' => 'Hot'],
+                    ['value' => 'warm', 'label' => 'Warm'],
+                    ['value' => 'cold', 'label' => 'Cold'],
+                ],
+                'follow_types' => [
+                    ['value' => 'Home visit', 'label' => 'Home visit'],
+                    ['value' => 'Showroom visit', 'label' => 'Showroom visit'],
+                    ['value' => 'Call', 'label' => 'Call'],
+                ],
+                'followup_statuses' => [
+                    ['value' => 'pending', 'label' => 'Pending'],
+                    ['value' => 'done', 'label' => 'Done'],
+                ],
+            ],
+            'selected_filter_user_name' => $selectedFilterUserName,
+            'selected_hierarchy_count' => is_array($selectedHierarchyUserIds) ? count($selectedHierarchyUserIds) : null,
+        ];
+        $filterData['has_active_filters'] = collect($filterData['filters'])->except('user_scope')->contains(fn ($value) => $value !== '');
+
+        if ($geographyOnly) {
+            return array_merge($filterData, $this->buildDashboardGeographyAnalytics($enquiriesQuery));
         }
 
         $enquiries = $enquiriesQuery->get();
@@ -2702,70 +2805,7 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
         }
 
         return [
-            'scope_label' => $viewer->role === User::ROLE_SUPER_ADMIN
-                ? 'All users in the organization'
-                : 'Your leads and your reporting hierarchy',
-            'scope_user_count' => count($accessibleUserIds),
-            'has_active_filters' => $hasActiveFilters,
-            'filters' => [
-                'from_date' => $fromDate ? $fromDate->toDateString() : '',
-                'to_date' => $toDate ? $toDate->toDateString() : '',
-                'user_id' => $selectedUserId !== null ? (string) $selectedUserId : '',
-                'user_scope' => $selectedUserScope,
-                'owner_role' => $selectedOwnerRole ?? '',
-                'district' => $selectedDistrict ?? '',
-                'lead_result' => $selectedLeadResult ?? '',
-                'lead_temperature' => $selectedLeadTemperature ?? '',
-                'follow_type' => $selectedFollowType ?? '',
-                'followup_status' => $selectedFollowupStatus ?? '',
-            ],
-            'filter_options' => [
-                'users' => $filterableUsers->map(function (User $user): array {
-                    return [
-                        'id' => (int) $user->id,
-                        'name' => $user->name,
-                        'role' => $user->role_label,
-                        'role_key' => $user->role,
-                    ];
-                })->values()->all(),
-                'user_scopes' => $forceHierarchyScope
-                    ? [
-                        ['value' => 'hierarchy', 'label' => 'Selected user + hierarchy'],
-                    ]
-                    : [
-                        ['value' => 'hierarchy', 'label' => 'Selected user + hierarchy'],
-                        ['value' => 'self', 'label' => 'Selected user only'],
-                    ],
-                'owner_roles' => array_values(array_map(
-                    fn(string $role): array => ['value' => $role, 'label' => User::ROLE_LABELS[$role] ?? ucwords(str_replace('_', ' ', $role))],
-                    $allowedOwnerRoles
-                )),
-                'districts' => array_map(
-                    fn(string $district): array => ['value' => $district, 'label' => $district],
-                    $districtOptions
-                ),
-                'lead_results' => [
-                    ['value' => 'active', 'label' => 'Active'],
-                    ['value' => 'lost', 'label' => 'Lost'],
-                    ['value' => 'closed', 'label' => 'Closed'],
-                ],
-                'lead_temperatures' => [
-                    ['value' => 'hot', 'label' => 'Hot'],
-                    ['value' => 'warm', 'label' => 'Warm'],
-                    ['value' => 'cold', 'label' => 'Cold'],
-                ],
-                'follow_types' => [
-                    ['value' => 'Home visit', 'label' => 'Home visit'],
-                    ['value' => 'Showroom visit', 'label' => 'Showroom visit'],
-                    ['value' => 'Call', 'label' => 'Call'],
-                ],
-                'followup_statuses' => [
-                    ['value' => 'pending', 'label' => 'Pending'],
-                    ['value' => 'done', 'label' => 'Done'],
-                ],
-            ],
-            'selected_filter_user_name' => $selectedFilterUserName,
-            'selected_hierarchy_count' => is_array($selectedHierarchyUserIds) ? count($selectedHierarchyUserIds) : null,
+            ...$filterData,
             'kpis' => [
                 'total_leads' => $enquiries->count(),
                 'active_leads' => $leadResults['active'],
@@ -2849,18 +2889,12 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
      * summaries, so running the full report here needlessly exhausts PHP's
      * memory as the enquiry table grows.
      */
-    private function buildDashboardGeographyAnalytics(User $viewer): array
+    private function buildDashboardGeographyAnalytics($query): array
     {
-        $query = Enquiry::query()
-            ->leftJoin('customers', 'customers.id', '=', 'enquiries.customer_id');
-
-        if ($viewer->role !== User::ROLE_SUPER_ADMIN) {
-            $query->whereIn('enquiries.user_id', $this->resolveAccessibleUserIds($viewer));
-        }
-
         $districtTotals = [];
         foreach ($query
-            ->selectRaw('customers.district as district, COUNT(*) as leads')
+            ->select('customers.district')
+            ->selectRaw('COUNT(*) as leads')
             ->groupBy('customers.district')
             ->get() as $row) {
             $district = trim((string) $row->district);
@@ -4766,6 +4800,21 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
                 ->values(),
             default => $nonSuperUsers,
         };
+    }
+
+    private function analyticsLeadResultSql(): string
+    {
+        // New enquiries are OPEN before their first follow-up result is recorded.
+        // Keep filtering and every analytics aggregate on the same classification.
+        return "CASE
+            WHEN LOWER(TRIM(COALESCE(enquiries.followup_result, ''))) IN ('lost', 'closed')
+                THEN LOWER(TRIM(enquiries.followup_result))
+            WHEN LOWER(TRIM(COALESCE(enquiries.status, ''))) IN ('lost', 'closed')
+                THEN LOWER(TRIM(enquiries.status))
+            WHEN LOWER(TRIM(COALESCE(enquiries.status, ''))) IN ('cancelled', 'canceled')
+                THEN NULL
+            ELSE 'active'
+        END";
     }
 
     private function normalizeLeadResult($value): ?string

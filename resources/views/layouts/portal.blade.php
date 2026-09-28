@@ -15,11 +15,12 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="{{ asset('css/portal.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/portal.css') }}?v={{ filemtime(public_path('css/portal.css')) }}">
 </head>
 <body class="@yield('bodyClass')">
     @php
         $portalUser = auth()->user();
+        $isManagementDashboard = in_array($portalUser?->role, [\App\Models\User::ROLE_ADMIN, \App\Models\User::ROLE_HEAD_OF_SALES, \App\Models\User::ROLE_AREA_MANAGER], true);
         $isLoginRoute = request()->routeIs('login') || request()->routeIs('auth.login.form');
         $portalInitial = strtoupper(substr((string) ($portalUser?->name ?? 'U'), 0, 1));
     @endphp
@@ -50,7 +51,12 @@
                             </svg>
                         </a>
 
-                        @unless(in_array($portalUser?->role, [\App\Models\User::ROLE_AREA_MANAGER, \App\Models\User::ROLE_SALES_CONSULTANT], true))
+                        @if($isManagementDashboard)
+                        <a href="{{ route('dashboard.home') }}" class="portal-quick-icon" aria-label="{{ $portalUser->role_label }} Dashboard" title="{{ $portalUser->role_label }} Dashboard">
+                            @include('partials.dashboard-icon')
+                        </a>
+                        @endif
+                        @unless($isManagementDashboard || in_array($portalUser?->role, [\App\Models\User::ROLE_AREA_MANAGER, \App\Models\User::ROLE_SALES_CONSULTANT], true))
                         <a href="{{ route('dashboard.home') }}" class="portal-quick-icon" aria-label="Open analyzing dashboard" title="Analyzing Dashboard">
                             <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
                                 <path d="M4 19h16" stroke-linecap="round"></path>

@@ -12,6 +12,7 @@ class ProspectSheet extends Model
     protected $table = 'prospect_sheets';
 
     protected $fillable = [
+        'exchange_assessment',
         'enquiry_id',
         'customer_type',
         'corporate_name',
@@ -75,6 +76,7 @@ class ProspectSheet extends Model
     }
 
     protected $casts = [
+        'exchange_assessment' => 'array',
         'exchange_extra_images' => 'array',
         'exchange_tyre_replacements' => 'array',
         'offer_unit_price' => 'decimal:2',

@@ -359,6 +359,8 @@ html.theme-dark .analytics-card-enhanced {
     <a class="hierarchy-metric-btn followup" href="{{ route('dashboard.followup_tracker') }}">FollowUp</a>
 </div>
 
+@include('dashboards.partials.geography-filters')
+
 <section id="districtOverviewCard" class="card district-card">
     <div class="card-title-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
