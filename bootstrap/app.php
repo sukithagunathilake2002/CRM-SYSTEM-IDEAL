@@ -31,5 +31,3 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->withErrors(['session' => 'This form expired and the action was not saved. Please try again from the refreshed page.']);
         });
     })->create();
-        //
-    })->create();
