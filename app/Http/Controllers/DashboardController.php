@@ -652,20 +652,6 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
     {
         $accessibleUserIds = $this->resolveAccessibleUserIds($viewer);
         
-        $countsQuery = Enquiry::query()
-            ->join('customers', 'customers.id', '=', 'enquiries.customer_id')
-            ->whereIn('enquiries.user_id', $accessibleUserIds)
-            ->pendingRegistration()
-            ->whereRaw("LOWER(COALESCE(followup_status, '')) <> ?", ['done']);
-        $this->applyVehicleVisibility($countsQuery, $viewer, 'enquiries.vehicle_id');
-        $counts = $countsQuery
-            ->selectRaw("LOWER(TRIM(COALESCE(customers.district, ''))) as district_key, COUNT(*) as total")
-            ->groupByRaw("LOWER(TRIM(COALESCE(customers.district, '')))")
-            ->pluck('total', 'district_key');
-
-        $districtCounts = [];
-        foreach (User::DISTRICT_OPTIONS as $district) {
-            $districtCounts[$district] = (int) ($counts[strtolower($district)] ?? 0);
         $districtCounts = array_fill_keys(User::DISTRICT_OPTIONS, 0);
 
         $rows = Enquiry::query()
@@ -738,15 +724,6 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
         $dueFollowupQuery = (clone $baseQuery)
             ->where('follow_date', '<=', $today);
 
-        $typeCounts = (clone $dueFollowupQuery)->toBase()
-            ->selectRaw("SUM(CASE WHEN LOWER(COALESCE(follow_type, '')) LIKE ? THEN 1 ELSE 0 END) as call_count,
-                SUM(CASE WHEN LOWER(COALESCE(follow_type, '')) LIKE ? THEN 1 ELSE 0 END) as showroom_count,
-                SUM(CASE WHEN LOWER(COALESCE(follow_type, '')) LIKE ? THEN 1 ELSE 0 END) as home_count",
-                ['%call%', '%showroom%', '%home%'])
-            ->first();
-        $callCount = (int) ($typeCounts->call_count ?? 0);
-        $showroomCount = (int) ($typeCounts->showroom_count ?? 0);
-        $homeCount = (int) ($typeCounts->home_count ?? 0);
         // The previous three individual counts each scanned roughly 40,000
         // enquiries for this consultant. Calculate all card totals in one
         // indexed query instead.
