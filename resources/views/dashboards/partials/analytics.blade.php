@@ -1373,6 +1373,11 @@
                         responsive: true,
                         maintainAspectRatio: false,
                         animation: barAnimation(55),
+                        interaction: {
+                            mode: 'index',
+                            axis: 'x',
+                            intersect: false,
+                        },
                         onClick: (_event, elements) => {
                             const first = elements[0];
                             if (!first) {
@@ -1398,13 +1403,14 @@
                                 },
                             },
                             tooltip: {
+                                enabled: true,
                                 callbacks: {
                                     label: (context) => {
                                         const label = context.dataset.label || '';
                                         const value = Number(context.parsed.y || 0);
                                         return label === 'contribution'
-                                            ? `${label}: ${value.toFixed(2)}%`
-                                            : `${label}: ${value}`;
+                                            ? `Contribution: ${value.toFixed(2)}%`
+                                            : `Number of leads: ${new Intl.NumberFormat('en-US').format(value)}`;
                                     },
                                 },
                             },

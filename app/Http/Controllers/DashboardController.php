@@ -3358,8 +3358,9 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
     {
         $leadState = strtolower(trim((string) $enquiry->prospect_lead_status));
 
-        return (int) ($enquiry->prospect_current_step ?? 0) >= 5
-            && in_array($leadState, ['hot', 'warm', 'cold'], true);
+        // Match Enquiry::hasCompletedProspectSheet(): saved lead status determines
+        // registration, including existing records saved before the final step.
+        return in_array($leadState, ['hot', 'warm', 'cold'], true);
     }
 
     private function buildBookingAnalytics(Collection $enquiries, Collection $usersById): array
