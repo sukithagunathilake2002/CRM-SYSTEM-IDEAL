@@ -2645,7 +2645,14 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
 
         $lostAnalytics = $this->buildLostAnalytics($enquiries, $usersById);
         $closedAnalytics = $this->buildClosedAnalytics($enquiries, $usersById);
-        $activeAnalytics = $this->buildActiveAnalytics($enquiries, $usersById);
+        $registrationFilter = strtoupper(trim((string) $request->query('active_registration', '')));
+        $registrationFilter = in_array($registrationFilter, ['REGISTERED', 'EPR'], true) ? $registrationFilter : null;
+        $selectionInput = $request->query('active_selection', []);
+        $selections = is_array($selectionInput) ? array_filter(
+            array_intersect_key($selectionInput, array_flip(['month', 'model', 'lead_source', 'source_information', 'sales_consultant', 'area_manager', 'lead_state'])),
+            fn($value): bool => is_string($value) && trim($value) !== ''
+        ) : [];
+        $activeAnalytics = $this->buildActiveAnalytics($enquiries, $usersById, $registrationFilter, $selections);
         $bookingAnalytics = $this->buildBookingAnalytics($enquiries, $usersById);
 
         $byUser = [];
@@ -2913,11 +2920,50 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
         ];
     }
 
-    private function buildActiveAnalytics(Collection $enquiries, Collection $usersById): array
+    private function sourceInformationAnalyticsLabel(Enquiry $enquiry): string
+    {
+        $prospect = trim((string) $enquiry->prospect_source_of_information);
+        $original = trim((string) $enquiry->enquiry_source_of_information);
+        // Older prospect records may only contain the category while the
+        // enquiry retains the free-text details entered for Other.
+        $source = $prospect;
+        if ($source === '' || (strcasecmp($source, 'Other') === 0 && $original !== '')) {
+            $source = $original;
+        }
+
+        if (strcasecmp($source, 'Other') === 0) {
+            return 'Other (Details Not Provided)';
+        }
+
+        return $this->displayAnalyticsLabel($source, 'Not specified');
+    }
+
+    private function activeSelectionValue(Enquiry $enquiry, Collection $usersById, string $key): ?string
+    {
+        $owner = $usersById->get((int) $enquiry->user_id);
+
+        return match ($key) {
+            'month' => $this->analyticsDate($enquiry->created_at)->format('M Y'),
+            'model' => $this->displayAnalyticsLabel($enquiry->vehicle_model, 'Not specified'),
+            'lead_source' => $this->displayAnalyticsLabel($enquiry->lead_source, 'Not specified'),
+            'source_information' => $this->sourceInformationAnalyticsLabel($enquiry),
+            'lead_state' => $this->displayAnalyticsLabel($enquiry->prospect_lead_status ?: $enquiry->followup_lead_temperature, 'Not specified'),
+            'sales_consultant' => $owner instanceof User ? $owner->name : 'Unassigned',
+            'area_manager' => $this->resolveAreaManagerForAnalytics($owner, $usersById)?->name ?? 'Unassigned',
+            default => null,
+        };
+    }
+
+    private function buildActiveAnalytics(Collection $enquiries, Collection $usersById, ?string $registrationFilter = null, array $selections = []): array
     {
         $activeRows = $enquiries
             ->filter(fn(Enquiry $enquiry): bool => $this->normalizeLeadResult($enquiry->followup_result) === 'active')
+            ->filter(fn(Enquiry $enquiry): bool => $registrationFilter === null
+                || ($this->isRegisteredAnalyticsLead($enquiry) ? 'REGISTERED' : 'EPR') === $registrationFilter)
             ->values();
+        foreach ($selections as $key => $value) {
+            $activeRows = $activeRows->filter(fn(Enquiry $enquiry): bool => $this->activeSelectionValue($enquiry, $usersById, $key) === $value)->values();
+        }
         $totalActive = $activeRows->count();
 
         $groups = [
@@ -2982,7 +3028,7 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
             $this->addActiveAggregate($groups['lead_source'], $this->displayAnalyticsLabel($enquiry->lead_source, 'Not specified'));
             $this->addActiveAggregate(
                 $groups['source_information'],
-                $this->displayAnalyticsLabel($enquiry->prospect_source_of_information ?: $enquiry->enquiry_source_of_information, 'Not specified')
+                $this->sourceInformationAnalyticsLabel($enquiry)
             );
             $this->addActiveAggregate(
                 $groups['lead_state'],
@@ -3050,10 +3096,10 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
 
         $chartTabs = [
             ['key' => 'registration', 'label' => 'EPR Vs Registered', 'title' => 'EPR Vs Registered', 'metric' => 'count', 'rows' => $this->formatActiveRegistrationRows($groups['registration'], $totalActive)],
-            ['key' => 'month', 'label' => 'Month Wise', 'title' => 'Month Wise', 'metric' => 'count', 'rows' => $this->formatActiveMonthRows($groups['month'], $monthOrder, $totalActive)],
+            ['key' => 'month', 'label' => 'Month Wise', 'title' => 'Month Wise', 'metric' => 'count', 'rows' => $this->formatActiveMonthRows($activeRows, $totalActive)],
             ['key' => 'model', 'label' => 'Model Wise', 'title' => 'Model Wise', 'metric' => 'count', 'rows' => $this->formatActiveAggregateRows($groups['model'], $totalActive, 12)],
             ['key' => 'lead_source', 'label' => 'Lead Source Wise', 'title' => 'Lead Source Wise', 'metric' => 'count', 'rows' => $this->formatActiveAggregateRows($groups['lead_source'], $totalActive, 12)],
-            ['key' => 'source_information', 'label' => 'Source Of Information Wise', 'title' => 'Source Of Information Wise', 'metric' => 'count', 'rows' => $this->formatActiveAggregateRows($groups['source_information'], $totalActive, 12)],
+            ['key' => 'source_information', 'label' => 'Source Of Information Wise', 'title' => 'Source Of Information Wise', 'metric' => 'count', 'rows' => $this->formatActiveAggregateRows($groups['source_information'], $totalActive, PHP_INT_MAX)],
             ['key' => 'sales_consultant', 'label' => 'Sales Consultant Wise', 'title' => 'Sales Consultant Wise', 'metric' => 'count', 'rows' => $this->formatActiveAggregateRows($groups['sales_consultant'], $totalActive, 12)],
             ['key' => 'area_manager', 'label' => 'Area Manager Wise', 'title' => 'Area Manager Wise', 'metric' => 'count', 'rows' => $this->formatActiveAggregateRows($groups['area_manager'], $totalActive, 12)],
             ['key' => 'lead_state', 'label' => 'Lead State Wise', 'title' => 'Lead State Wise', 'metric' => 'count', 'rows' => $this->formatActiveAggregateRows($groups['lead_state'], $totalActive, 12)],
@@ -3061,6 +3107,8 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
 
         return [
             'total' => $totalActive,
+            'registration_filter' => $registrationFilter,
+            'selections' => $selections,
             'tabs' => $chartTabs,
             'export_tabs' => [
                 ['title' => 'Age Group Wise', 'export_label' => 'age_group', 'columns' => $this->activeContributionColumns('age_group'), 'rows' => $this->formatActiveBucketRows($groups['age_group'], $totalActive, ['0 - 19', '20 - 25', '26 - 30', '31 - 35', '36 - 40', '41 - 45', '46 - 50', '51 - 55', '56 - 60', '61 - 65', '66 - 70', '71 - 75', '76 - 80', '81 - 85', '86 - 90', '91 - 95', '96 - 100', 'NA']), 'total_row' => $this->activeContributionTotalRow($totalActive)],
@@ -3339,19 +3387,38 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
         ));
     }
 
-    private function formatActiveMonthRows(array $groups, array $monthOrder, int $totalActive): array
+    private function formatActiveMonthRows(Collection $enquiries, int $totalActive): array
     {
-        ksort($groups);
+        return $enquiries->groupBy(fn(Enquiry $enquiry) => $this->analyticsDate($enquiry->created_at)->format('Y-m'))
+            ->sortKeys()->map(function (Collection $monthRows, string $month) use ($totalActive): array {
+                $monthLabel = Carbon::parse($month . '-01')->format('M Y');
+                $monthTotal = $monthRows->count();
+                // Weeks are days 1–7, 8–14, 15–21, 22–28, and 29–31 of each month.
+                $weeks = $monthRows->groupBy(fn(Enquiry $enquiry) => $this->analyticsDate($enquiry->created_at)->weekOfMonth)
+                    ->sortKeys()->map(function (Collection $weekRows, int $week) use ($monthLabel, $monthTotal): array {
+                        $weekTotal = $weekRows->count();
+                        $dates = $weekRows->groupBy(fn(Enquiry $enquiry) => $this->analyticsDate($enquiry->created_at)->format('Y-m-d'))
+                            ->sortKeys()->map(fn(Collection $dateRows, string $date): array => [
+                                'label' => $date,
+                                'count' => $dateRows->count(),
+                                'contribution' => round($dateRows->count() / $weekTotal * 100, 2),
+                            ])->values()->all();
 
-        return array_values(array_map(
-            fn(string $monthKey, int $count): array => [
-                'label' => $monthOrder[$monthKey] ?? $monthKey,
-                'count' => $count,
-                'contribution' => $totalActive > 0 ? round(($count / $totalActive) * 100, 2) : 0,
-            ],
-            array_keys($groups),
-            array_values($groups)
-        ));
+                        return [
+                            'label' => 'Week ' . $week,
+                            'count' => $weekTotal,
+                            'contribution' => round($weekTotal / $monthTotal * 100, 2),
+                            'drilldown' => ['title' => 'Date Wise — ' . $monthLabel . ', Week ' . $week, 'metric' => 'count', 'total' => $weekTotal, 'rows' => $dates],
+                        ];
+                    })->values()->all();
+
+                return [
+                    'label' => $monthLabel,
+                    'count' => $monthTotal,
+                    'contribution' => $totalActive > 0 ? round($monthTotal / $totalActive * 100, 2) : 0,
+                    'drilldown' => ['title' => 'Week Wise — ' . $monthLabel, 'metric' => 'count', 'total' => $monthTotal, 'rows' => $weeks],
+                ];
+            })->values()->all();
     }
 
     private function isRegisteredAnalyticsLead(Enquiry $enquiry): bool
@@ -3394,7 +3461,7 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
             $this->addBookingAggregate($groups['lead_source'], $this->displayAnalyticsLabel($enquiry->lead_source, 'Not specified'));
             $this->addBookingAggregate(
                 $groups['source_information'],
-                $this->displayAnalyticsLabel($enquiry->prospect_source_of_information ?: $enquiry->enquiry_source_of_information, 'Not specified')
+                $this->sourceInformationAnalyticsLabel($enquiry)
             );
             $this->addBookingAggregate(
                 $groups['lead_state'],
@@ -3414,7 +3481,7 @@ public function getDistrictEprs(Request $request, string $district): \Illuminate
                 ['key' => 'month_booked', 'label' => 'Month Wise - Booked', 'title' => 'Month Wise - Booked', 'metric' => 'count', 'rows' => $this->formatBookingMonthRows($groups['month_booked'], $bookedMonthOrder, $totalBookings)],
                 ['key' => 'model', 'label' => 'Model Wise', 'title' => 'Model Wise', 'metric' => 'count', 'rows' => $this->formatBookingAggregateRows($groups['model'], $totalBookings, 12)],
                 ['key' => 'lead_source', 'label' => 'Lead Source Wise', 'title' => 'Lead Source Wise', 'metric' => 'count', 'rows' => $this->formatBookingAggregateRows($groups['lead_source'], $totalBookings, 12)],
-                ['key' => 'source_information', 'label' => 'Source Of Information Wise', 'title' => 'Source Of Information Wise', 'metric' => 'count', 'rows' => $this->formatBookingAggregateRows($groups['source_information'], $totalBookings, 12)],
+                ['key' => 'source_information', 'label' => 'Source Of Information Wise', 'title' => 'Source Of Information Wise', 'metric' => 'count', 'rows' => $this->formatBookingAggregateRows($groups['source_information'], $totalBookings, PHP_INT_MAX)],
                 ['key' => 'sales_consultant', 'label' => 'Sales Consultant Wise', 'title' => 'Sales Consultant Wise', 'metric' => 'count', 'rows' => $this->formatBookingAggregateRows($groups['sales_consultant'], $totalBookings, 12)],
                 ['key' => 'area_manager', 'label' => 'Area Manager Wise', 'title' => 'Area Manager Wise', 'metric' => 'count', 'rows' => $this->formatBookingAggregateRows($groups['area_manager'], $totalBookings, 12)],
                 ['key' => 'lead_state', 'label' => 'Lead State Wise', 'title' => 'Lead State Wise', 'metric' => 'count', 'rows' => $this->formatBookingAggregateRows($groups['lead_state'], $totalBookings, 12)],

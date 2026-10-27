@@ -491,7 +491,7 @@ $timePart,
                 </select>
 
                 <div id="sourceInformationOtherWrap" style="{{ ($selectedSourceOfInformation === 'Other' || str_starts_with((string)$selectedSourceOfInformation, 'Event - ') || $selectedSourceOfInformation === 'Event') ? '' : 'display:none;' }}">
-                    <label id="sourceInformationOtherLabel">@if(str_starts_with((string)$selectedSourceOfInformation, 'Event - ') || $selectedSourceOfInformation === 'Event') Event Name @else Other Details @endif</label>
+                    <label id="sourceInformationOtherLabel">@if(str_starts_with((string)$selectedSourceOfInformation, 'Event - ') || $selectedSourceOfInformation === 'Event') Event Name @else Other Reason (required) @endif</label>
                     <input type="text" id="sourceInformationOtherInput" name="source_of_information_other" class="lockable" value="{{ $selectedSourceInformationOther }}" placeholder="Enter details">
                 </div>
 

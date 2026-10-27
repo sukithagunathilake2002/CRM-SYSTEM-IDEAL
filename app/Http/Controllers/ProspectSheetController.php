@@ -42,14 +42,7 @@ class ProspectSheetController extends Controller
             ->orderBy('model')
             ->pluck('model');
 
-        $sourceInfoMap = [
-            'Walk-In' => ['Showroom Visit', 'Road Show', 'Display', 'Existing Customer', 'Other'],
-            'Tele-In' => ['Call Center', 'Hotline', 'Inbound Call', 'Missed Call', 'Other'],
-            'Activity' => ['Event', 'Mall Display', 'Corporate Visit', 'Canvasing', 'Other'],
-            'Digital' => ['Facebook', 'Instagram', 'Google', 'Website', 'YouTube', 'TikTok', 'Other'],
-            'Referral' => ['Customer Referral', 'Employee Referral', 'Dealer Referral', 'Friends/Family', 'Other'],
-            'Press' => ['Newspaper', 'Magazine', 'Radio', 'TV', 'Other'],
-        ];
+        $sourceInfoMap = \App\Support\LeadSources::informationOptions();
 
         $initialStep = (int) request()->query('step', 1);
         $initialStep = max(1, min(5, $initialStep));
@@ -129,7 +122,7 @@ class ProspectSheetController extends Controller
             'interested_vehicle_color' => ['nullable', 'string', 'max:50'],
             'lead_source' => ['nullable', Rule::in(['Walk-In', 'Tele-In', 'Activity', 'Digital', 'Referral', 'Press'])],
             'source_of_information' => ['nullable', 'string', 'max:255'],
-            'source_of_information_other' => ['nullable', 'string', 'max:255', Rule::requiredIf(fn() => $request->input('source_of_information') === 'Event')],
+            'source_of_information_other' => ['nullable', 'string', 'max:255', Rule::requiredIf(fn() => in_array($request->input('source_of_information'), ['Event', 'Other'], true))],
 
             'quote_taken' => ['nullable', Rule::in(['yes', 'no'])],
             'quote_date' => ['nullable', 'date', Rule::requiredIf(fn() => $requiresStep(2) && $request->input('quote_taken') === 'yes')],

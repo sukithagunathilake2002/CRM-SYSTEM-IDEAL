@@ -448,14 +448,7 @@ public function listHomeEpds(Request $request)
 
     private function sourceInformationOptions(): array
     {
-        return [
-            'Walk-In' => ['Showroom Visit', 'Road Show', 'Display', 'Existing Customer', 'Other'],
-            'Tele-In' => ['Call Center', 'Hotline', 'Inbound Call', 'Missed Call', 'Other'],
-            'Activity' => ['Event', 'Mall Display', 'Corporate Visit', 'Canvasing', 'Other'],
-            'Digital' => ['Facebook', 'Instagram', 'Google', 'Website', 'YouTube', 'TikTok', 'Other'],
-            'Referral' => ['Customer Referral', 'Employee Referral', 'Dealer Referral', 'Friends/Family', 'Other'],
-            'Press' => ['Newspaper', 'Magazine', 'Radio', 'TV', 'Other'],
-        ];
+        return \App\Support\LeadSources::informationOptions();
     }
 
     private function applyVehicleVisibility($query, ?User $viewer): void

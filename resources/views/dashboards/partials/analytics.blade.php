@@ -197,6 +197,50 @@
         <strong>Total : {{ number_format((int) ($activeAnalytics['total'] ?? 0)) }}</strong>
     </div>
 
+    <div class="analytics-selection-panel" aria-label="Selection panel">
+        <div class="lost-analytics-table-head">
+            <a class="btn-link alt" href="{{ request()->fullUrl() }}">Refresh</a>
+            <h3>Selection Panel</h3>
+            <a class="btn-link alt" href="{{ request()->fullUrlWithQuery(['active_registration' => null, 'active_selection' => null, 'analytics_section' => 'active', 'active_tab' => 'registration']) }}">Clear All</a>
+        </div>
+        @php
+            $selectionRows = [];
+            if (!empty($activeAnalytics['registration_filter'])) {
+                $selectionRows[] = ['table' => 'EPR Vs Registered', 'field' => 'lead_workflow_status', 'value' => $activeAnalytics['registration_filter'], 'query' => 'active_registration'];
+            }
+            $selectionFields = ['month' => 'enquiry_month', 'model' => 'vehicle_model', 'lead_source' => 'lead_source', 'source_information' => 'source_of_information', 'sales_consultant' => 'assigned_to_name', 'area_manager' => 'area_manager_name', 'lead_state' => 'lead_status'];
+            foreach (($activeAnalytics['selections'] ?? []) as $key => $value) {
+                $tab = collect($activeAnalytics['tabs'] ?? [])->firstWhere('key', $key);
+                $selectionRows[] = ['table' => $tab['label'] ?? $key, 'field' => $selectionFields[$key] ?? $key, 'value' => $value, 'query' => 'active_selection', 'key' => $key];
+            }
+        @endphp
+        <div class="analytics-table-wrap" style="max-height: 160px; overflow: auto; border: 4px solid #c5e4f7;">
+            <table class="analytics-table">
+                <thead><tr><th>Clear</th><th>Table</th><th>Field</th><th>Selection</th></tr></thead>
+                <tbody>
+                    @forelse($selectionRows as $selection)
+                        @php
+                            $remainingSelections = $activeAnalytics['selections'] ?? [];
+                            unset($remainingSelections[$selection['key'] ?? '']);
+                            $clearQuery = ['analytics_section' => 'active', 'active_selection' => $remainingSelections ?: null];
+                            if ($selection['query'] === 'active_registration') {
+                                $clearQuery['active_registration'] = null;
+                            }
+                        @endphp
+                        <tr>
+                            <td><a href="{{ request()->fullUrlWithQuery($clearQuery) }}" aria-label="Clear {{ $selection['table'] }} selection">Clear</a></td>
+                            <td>{{ $selection['table'] }}</td>
+                            <td>{{ $selection['field'] }}</td>
+                            <td>{{ $selection['value'] }}</td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="4">Click a chart category to select and filter its details.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <div class="lost-analytics-tabs" role="tablist" aria-label="Active analytics charts">
         @foreach(($activeAnalytics['tabs'] ?? []) as $index => $tab)
             <button
@@ -214,6 +258,7 @@
     <div class="lost-analytics-chart-wrap">
         <div class="lost-analytics-chart-top">
             <h3 id="activeAnalyticsTitle">{{ ($activeAnalytics['tabs'][0]['title'] ?? 'EPR Vs Registered') }}</h3>
+            <button type="button" class="btn-link alt analytics-drill-back" id="activeAnalyticsBack" hidden>Back</button>
             <span>Total : <strong id="activeAnalyticsTotal">{{ number_format((int) ($activeAnalytics['total'] ?? 0)) }}</strong></span>
         </div>
         <canvas id="activeAnalyticsChart" aria-label="Active analytics chart"></canvas>
@@ -1291,6 +1336,12 @@
 
             let chart = null;
             let activeKey = tabs[0]?.dataset[tabDataset] || '';
+            if (cardId === 'activeAnalyticsCard') {
+                const requestedTab = new URL(window.location.href).searchParams.get('active_tab');
+                if (tabData.some((tab) => tab.key === requestedTab)) {
+                    activeKey = requestedTab;
+                }
+            }
             let currentView = null;
             let drillStack = [];
 
@@ -1382,6 +1433,30 @@
                             const first = elements[0];
                             if (!first) {
                                 return;
+                            }
+
+                            if (cardId === 'activeAnalyticsCard' && view?.key === 'registration') {
+                                const selection = rows[first.index]?.label;
+                                if (['REGISTERED', 'EPR'].includes(selection)) {
+                                    const url = new URL(window.location.href);
+                                    url.searchParams.set('active_registration', selection);
+                                    url.searchParams.set('analytics_section', 'active');
+                                    url.searchParams.set('active_tab', 'month');
+                                    window.location.assign(url.href);
+                                    return;
+                                }
+                            }
+
+                            if (cardId === 'activeAnalyticsCard' && view?.key !== 'registration' && !rows[first.index]?.drilldown) {
+                                const selection = rows[first.index]?.label;
+                                if (selection && tabData.some((tab) => tab.key === view?.key)) {
+                                    const url = new URL(window.location.href);
+                                    url.searchParams.set(`active_selection[${view.key}]`, selection);
+                                    url.searchParams.set('analytics_section', 'active');
+                                    url.searchParams.set('active_tab', view.key);
+                                    window.location.assign(url.href);
+                                    return;
+                                }
                             }
 
                             const next = rows[first.index]?.drilldown;
@@ -1497,6 +1572,7 @@
             titleId: 'activeAnalyticsTitle',
             totalId: 'activeAnalyticsTotal',
             emptyId: 'activeAnalyticsEmpty',
+            backId: 'activeAnalyticsBack',
             tabSelector: '[data-active-tab]',
             tabDataset: 'activeTab',
             analytics: activeAnalytics,

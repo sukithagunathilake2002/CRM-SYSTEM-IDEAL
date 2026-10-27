@@ -33,14 +33,7 @@
     $hasAddressValues = trim((string) old('state')) !== ''
     || trim((string) old('address1')) !== ''
     || trim((string) old('address2')) !== '';
-    $sourceInfoMap = is_array($sourceInfoMap ?? null) ? $sourceInfoMap : [
-    'Walk-In' => ['Showroom Visit', 'Road Show', 'Display', 'Existing Customer', 'Other'],
-    'Tele-In' => ['Call Center', 'Hotline', 'Inbound Call', 'Missed Call', 'Other'],
-    'Activity' => ['Event', 'Mall Display', 'Corporate Visit', 'Canvasing', 'Other'],
-    'Digital' => ['Facebook', 'Instagram', 'Google', 'Website', 'YouTube', 'TikTok', 'Other'],
-    'Referral' => ['Customer Referral', 'Employee Referral', 'Dealer Referral', 'Friends/Family', 'Other'],
-    'Press' => ['Newspaper', 'Magazine', 'Radio', 'TV', 'Other'],
-    ];
+    $sourceInfoMap = is_array($sourceInfoMap ?? null) ? $sourceInfoMap : \App\Support\LeadSources::informationOptions();
     $selectedLeadSourceForForm = old('lead_source', 'Walk-In');
     $sourceInformationOptionsForSelected = $sourceInfoMap[$selectedLeadSourceForForm] ?? [];
     $selectedSourceInformationRaw = old('source_of_information', '');
@@ -203,7 +196,7 @@
                         <option value="">Select Source of Information</option>
                     </select>
                     <div id="sourceInformationOtherWrap" style="{{ $selectedSourceInformation === 'Other' ? '' : 'display:none;' }}">
-                        <label class="stack-label" for="sourceInformationOtherInput">Other Details</label>
+                        <label class="stack-label" for="sourceInformationOtherInput">Other Reason (required)</label>
                         <input
                             type="text"
                             id="sourceInformationOtherInput"
@@ -610,6 +603,11 @@
         const value = sourceSelect ? sourceSelect.value : '';
         const showOther = sourceSelect && (value === 'Other' || value === 'Event');
 
+        if (otherInput) {
+            otherInput.required = value === 'Other';
+            otherInput.maxLength = 255;
+        }
+
         if (otherWrap) {
             otherWrap.style.display = showOther ? '' : 'none';
         }
@@ -621,8 +619,8 @@
                     label.textContent = 'Event Name';
                     if (otherInput) otherInput.placeholder = 'Enter event name';
                 } else {
-                    label.textContent = 'Other Details';
-                    if (otherInput) otherInput.placeholder = 'Enter source details';
+                    label.textContent = 'Other Reason (required)';
+                    if (otherInput) otherInput.placeholder = 'Enter the other source of information reason';
                 }
             }
         }

@@ -475,6 +475,11 @@
         const otherLabel = document.getElementById('sourceInformationOtherLabel');
         const showOther = sourceInfoSelect && (sourceInfoSelect.value === 'Other' || sourceInfoSelect.value === 'Event');
 
+        if (otherInput) {
+            otherInput.required = Boolean(showOther);
+            otherInput.maxLength = 255;
+        }
+
         if (otherWrap) {
             otherWrap.style.display = showOther ? '' : 'none';
         }
@@ -484,8 +489,8 @@
                 otherLabel.textContent = 'Event Name';
                 if (otherInput) otherInput.placeholder = 'Enter event name';
             } else {
-                otherLabel.textContent = 'Other Details';
-                if (otherInput) otherInput.placeholder = 'Enter source details';
+                otherLabel.textContent = 'Other Reason (required)';
+                if (otherInput) otherInput.placeholder = 'Enter the other source of information reason';
             }
         }
 

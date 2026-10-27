@@ -316,7 +316,7 @@ $viewerId = (int) ($user?->id ?? 0);
 
                         <div class="crm-cta-row">
                             <a href="{{ route('emi.calculator') }}" class="crm-cta">EMI Calculator</a>
-                            <a href="{{ url('/new-enquiry') }}" class="crm-cta">Add New Lead</a>
+                            <a href="{{ url('/new-enquiry') }}" class="crm-cta">Add New Enquiry</a>
                         </div>
 
             <div class="crm-quick-head">Quick Actions</div>
